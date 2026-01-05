@@ -1,153 +1,122 @@
-
 <!DOCTYPE html>
-<html lang=\"th\">
+<html>
 <head>
-<meta charset=\"utf-8\" />
-<title>Inventory Web App (Google Sheets)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบเบิกอะไหล่</title>
+
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; }
-  .row { margin-bottom: 12px; }
-  input, select, button { padding: 6px; font-size: 14px; }
-  table { border-collapse: collapse; width: 100%; margin-top: 12px; }
-  th, td { border: 1px solid #ddd; padding: 8px; }
-  th { background: #f5f5f5; }
-  .actions { display: flex; gap: 6px; }
+body {
+  font-family: Arial, sans-serif;
+  margin: 10px;
+  background: #f4f6f8;
+}
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.1);
+}
+
+input, select, button {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  font-size: 16px;
+}
+
+button {
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+}
+
+button:active {
+  background: #0056b3;
+}
+
+h2 {
+  text-align: center;
+}
 </style>
 </head>
+
 <body>
-<h2>ระบบเบิก/รับเข้าอะไหล่ (Google Sheets)</h2>
-<div class=\"row\">
-  <label>ค้นหา Material#: </label>
-  <input type=\"text\" id=\"materialInput\" placeholder=\"เช่น 9026556\" />
-  <label style=\"margin-left:10px;\">หรือ Instrument: </label>
-  <input type=\"text\" id=\"instrumentInput\" placeholder=\"เช่น QIAStat Dx\" />
-  <button id=\"searchBtn\">ค้นหา</button>
-  <button id=\"showAllBtn\">แสดงข้อมูลทั้งหมด</button>
-</div>
-<div class=\"row\">
-  <label>ผู้เบิก: </label>
-  <select id=\"issuerSelect\"></select>
-</div>
-<table id=\"resultTable\">
-  <thead>
-    <tr>
-      <th>Instrument</th>
-      <th>Material#</th>
-      <th>Product Name</th>
-      <th>Type</th>
-      <th>Min Qty</th>
-      <th>Stock Qty</th>
-      <th>Need To Order</th>
-      <th>เบิกออก</th>
-      <th>รับเข้า</th>
-      <th>บันทึก</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-<div class=\"row\">
-  <button id=\"exportJsonBtn\">ดาวน์โหลด JSON ที่อัพเดทแล้ว</button>
-  <button id=\"exportTxBtn\">ดาวน์โหลดรายการเคลื่อนไหว (CSV)</button>
-</div>
+
+<h2>ระบบเบิกอะไหล่</h2>
+
+<input id="searchMat" placeholder="ค้นหา Material#">
+<input id="searchInst" placeholder="ค้นหา Instrument">
+
+<button onclick="search()">ค้นหา</button>
+<button onclick="loadData()">แสดงทั้งหมด</button>
+
+<div id="list"></div>
+
 <script>
-const sheetUrl = \"https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_zoP0d5LqJvXqxBLo2_N4ak6URf6DLsf-Qqxh7EDHiUY3gd2IDdZivZegTlso6MzWcmexHI7KvttH/pub?output=csv\";
-let items = [];
-let issuers = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
-let transactions = [];
+let allData = [];
 
 function loadData() {
-  fetch(sheetUrl)
-    .then(r => r.text())
-    .then(csv => {
-      const rows = csv.split(/\r?\n/).map(r => r.split(','));
-      const headers = rows[0];
-      items = rows.slice(1).map(r => {
-        return {
-          'Instrument': r[0] || '',
-          'Material#': r[1] || '',
-          'Product Name': r[2] || '',
-          'Type': r[3] || '',
-          'MinimumQty': r[4] || '',
-          'StockQty': r[5] || '',
-          'NeedToOrder': r[6] || ''
-        };
-      });
-      const sel = document.getElementById('issuerSelect');
-      sel.innerHTML = issuers.map(u => `<option value=\"${u}\">${u}</option>`).join('');
-      showAll();
-    });
+  google.script.run.withSuccessHandler(data => {
+    allData = data;
+    render(data);
+  }).getData();
 }
 
-function renderRows(list) {
-  const tb = document.querySelector('#resultTable tbody');
-  tb.innerHTML = '';
-  list.forEach((it, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${it['Instrument']}</td>
-      <td>${it['Material#']}</td>
-      <td>${it['Product Name']}</td>
-      <td>${it['Type']}</td>
-      <td>${it['MinimumQty']}</td>
-      <td>${it['StockQty']}</td>
-      <td>${it['NeedToOrder']}</td>
-      <td><input type=\"number\" min=\"0\" id=\"issue_${idx}\" placeholder=\"0\"></td>
-      <td><input type=\"number\" min=\"0\" id=\"recv_${idx}\" placeholder=\"0\"></td>
-      <td><button onclick=\"saveRow(${idx})\">บันทึก</button></td>
+function render(data) {
+  const div = document.getElementById('list');
+  div.innerHTML = '';
+
+  data.forEach((r, i) => {
+    div.innerHTML += `
+      <div class="card">
+        <b>Material#:</b> ${r['Material#']}<br>
+        <b>Instrument:</b> ${r['Instrument']}<br>
+        <b>Stock:</b> ${r['Stock']}<br>
+
+        <input type="number" placeholder="เบิกออก" id="out${i}">
+        <input type="number" placeholder="รับเข้า" id="in${i}">
+        <input placeholder="ผู้เบิก" id="who${i}">
+
+        <button onclick="save(${i}, '${r['Material#']}')">บันทึก</button>
+      </div>
     `;
-    tb.appendChild(tr);
   });
 }
 
-function showAll() { renderRows(items); }
 function search() {
-  const m = document.getElementById('materialInput').value.trim();
-  const inst = document.getElementById('instrumentInput').value.trim().toLowerCase();
-  const filtered = items.filter(it => {
-    const okM = m ? it['Material#'].includes(m) : true;
-    const okI = inst ? it['Instrument'].toLowerCase().includes(inst) : true;
-    return okM && okI;
+  const m = searchMat.value.toLowerCase();
+  const ins = searchInst.value.toLowerCase();
+
+  const f = allData.filter(r =>
+    String(r['Material#']).toLowerCase().includes(m) &&
+    String(r['Instrument']).toLowerCase().includes(ins)
+  );
+
+  render(f);
+}
+
+function save(i, material) {
+  fetch('', {
+    method: 'POST',
+    body: JSON.stringify({
+      material: material,
+      outQty: document.getElementById(`out${i}`).value,
+      inQty: document.getElementById(`in${i}`).value,
+      who: document.getElementById(`who${i}`).value
+    })
+  })
+  .then(r => r.json())
+  .then(res => {
+    alert(res.status === 'success' ? 'บันทึกแล้ว' : 'ไม่พบข้อมูล');
+    loadData();
   });
-  renderRows(filtered);
 }
-
-function saveRow(idx) {
-  const issue = parseFloat(document.getElementById('issue_'+idx).value || '0');
-  const recv = parseFloat(document.getElementById('recv_'+idx).value || '0');
-  const issuer = document.getElementById('issuerSelect').value;
-  const it = items[idx];
-  const current = parseFloat(it['StockQty'] || '0');
-  const after = current - issue + recv;
-  it['StockQty'] = after;
-  transactions.push({date:new Date().toISOString(),issuer,material:it['Material#'],instrument:it['Instrument'],issueQty:issue,receiveQty:recv,stockAfter:after});
-  alert('บันทึกเรียบร้อย');
-  showAll();
-}
-
-function exportJson() {
-  const blob = new Blob([JSON.stringify(items,null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='inventory_updated.json';
-  a.click();
-}
-function exportTx() {
-  const header=['date','issuer','material','instrument','issueQty','receiveQty','stockAfter'];
-  const rows=transactions.map(t=>header.map(h=>t[h]));
-  const csv=[header.join(','),...rows.map(r=>r.join(','))].join('\n');
-  const blob=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='transactions.csv';
-  a.click();
-}
-
-document.getElementById('searchBtn').addEventListener('click',search);
-document.getElementById('showAllBtn').addEventListener('click',showAll);
-document.getElementById('exportJsonBtn').addEventListener('click',exportJson);
-document.getElementById('exportTxBtn').addEventListener('click',exportTx);
 
 loadData();
 </script>
+
 </body>
 </html>
