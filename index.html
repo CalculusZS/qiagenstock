@@ -1,4 +1,22 @@
 
+// --- HOTFIX: ตั้งผู้ใช้ดีฟอลต์ + ปิด overlay + ไปหน้า "เบิกอะไหล่" ทันที
+(() => {
+  const DEFAULT_USER = "PK";
+  // เซ็ตผู้ใช้ดีฟอลต์แบบ global (ถ้าตัวแปรประกาศในสโคปบนสุดจะกลายเป็น window.currentUser)
+  try { window.currentUser = DEFAULT_USER; } catch(e) {}
+  // อัปเดต badge ผู้ใช้
+  const span = document.querySelector('#currentUser');
+  if (span) span.textContent = DEFAULT_USER;
+  // ปิด overlay ถ้าบังอยู่
+  const overlay = document.querySelector('#userOverlay');
+  if (overlay) overlay.style.display = 'none';
+  // พาไปหน้าเบิกอะไหล่
+  const issueBtn = document.querySelector('#goIssue');
+  if (issueBtn) issueBtn.click();
+  // สำรอง: เรียกฟังก์ชันสลับหน้าโดยตรง (ถ้าโปรเจ็กต์มีฟังก์ชัน showSection)
+  if (typeof showSection === 'function') showSection('issueSection');
+})();
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
