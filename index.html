@@ -1,22 +1,4 @@
 
-// --- HOTFIX: ตั้งผู้ใช้ดีฟอลต์ + ปิด overlay + ไปหน้า "เบิกอะไหล่" ทันที
-(() => {
-  const DEFAULT_USER = "PK";
-  // เซ็ตผู้ใช้ดีฟอลต์แบบ global (ถ้าตัวแปรประกาศในสโคปบนสุดจะกลายเป็น window.currentUser)
-  try { window.currentUser = DEFAULT_USER; } catch(e) {}
-  // อัปเดต badge ผู้ใช้
-  const span = document.querySelector('#currentUser');
-  if (span) span.textContent = DEFAULT_USER;
-  // ปิด overlay ถ้าบังอยู่
-  const overlay = document.querySelector('#userOverlay');
-  if (overlay) overlay.style.display = 'none';
-  // พาไปหน้าเบิกอะไหล่
-  const issueBtn = document.querySelector('#goIssue');
-  if (issueBtn) issueBtn.click();
-  // สำรอง: เรียกฟังก์ชันสลับหน้าโดยตรง (ถ้าโปรเจ็กต์มีฟังก์ชัน showSection)
-  if (typeof showSection === 'function') showSection('issueSection');
-})();
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -29,9 +11,8 @@
     body { font-family: system-ui,Segoe UI,Roboto,Arial,sans-serif; margin:0; color:var(--text); background:var(--bg);}
     header { background:#fff; border-bottom:1px solid var(--border); padding:16px 20px; display:flex; justify-content:space-between; align-items:center;}
     header h1 { margin:0; font-size:18px;}
-    .user-badge { font-size:13px; color:#333; cursor:pointer; }
+    .user-badge { font-size:13px; color:#333; }
     .user-badge .chip { display:inline-block; padding:4px 10px; border-radius:999px; border:1px solid var(--border); background:#fff; margin-left:6px; }
-
     .container { max-width:1100px; margin: 20px auto; background:#fff; border:1px solid var(--border); border-radius:10px; padding:20px;}
     .home { text-align:center; padding:60px 20px;}
     .btn { display:inline-block; padding:12px 18px; border-radius:8px; border:1px solid var(--pri); color:#fff; background:var(--pri); cursor:pointer; text-decoration:none; }
@@ -87,7 +68,7 @@
 <body>
 <header>
   <h1>ระบบเบิก/คืนอะไหล่</h1>
-  <div class="user-badge" title="คลิกเพื่อเปลี่ยนผู้ใช้">
+  <div class="user-badge">
     ผู้ใช้งาน: <span id="currentUser" class="chip">ยังไม่เลือก</span>
   </div>
 </header>
@@ -105,7 +86,7 @@
       <button class="user-btn" data-user="PK">PK</button>
       <button class="user-btn" data-user="PA">PA</button>
     </div>
-    <p class="hint">* จะไม่สามารถ “ยืนยันการเบิก” ได้หากยังไม่เลือกผู้ใช้งาน</p>
+    <p class="hint">* จะไม่สามารถเข้าหน้า “เบิก/คืน” ได้หากยังไม่เลือกผู้ใช้งาน</p>
   </div>
 </div>
 
@@ -193,3 +174,578 @@
         <div class="col-6">
           <label>ค้นหาอะไหล่</label>
           <input type="text" id="issue_search" placeholder="พิมพ์ชื่อ/รหัส/รุ่น เพื่อค้นหา..." />
+        </div>
+        <div class="col-6">
+          <label>รายการอะไหล่</label>
+          <select id="issue_select"></select>
+        </div>
+        <div class="col-6">
+          <label>จำนวน</label>
+          <input type="number" id="issue_qty" min="1" value="1" />
+        </div>
+        <div class="col-6">
+          <label>หน่วย (เช่น pcs, set)</label>
+          <input type="text" id="issue_uom" placeholder="เช่น pcs" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn small" id="issue_add">เพิ่มเข้ารายการ</button>
+      </div>
+
+      <table id="issue_table">
+        <thead>
+          <tr>
+            <th>รหัสอะไหล่</th>
+            <th>ชื่ออะไหล่</th>
+            <th>รุ่น/เครื่อง</th>
+            <th>จำนวน</th>
+            <th>หน่วย</th>
+            <th>ลบ</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="actions">
+        <button class="btn" id="issue_download">ดาวน์โหลดคำขอ (CSV)</button>
+        <button class="btn" id="issue_confirm">ยืนยันการเบิก (อัปเดตสต็อก)</button>
+        <button class="btn ghost" id="download_inventory">ดาวน์โหลดสต็อกที่อัปเดต (CSV)</button>
+      </div>
+      <p class="footer-note">* “ยืนยันการเบิก” จะหักคลังหลัก (H) และบวกเข้าช่องผู้ใช้ (I..N) ตามรหัสที่เลือก</p>
+    </div>
+  </section>
+
+  <!-- RETURN FORM (ยังคงเหมือนเดิม; ถ้าต้องการให้ "ยืนยันการคืน" เพิ่มได้ภายหลัง) -->
+  <section id="returnSection" class="hidden">
+    <div class="toolbar">
+      <a class="backlink" data-back>← กลับหน้าแรก</a>
+      <span class="chip">โหมด: คืนอะไหล่</span>
+    </div>
+    <h2>แบบฟอร์มคืนอะไหล่</h2>
+    <p class="muted">กรอกข้อมูลผู้คืน และรายการอะไหล่ที่ต้องการคืนเข้าระบบ/สต็อก</p>
+
+    <div class="actions">
+      <button class="btn" id="openMatSearch_return">ค้นหา Material</button>
+    </div>
+
+    <div class="row">
+      <div class="col-6">
+        <label>ผู้คืน</label>
+        <input type="text" id="return_requester" placeholder="เช่น Phurilap Khonthong" />
+      </div>
+      <div class="col-6">
+        <label>หน่วยงาน/ทีม</label>
+        <input type="text" id="return_team" placeholder="เช่น TH Service Team" />
+      </div>
+      <div class="col-6">
+        <label>เหตุผลการคืน</label>
+        <textarea id="return_reason" rows="3" placeholder="เช่น ปิดงานแล้ว / อะไหล่เกิน / ไม่ได้ใช้ / เปลี่ยนรุ่น"></textarea>
+      </div>
+      <div class="col-6">
+        <label>สถานะอะไหล่</label>
+        <select id="return_condition">
+          <option value="New/Unused">ใหม่/ไม่ได้ใช้</option>
+          <option value="Used/Good">ผ่านการใช้ / สภาพดี</option>
+          <option value="Defective">ชำรุด</option>
+          <option value="For Scrap">คัดทิ้ง</option>
+        </select>
+      </div>
+      <div class="col-6">
+        <label>อ้างอิงใบเบิก (ถ้ามี)</label>
+        <input type="text" id="return_ref" placeholder="เช่น Issue Doc No." />
+      </div>
+      <div class="col-6">
+        <label>วันที่คืน</label>
+        <input type="date" id="return_date" />
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>เลือกอะไหล่ที่จะคืน</h3>
+      <div class="row">
+        <div class="col-6">
+          <label>ค้นหาอะไหล่</label>
+          <input type="text" id="return_search" placeholder="พิมพ์ชื่อ/รหัส/รุ่น เพื่อค้นหา..." />
+        </div>
+        <div class="col-6">
+          <label>รายการอะไหล่</label>
+          <select id="return_select"></select>
+        </div>
+        <div class="col-6">
+          <label>จำนวน</label>
+          <input type="number" id="return_qty" min="1" value="1" />
+        </div>
+        <div class="col-6">
+          <label>หน่วย (เช่น pcs, set)</label>
+          <input type="text" id="return_uom" placeholder="เช่น pcs" />
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn small" id="return_add">เพิ่มเข้ารายการ</button>
+      </div>
+
+      <table id="return_table">
+        <thead>
+          <tr>
+            <th>รหัสอะไหล่</th>
+            <th>ชื่ออะไหล่</th>
+            <th>รุ่น/เครื่อง</th>
+            <th>จำนวน</th>
+            <th>หน่วย</th>
+            <th>ลบ</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="actions">
+        <button class="btn" id="return_download">ดาวน์โหลดรายการคืน (CSV)</button>
+        <!-- หากต้องการ เพิ่มปุ่มยืนยันการคืนได้ -->
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  // ===== CONFIG =====
+  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQg2ma13Gm9ppdtEaZAb9fLuZn2YmoXFJx3DYb5te4Fua4xej_OFU-_6J6OQBXXdO8AAWlueRQ1omHd/pub?output=csv";
+
+  // เดา header หลัก ๆ สำหรับการค้นหา/เลือก
+  const keyMap = {
+    code: ["Part Number","PartNo","Code","Part Code","Material Code","Material"],
+    name: ["Part Name","Description","Item Name","Name","Material Name"],
+    model:["Instrument Model","Model","Machine","Category","Series"]
+  };
+  const NAME_HEADER_CANDIDATES = ["Part Name","Description","Item Name","Name","Material Name"];
+
+  // กำหนดคอลัมน์ตัวอักษรที่แสดงใน modal ค้นหา
+  const LETTER_COLUMNS = ["A","B","C","D","H"];
+
+  // แมปผู้ใช้งาน → คอลัมน์ที่เก็บยอดผู้ใช้
+  const USER_COL_MAP = {
+    KM: "I",
+    TK: "J",
+    PSO: "K",
+    PST: "L",
+    PK: "M",
+    PA: "N"
+  };
+
+  // ===== STATE =====
+  let headers = [];     // รายชื่อหัวคอลัมน์ (แถวที่ 1)
+  let rowsRaw = [];     // ข้อมูลดิบทั้งหมด (array of row-objects keyed by header)
+  let parts = [];       // [{code,name,model,raw}]
+  let currentUser = null;
+  let activeForm = "issue";
+
+  // ===== HELPERS (DOM) =====
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => document.querySelectorAll(sel);
+
+  function showSection(id){
+    $("#homeSection").classList.add("hidden");
+    $("#issueSection").classList.add("hidden");
+    $("#returnSection").classList.add("hidden");
+    document.getElementById(id).classList.remove("hidden");
+  }
+  function showOverlay(v){ $("#userOverlay").style.display = v ? "flex" : "none"; }
+  function requireUserSelected(action){
+    return (...args)=>{
+      if(!currentUser){ alert("กรุณาเลือกผู้ใช้งานก่อนเริ่มทำรายการ"); showOverlay(true); return; }
+      return action(...args);
+    };
+  }
+
+  // ===== CSV PARSER =====
+  function parseCSV(text) {
+    const lines = text.replace(/\r/g, "").split("\n");
+    const headersLocal = lines[0].split(",").map(h => h.trim());
+    const rows = lines.slice(1).filter(l => l.trim().length>0).map(line => {
+      const cols = [];
+      let cur = "", inQuotes = false;
+      for (let i=0;i<line.length;i++){
+        const ch=line[i];
+        if(ch==='\"'){
+          if(inQuotes && line[i+1]==='\"'){ cur+='\"'; i++; }
+          else { inQuotes=!inQuotes; }
+        } else if(ch===',' && !inQuotes){ cols.push(cur); cur=""; }
+        else { cur+=ch; }
+      }
+      cols.push(cur);
+      const obj={};
+      headersLocal.forEach((h,idx)=> obj[h]= (cols[idx]||"").trim().replace(/^\"|\"$/g,""));
+      return obj;
+    });
+    return { headers: headersLocal, rows };
+  }
+
+  // ===== DATA UTIL =====
+  function pick(obj, candidates){
+    for(const k of candidates){ if(k in obj && obj[k] !== "") return obj[k]; }
+    return "";
+  }
+  function toNumber(v){
+    if(v===null || v===undefined) return 0;
+    const n = parseFloat(String(v).replace(/,/g,'').trim());
+    return isNaN(n) ? 0 : n;
+  }
+  function colLetterToIndex(letter){
+    letter = letter.toUpperCase().trim();
+    let idx = 0;
+    for (let i=0; i<letter.length; i++){
+      idx = idx * 26 + (letter.charCodeAt(i) - 64);
+    }
+    return idx - 1; // 0-based
+  }
+  function headerByLetter(letter){
+    const idx = colLetterToIndex(letter);
+    return headers[idx] || null;
+  }
+  function getCell(rowObj, letter){
+    const h = headerByLetter(letter);
+    return h ? rowObj[h] : "";
+  }
+  function setCell(rowObj, letter, value){
+    const h = headerByLetter(letter);
+    if(h){ rowObj[h] = String(value); }
+  }
+
+  // ===== LOAD DATA =====
+  async function loadParts() {
+    const res = await fetch(CSV_URL);
+    if(!res.ok) throw new Error("โหลด CSV ไม่สำเร็จ");
+    const text = await res.text();
+    const parsed = parseCSV(text);
+    headers = parsed.headers;
+    rowsRaw = parsed.rows;
+
+    parts = rowsRaw.map(r => ({
+      code: pick(r, keyMap.code),
+      name: pick(r, keyMap.name),
+      model: pick(r, keyMap.model),
+      raw: r
+    })).filter(p => p.code || p.name);
+
+    // เตรียม modal header: Name + A/B/C/D/H + เลือก
+    buildMaterialModalHeader();
+
+    // เติม dropdown
+    refreshSelect("issue_select", parts);
+    refreshSelect("return_select", parts);
+  }
+
+  function refreshSelect(selectId, list) {
+    const selectEl = document.getElementById(selectId);
+    selectEl.innerHTML = "";
+    list.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.code || p.name;
+      opt.textContent = `${p.code || "-"} | ${p.name || "-"} ${p.model ? "(" + p.model + ")" : ""}`;
+      selectEl.appendChild(opt);
+    });
+  }
+
+  function wireSearch(searchId, selectId){
+    const searchEl = document.getElementById(searchId);
+    searchEl.addEventListener("input", () => {
+      const q = searchEl.value.toLowerCase();
+      const filtered = parts.filter(p =>
+        (p.code||"").toLowerCase().includes(q) ||
+        (p.name||"").toLowerCase().includes(q) ||
+        (p.model||"").toLowerCase().includes(q)
+      );
+      refreshSelect(selectId, filtered);
+    });
+  }
+
+  // ===== ISSUE/RETURN ADD LINE =====
+  function addLine(tableId, selectId, qtyId, uomId){
+    const selectEl = document.getElementById(selectId);
+    if(selectEl.options.length === 0) return alert("ไม่มีรายการอะไหล่ให้เลือก");
+    const value = selectEl.value;
+    const qty = parseInt(document.getElementById(qtyId).value || "1",10);
+    const uom = document.getElementById(uomId).value || "pcs";
+    if (qty <= 0) return alert("จำนวนต้องมากกว่า 0");
+
+    let selected = parts.find(p => p.code === value)
+      || parts.find(p => (p.code || p.name) === value);
+    if(!selected) return alert("ไม่พบอะไหล่ที่เลือก");
+
+    const tbody = document.querySelector(`#${tableId} tbody`);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${selected.code || ""}</td>
+      <td>${selected.name || ""}</td>
+      <td>${selected.model || ""}</td>
+      <td>${qty}</td>
+      <td>${uom}</td>
+      <td><button class="btn small ghost">ลบ</button></td>
+    `;
+    tr.querySelector("button").addEventListener("click", ()=> tr.remove());
+    tbody.appendChild(tr);
+  }
+
+  function wireAddButtons(){
+    $("#issue_add").addEventListener("click", () => {
+      if(!currentUser) return alert("กรุณาเลือกผู้ใช้งานก่อน");
+      addLine("issue_table","issue_select","issue_qty","issue_uom");
+    });
+    $("#return_add").addEventListener("click", () => {
+      if(!currentUser) return alert("กรุณาเลือกผู้ใช้งานก่อน");
+      addLine("return_table","return_select","return_qty","return_uom");
+    });
+  }
+
+  // ===== DOWNLOADS (คำขอ & สต็อก) =====
+  function downloadCSV(filename, headersRow, rows){
+    const csv = [headersRow, ...rows]
+      .map(r => r.map(v => `"${String(v??"").replace(/"/g,'""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+  }
+
+  function wireDownload(){
+    // ISSUE request (คำขอเบิก)
+    $("#issue_download").addEventListener("click", () => {
+      if(!currentUser) return alert("กรุณาเลือกผู้ใช้งานก่อน");
+      const rowsOut = [];
+      const tbody = $("#issue_table tbody");
+      const requester = $("#issue_requester").value;
+      const team = $("#issue_team").value;
+      const reason = $("#issue_reason").value;
+      const costCenter = $("#issue_costCenter").value;
+      const customer = $("#issue_customer").value;
+      const needDate = $("#issue_needDate").value;
+
+      Array.from(tbody.children).forEach(tr => {
+        const tds = Array.from(tr.children).map(td => td.textContent);
+        rowsOut.push(["Issue", currentUser, requester, team, reason, costCenter, customer, needDate, ...tds.slice(0,5)]);
+      });
+
+      if(rowsOut.length === 0) return alert("ยังไม่มีรายการอะไหล่ในตาราง");
+      downloadCSV(
+        `spare_part_issue_${new Date().toISOString().slice(0,10)}.csv`,
+        ["Type","User","Requester","Team","Reason","CostCenter","Customer/SN","NeedDate","PartCode","PartName","Model","Qty","UoM"],
+        rowsOut
+      );
+    });
+
+    // RETURN request (คำขอคืน)
+    $("#return_download").addEventListener("click", () => {
+      if(!currentUser) return alert("กรุณาเลือกผู้ใช้งานก่อน");
+      const rowsOut = [];
+      const tbody = $("#return_table tbody");
+      const requester = $("#return_requester").value;
+      const team = $("#return_team").value;
+      const reason = $("#return_reason").value;
+      const condition = $("#return_condition").value;
+      const ref = $("#return_ref").value;
+      const date = $("#return_date").value;
+
+      Array.from(tbody.children).forEach(tr => {
+        const tds = Array.from(tr.children).map(td => td.textContent);
+        rowsOut.push(["Return", currentUser, requester, team, reason, condition, ref, date, ...tds.slice(0,5)]);
+      });
+
+      if(rowsOut.length === 0) return alert("ยังไม่มีรายการอะไหล่ในตาราง");
+      downloadCSV(
+        `spare_part_return_${new Date().toISOString().slice(0,10)}.csv`,
+        ["Type","User","Requester","Team","Reason","Condition","Reference","ReturnDate","PartCode","PartName","Model","Qty","UoM"],
+        rowsOut
+      );
+    });
+
+    // Inventory (สต็อกที่อัปเดต)
+    $("#download_inventory").addEventListener("click", () => {
+      if(headers.length === 0 || rowsRaw.length === 0) return alert("ยังไม่มีข้อมูลสต็อก");
+      const rowsOut = rowsRaw.map(r => headers.map(h => r[h]));
+      downloadCSV(
+        `inventory_updated_${new Date().toISOString().slice(0,10)}.csv`,
+        headers,
+        rowsOut
+      );
+    });
+  }
+
+  // ===== ISSUE CONFIRM: H ลด, I..N เพิ่มตามผู้ใช้ =====
+  function wireIssueConfirm(){
+    $("#issue_confirm").addEventListener("click", () => {
+      if(!currentUser) return alert("กรุณาเลือกผู้ใช้งานก่อน");
+      const userCol = USER_COL_MAP[currentUser];
+      if(!userCol) return alert("ไม่พบคอลัมน์ผู้ใช้งานที่แมปไว้");
+
+      const hHeader = headerByLetter("H");
+      const uHeader = headerByLetter(userCol);
+      if(!hHeader || !uHeader){
+        return alert("ไม่พบหัวคอลัมน์ H หรือคอลัมน์ของผู้ใช้ (I..N) ในไฟล์ CSV");
+      }
+
+      const tbody = $("#issue_table tbody");
+      const rowsTr = Array.from(tbody.children);
+      if(rowsTr.length === 0) return alert("ยังไม่มีรายการอะไหล่ในตาราง");
+
+      // ตรวจสอบและอัปเดตทีละรายการ
+      for(const tr of rowsTr){
+        const [codeCell, nameCell, modelCell, qtyCell] = Array.from(tr.children).map(td => td.textContent);
+        const qty = toNumber(qtyCell);
+        // หาแถวในสต็อกจาก code เป็นหลัก
+        let item = parts.find(p => (p.code||"") === (codeCell||""));
+        if(!item && nameCell){
+          // fallback: ชื่อ+รุ่น (กรณีบางรายการไม่มีรหัส)
+          item = parts.find(p => (p.name||"") === (nameCell||"") && (p.model||"") === (modelCell||""));
+        }
+        if(!item){ alert(`ไม่พบรายการในสต็อก: ${codeCell || nameCell}`); return; }
+
+        const rowObj = item.raw;
+        const hVal = toNumber(getCell(rowObj, "H"));
+        const uVal = toNumber(getCell(rowObj, userCol));
+
+        if (qty <= 0) { alert(`จำนวนไม่ถูกต้อง (${codeCell || nameCell})`); return; }
+        if (hVal < qty) { alert(`สต็อกคลังหลัก (H) ไม่พอสำหรับ ${codeCell || nameCell} (มี ${hVal}, ขอ ${qty})`); return; }
+      }
+
+      // ผ่าน validation → อัปเดตจริง
+      rowsTr.forEach(tr => {
+        const [codeCell, nameCell, modelCell, qtyCell] = Array.from(tr.children).map(td => td.textContent);
+        const qty = toNumber(qtyCell);
+
+        let item = parts.find(p => (p.code||"") === (codeCell||""));
+        if(!item && nameCell){
+          item = parts.find(p => (p.name||"") === (nameCell||"") && (p.model||"") === (modelCell||""));
+        }
+        const rowObj = item.raw;
+
+        const hVal = toNumber(getCell(rowObj, "H"));
+        const uVal = toNumber(getCell(rowObj, USER_COL_MAP[currentUser]));
+        setCell(rowObj, "H", (hVal - qty));
+        setCell(rowObj, USER_COL_MAP[currentUser], (uVal + qty));
+      });
+
+      alert("อัปเดตสต็อกสำเร็จ: หัก H และเพิ่มยอดในคอลัมน์ " + USER_COL_MAP[currentUser]);
+      // เคลียร์รายการที่เบิกแล้ว (ถ้าต้องการคงไว้ ให้คอมเมนต์สองบรรทัดด้านล่าง)
+      $("#issue_table tbody").innerHTML = "";
+    });
+  }
+
+  // ===== MATERIAL SEARCH MODAL =====
+  const modal = $("#materialModal");
+  const modalClose = $("#modalClose");
+  const matSearchInput = $("#mat_search");
+  const matTbody = $("#mat_tbody");
+  const matHeaderRow = $("#mat_header_row");
+  const matCount = $("#mat_count");
+
+  function buildMaterialModalHeader(){
+    matHeaderRow.innerHTML = "";
+    // Name
+    const thName = document.createElement("th"); thName.textContent = "Name"; matHeaderRow.appendChild(thName);
+    // A/B/C/D/H
+    LETTER_COLUMNS.forEach(l => {
+      const idx = colLetterToIndex(l);
+      const th = document.createElement("th");
+      th.textContent = headers[idx] || `${l}1`;
+      matHeaderRow.appendChild(th);
+    });
+    const thPick = document.createElement("th"); thPick.textContent = "เลือก"; matHeaderRow.appendChild(thPick);
+  }
+  function getNameFromRow(rowObj){
+    const fromCandidates = pick(rowObj, NAME_HEADER_CANDIDATES);
+    return fromCandidates || pick(rowObj, keyMap.name) || "";
+  }
+  function filterPartsForModal(q){
+    const s = q.toLowerCase();
+    return parts.filter(p =>
+      (p.code||"").toLowerCase().includes(s) ||
+      (p.name||"").toLowerCase().includes(s) ||
+      (p.model||"").toLowerCase().includes(s) ||
+      Object.values(p.raw).some(v => String(v||"").toLowerCase().includes(s))
+    );
+  }
+  function renderMaterialList(list){
+    matTbody.innerHTML = "";
+    matCount.textContent = `${list.length} รายการ`;
+    const idxs = LETTER_COLUMNS.map(colLetterToIndex);
+    list.forEach(p => {
+      const tr = document.createElement("tr");
+      const tdName = document.createElement("td"); tdName.textContent = getNameFromRow(p.raw) || p.name || "-"; tr.appendChild(tdName);
+      idxs.forEach(idx => {
+        const key = headers[idx];
+        const td = document.createElement("td");
+        td.textContent = key ? (p.raw[key] || "") : "";
+        tr.appendChild(td);
+      });
+      const tdPick = document.createElement("td");
+      const btn = document.createElement("button");
+      btn.className = "btn small ghost"; btn.textContent = "เลือก";
+      btn.addEventListener("click", () => {
+        const value = p.code || p.name;
+        if(activeForm === "issue"){ setSelectValue("issue_select", value); showSection("issueSection"); }
+        else { setSelectValue("return_select", value); showSection("returnSection"); }
+        modal.style.display = "none";
+      });
+      tdPick.appendChild(btn); tr.appendChild(tdPick);
+      matTbody.appendChild(tr);
+    });
+  }
+  function setSelectValue(selectId, value){
+    const sel = document.getElementById(selectId);
+    for(let i=0;i<sel.options.length;i++){ if(sel.options[i].value === value){ sel.selectedIndex = i; return; } }
+  }
+  function openMaterialModal(){
+    matSearchInput.value = "";
+    renderMaterialList(parts);
+    modal.style.display = "flex";
+    matSearchInput.focus();
+  }
+  $("#openMatSearch_issue").addEventListener("click", requireUserSelected(()=>{ activeForm="issue"; openMaterialModal(); }));
+  $("#openMatSearch_return").addEventListener("click", requireUserSelected(()=>{ activeForm="return"; openMaterialModal(); }));
+  $("#modalClose").addEventListener("click", ()=> modal.style.display="none");
+  modal.addEventListener("click", (e)=> { if(e.target === modal) modal.style.display="none"; });
+  matSearchInput.addEventListener("input", ()=> renderMaterialList(filterPartsForModal(matSearchInput.value)));
+
+  // ===== USER PICK OVERLAY =====
+  $$(".user-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      currentUser = btn.getAttribute("data-user");
+      $("#currentUser").textContent = currentUser;
+      showOverlay(false);
+    })
+  });
+
+  // ===== INIT =====
+  (async ()=>{
+    try {
+      await loadParts();
+      wireSearch("issue_search","issue_select");
+      wireSearch("return_search","return_select");
+      wireAddButtons();
+      wireDownload();
+      wireIssueConfirm();
+      showSection("homeSection");
+      showOverlay(true); // ต้องเลือกผู้ใช้งานก่อน
+    } catch (err){
+      console.error(err);
+      alert("ไม่สามารถโหลดข้อมูลอะไหล่จาก CSV ได้");
+    }
+  })();
+</script>
+</body>
+</html>
+
+ocument.getElementById("goIssue")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  const overlay = document.getElementById('userOverlay');
+  if (!window.currentUser && overlay) overlay.style.display = 'flex'; // โชว์ overlay ให้เลือกผู้ใช้
+  showSection("issueSection");                                        // พาเข้าฟอร์มเสมอ
+});
+
+document.getElementById("goReturn")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  const overlay = document.getElementById('userOverlay');
+  if (!window.currentUser && overlay) overlay.style.display = 'flex';
+  showSection("returnSection");
+});
