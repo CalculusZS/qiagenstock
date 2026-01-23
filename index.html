@@ -736,16 +736,4 @@
 </body>
 </html>
 
-ocument.getElementById("goIssue")?.addEventListener("click", (e) => {
-  e.preventDefault();
-  const overlay = document.getElementById('userOverlay');
-  if (!window.currentUser && overlay) overlay.style.display = 'flex'; // โชว์ overlay ให้เลือกผู้ใช้
-  showSection("issueSection");                                        // พาเข้าฟอร์มเสมอ
-});
 
-document.getElementById("goReturn")?.addEventListener("click", (e) => {
-  e.preventDefault();
-  const overlay = document.getElementById('userOverlay');
-  if (!window.currentUser && overlay) overlay.style.display = 'flex';
-  showSection("returnSection");
-});
