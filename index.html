@@ -3,669 +3,235 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>ระบบเบิก/คืนอะไหล่ (อ้างอิงจาก CSV)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>ระบบเบิก/คืนอะไหล่</title>
   <style>
-    :root { --pri:#0078d4; --bg:#f7f7fb; --border:#e1e1e8; --text:#222; }
-    *{box-sizing:border-box}
-    body { font-family: system-ui,Segoe UI,Roboto,Arial,sans-serif; margin:0; color:var(--text); background:var(--bg);}
-    header { background:#fff; border-bottom:1px solid var(--border); padding:16px 20px; display:flex; justify-content:space-between; align-items:center;}
-    header h1 { margin:0; font-size:18px;}
-    .user-badge { font-size:13px; color:#333; cursor:pointer; }
-    .user-badge .chip { display:inline-block; padding:4px 10px; border-radius:999px; border:1px solid var(--border); background:#fff; margin-left:6px; }
-
-    .container { max-width:1100px; margin: 20px auto; background:#fff; border:1px solid var(--border); border-radius:10px; padding:20px;}
-    .home { text-align:center; padding:60px 20px;}
-    .btn { display:inline-block; padding:12px 18px; border-radius:8px; border:1px solid var(--pri); color:#fff; background:var(--pri); cursor:pointer; text-decoration:none; }
-    .btn.ghost { background:#fff; color:var(--pri); }
-    .btn.warn { background:#b30000; border-color:#b30000; }
-    .btn.small { padding:8px 12px; font-size:14px; }
-    .btn + .btn { margin-left:12px; }
-    .row { display:flex; gap:16px; flex-wrap:wrap; }
-    .col-6 { flex:1 1 300px; }
-    label { display:block; margin-top:12px; font-weight:600; }
-    input, select, textarea { width:100%; padding:10px; margin-top:6px; border:1px solid var(--border); border-radius:6px; background:#fff; }
-    textarea { resize:vertical; }
-    h2 { margin:0 0 6px 0;}
-    .muted { color:#666; font-size:13px; }
-    table { width:100%; border-collapse:collapse; margin-top:16px; }
-    th, td { border:1px solid var(--border); padding:10px; vertical-align:top;}
-    th { background:#fafafa; text-align:left;}
-    .actions { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
-    .toolbar { display:flex; justify-content:space-between; align-items:center; margin-top:6px;}
-    .backlink { color:var(--pri); cursor:pointer; text-decoration:none; }
-    .chip { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border); background:#fff; color:#333; }
-    .section { margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
-    .hidden { display:none; }
-    .footer-note { color:#666; font-size:12px; margin-top:10px; }
-
-    /* Overlay เลือกผู้ใช้ */
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-      display:flex; align-items:center; justify-content:center; z-index: 1000; }
-    .overlay-card {
-      width: min(560px, 92vw);
-      background: #fff; border-radius: 12px; border: 1px solid var(--border);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      padding: 20px;
-      text-align:center;
+    body { font-family: "Segoe UI", Tahoma, sans-serif; margin: 20px; color: #222; }
+    h1, h2 { margin: 0.4rem 0 0.6rem; }
+    .section { margin-bottom: 20px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 10px; }
+    .btn {
+      display: inline-block; margin: 6px; padding: 10px 16px; border: 1px solid #2563eb;
+      background: #2563eb; color: #fff; border-radius: 8px; cursor: pointer; text-decoration: none;
     }
-    .user-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:16px; }
-    .user-btn {
-      padding:14px 10px; border-radius:10px; border:1px solid var(--border);
-      background:#fff; cursor:pointer; font-weight:700; font-size:16px;
-    }
-    .user-btn:hover { border-color: var(--pri); color: var(--pri); }
-
-    /* Modal ค้นหา Material */
-    .modal { position: fixed; inset:0; display:none; align-items: center; justify-content: center; z-index: 1100;
-      background: rgba(0,0,0,0.4); }
-    .modal .card { width: min(1000px, 95vw); background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px;
-      max-height: 90vh; overflow:auto; }
-    .modal .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-    .modal .close { cursor:pointer; color:#555; }
-    .hint { font-size:12px; color:#666; }
+    .btn.secondary { background: #fff; color: #2563eb; }
+    .btn:disabled { background: #93c5fd; border-color: #93c5fd; cursor: not-allowed; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    input[type="text"], input[type="number"] { padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+    th { background: #f1f5f9; }
+    small { color: #6b7280; }
+    .pill { display: inline-block; padding: 4px 10px; background: #eef2ff; border-radius: 999px; border: 1px solid #c7d2fe; margin-left: 6px; }
+    .muted { color: #6b7280; }
+    .success { color: #065f46; }
+    .error { color: #991b1b; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
-<header>
   <h1>ระบบเบิก/คืนอะไหล่</h1>
-  <div class="user-badge" title="คลิกเพื่อเปลี่ยนผู้ใช้">
-    ผู้ใช้งาน: <span id="currentUser" class="chip">ยังไม่เลือก</span>
-  </div>
-</header>
 
-<!-- เลือกผู้ใช้งาน -->
-<div id="userOverlay" class="overlay">
-  <div class="overlay-card">
+  <!-- เลือกผู้ใช้งาน -->
+  <div class="section">
     <h2>เลือกผู้ใช้งาน</h2>
-    <p class="muted">กรุณาเลือกรหัสผู้ใช้เพื่อเริ่มต้น</p>
-    <div class="user-grid">
-      <button class="user-btn" data-user="KM">KM</button>
-      <button class="user-btn" data-user="TK">TK</button>
-      <button class="user-btn" data-user="PSO">PSO</button>
-      <button class="user-btn" data-user="PST">PST</button>
-      <button class="user-btn" data-user="PK">PK</button>
-      <button class="user-btn" data-user="PA">PA</button>
-    </div>
-    <p class="hint">* จะไม่สามารถ “ยืนยันการเบิก” ได้หากยังไม่เลือกผู้ใช้งาน</p>
+    <div id="userButtons" class="row"><small>กำลังโหลดรายชื่อ...</small></div>
+    <div class="muted">ผู้ใช้งานปัจจุบัน: <span id="currentUser" class="pill">ยังไม่เลือก</span></div>
   </div>
-</div>
 
-<!-- Modal ค้นหา Material -->
-<div id="materialModal" class="modal">
-  <div class="card">
-    <div class="header">
-      <h3 style="margin:0">ค้นหา Material</h3>
-      <span id="modalClose" class="close">✕</span>
-    </div>
-    <div class="row">
-      <div class="col-6">
-        <label>ค้นหา</label>
-        <input type="text" id="mat_search" placeholder="พิมพ์รหัส/ชื่อ/รุ่น เพื่อค้นหา..." />
-        <p class="hint">จะแสดงคอลัมน์: Name + A1, B1, C1, D1, H1</p>
-      </div>
-      <div class="col-6">
-        <label>ผลลัพธ์</label>
-        <div><span id="mat_count" class="chip">0 รายการ</span></div>
-      </div>
-    </div>
-    <table>
-      <thead>
-        <tr id="mat_header_row"></tr>
-      </thead>
-      <tbody id="mat_tbody"></tbody>
-    </table>
+  <!-- เลือกประเภทการทำรายการ -->
+  <div class="section">
+    <h2>เลือกการทำรายการ</h2>
+    <button class="btn" id="btnWithdraw" disabled>เบิกอะไหล่</button>
+    <button class="btn secondary" id="btnReturn" disabled>คืนอะไหล่</button>
+    <div class="muted">สถานะ: <span id="currentAction" class="pill">ยังไม่เลือก</span></div>
   </div>
-</div>
 
-<div class="container">
-  <!-- HOME -->
-  <section id="homeSection" class="home">
-    <h2>ยินดีต้อนรับ</h2>
-    <p class="muted">เลือกการทำรายการที่ต้องการ</p>
-    <div style="margin-top:24px;">
-      <button class="btn" id="goIssue" type="button">เบิกอะไหล่</button>
-      <button class="btn ghost" id="goReturn" type="button">คืนอะไหล่</button>
-    </div>
-  </section>
-
-  <!-- ISSUE FORM -->
-  <section id="issueSection" class="hidden">
-    <div class="toolbar">
-      <a class="backlink" data-back>← กลับหน้าแรก</a>
-      <span class="chip">โหมด: เบิกอะไหล่</span>
-    </div>
-    <h2>แบบฟอร์มเบิกอะไหล่</h2>
-    <p class="muted">กรอกข้อมูลผู้ขอและเลือกอะไหล่จากรายการ</p>
-
-    <div class="actions">
-      <button class="btn" id="openMatSearch_issue">ค้นหา Material</button>
-    </div>
-
+  <!-- ค้นหา + ตารางแสดงผล -->
+  <div class="section">
+    <h2>ค้นหาอะไหล่ (ค้นหาตาม Material ในคอลัมน์ A)</h2>
     <div class="row">
-      <div class="col-6">
-        <label>ผู้ขอเบิก</label>
-        <input type="text" id="issue_requester" placeholder="เช่น Phurilap Khonthong" />
-      </div>
-      <div class="col-6">
-        <label>หน่วยงาน/ทีม</label>
-        <input type="text" id="issue_team" placeholder="เช่น TH Service Team" />
-      </div>
-      <div class="col-6">
-        <label>เหตุผลการเบิก</label>
-        <textarea id="issue_reason" rows="3" placeholder="เช่น PM / CM / Demo / Warranty / Internal Use"></textarea>
-      </div>
-      <div class="col-6">
-        <label>Cost Center / Project / Order (ถ้ามี)</label>
-        <input type="text" id="issue_costCenter" />
-      </div>
-      <div class="col-6">
-        <label>ลูกค้า / Serial No. (ถ้ามี)</label>
-        <input type="text" id="issue_customer" placeholder="เช่น Customer ABC / SN-123456" />
-      </div>
-      <div class="col-6">
-        <label>วันที่ต้องการ</label>
-        <input type="date" id="issue_needDate" />
-      </div>
+      <input type="text" id="searchInput" placeholder="พิมพ์รหัสหรือคำค้น แล้วกด Enter/ปุ่มค้นหา" style="min-width: 280px;" />
+      <button class="btn" id="btnSearch">ค้นหา</button>
+      <small class="muted">จะแสดงคอลัมน์ A, B, C, H เท่านั้น</small>
     </div>
+    <div id="status" class="muted" style="margin-top:8px;"></div>
+    <div id="results"></div>
+  </div>
 
-    <div class="section">
-      <h3>เลือกอะไหล่</h3>
-      <div class="row">
-        <div class="col-6">
-          <label>ค้นหาอะไหล่</label>
-          <input type="text" id="issue_search" placeholder="พิมพ์ชื่อ/รหัส/รุ่น เพื่อค้นหา..." />
-        </div>
-        <div class="col-6">
-          <label>รายการอะไหล่</label>
-          <select id="issue_select"></select>
-        </div>
-        <div class="col-6">
-          <label>จำนวน</label>
-          <input type="number" id="issue_qty" min="1" value="1" />
-        </div>
-        <div class="col-6">
-          <label>หน่วย (เช่น pcs, set)</label>
-          <input type="text" id="issue_uom" placeholder="เช่น pcs" />
-        </div>
-      </div>
-      <div class="actions">
-        <button class="btn small" id="issue_add">เพิ่มเข้ารายการ</button>
-      </div>
+  <script>
+    let ALL_DATA = []; // เก็บข้อมูลทั้งหมดจากชีต (เฉพาะ A,B,C,H)
+    let CURRENT_USER = '';
+    let CURRENT_ACTION = ''; // 'Withdraw' หรือ 'Return'
 
-      <table id="issue_table">
-        <thead>
-          <tr>
-            <th>รหัสอะไหล่</th>
-            <th>ชื่ออะไหล่</th>
-            <th>รุ่น/เครื่อง</th>
-            <th>จำนวน</th>
-            <th>หน่วย</th>
-            <th>ลบ</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    // โหลดรายชื่อผู้ใช้ + ข้อมูลอะไหล่
+    function init() {
+      google.script.run.withSuccessHandler(renderUsers).getUsers();
+      google.script.run.withSuccessHandler((resp) => {
+        ALL_DATA = (resp && resp.rows) ? resp.rows : [];
+        setStatus(`โหลดข้อมูลแล้ว ${ALL_DATA.length.toLocaleString()} รายการ`);
+      }).getPartsData();
 
-      <div class="actions">
-        <button class="btn" id="issue_download">ดาวน์โหลดคำขอ (CSV)</button>
-        <button class="btn" id="issue_confirm">ยืนยันการเบิก (อัปเดตสต็อก)</button>
-        <button class="btn ghost" id="download_inventory">ดาวน์โหลดสต็อกที่อัปเดต (CSV)</button>
-      </div>
-      <p class="footer-note">* “ยืนยันการเบิก” จะหัก H และเพิ่มยอดในคอลัมน์ I..N ของผู้ใช้งาน</p>
-    </div>
-  </section>
-
-  <!-- RETURN FORM -->
-  <section id="returnSection" class="hidden">
-    <div class="toolbar">
-      <a class="backlink" data-back>← กลับหน้าแรก</a>
-      <span class="chip">โหมด: คืนอะไหล่</span>
-    </div>
-    <h2>แบบฟอร์มคืนอะไหล่</h2>
-    <p class="muted">กรอกข้อมูลผู้คืน และรายการอะไหล่ที่ต้องการคืนเข้าระบบ/สต็อก</p>
-
-    <div class="actions">
-      <button class="btn" id="openMatSearch_return">ค้นหา Material</button>
-    </div>
-
-    <div class="row">
-      <div class="col-6">
-        <label>ผู้คืน</label>
-        <input type="text" id="return_requester" placeholder="เช่น Phurilap Khonthong" />
-      </div>
-      <div class="col-6">
-        <label>หน่วยงาน/ทีม</label>
-        <input type="text" id="return_team" placeholder="เช่น TH Service Team" />
-      </div>
-      <div class="col-6">
-        <label>เหตุผลการคืน</label>
-        <textarea id="return_reason" rows="3" placeholder="เช่น ปิดงานแล้ว / อะไหล่เกิน / ไม่ได้ใช้ / เปลี่ยนรุ่น"></textarea>
-      </div>
-      <div class="col-6">
-        <label>สถานะอะไหล่</label>
-        <select id="return_condition">
-          <option value="New/Unused">ใหม่/ไม่ได้ใช้</option>
-          <option value="Used/Good">ผ่านการใช้ / สภาพดี</option>
-          <option value="Defective">ชำรุด</option>
-          <option value="For Scrap">คัดทิ้ง</option>
-        </select>
-      </div>
-      <div class="col-6">
-        <label>อ้างอิงใบเบิก (ถ้ามี)</label>
-        <input type="text" id="return_ref" placeholder="เช่น Issue Doc No." />
-      </div>
-      <div class="col-6">
-        <label>วันที่คืน</label>
-        <input type="date" id="return_date" />
-      </div>
-    </div>
-
-    <div class="section">
-      <h3>เลือกอะไหล่ที่จะคืน</h3>
-      <div class="row">
-        <div class="col-6">
-          <label>ค้นหาอะไหล่</label>
-          <input type="text" id="return_search" placeholder="พิมพ์ชื่อ/รหัส/รุ่น เพื่อค้นหา..." />
-        </div>
-        <div class="col-6">
-          <label>รายการอะไหล่</label>
-          <select id="return_select"></select>
-        </div>
-        <div class="col-6">
-          <label>จำนวน</label>
-          <input type="number" id="return_qty" min="1" value="1" />
-        </div>
-        <div class="col-6">
-          <label>หน่วย (เช่น pcs, set)</label>
-          <input type="text" id="return_uom" placeholder="เช่น pcs" />
-        </div>
-      </div>
-      <div class="actions">
-        <button class="btn small" id="return_add">เพิ่มเข้ารายการ</button>
-      </div>
-
-      <table id="return_table">
-        <thead>
-          <tr>
-            <th>รหัสอะไหล่</th>
-            <th>ชื่ออะไหล่</th>
-            <th>รุ่น/เครื่อง</th>
-            <th>จำนวน</th>
-            <th>หน่วย</th>
-            <th>ลบ</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <div class="actions">
-        <button class="btn" id="return_download">ดาวน์โหลดรายการคืน (CSV)</button>
-      </div>
-    </div>
-  </section>
-</div>
-
-<script>
-  // ===== CONFIG =====
-  const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQg2ma13Gm9ppdtEaZAb9fLuZn2YmoXFJx3DYb5te4Fua4xej_OFU-_6J6OQBXXdO8AAWlueRQ1omHd/pub?output=csv";
-
-  // 👉 แทนที่ด้วย Web App URL จริงของ Google Apps Script หลัง Deploy
-  const APPS_SCRIPT_ENDPOINT = "https://script.google.com/macros/s/xxxxxxxxxxxx/exec";
-
-  // เดา header สำหรับการค้นหา/เลือก
-  const keyMap = {
-    code: ["Part Number","PartNo","Code","Part Code","Material Code","Material"],
-    name: ["Part Name","Description","Item Name","Name","Material Name"],
-    model:["Instrument Model","Model","Machine","Category","Series"]
-  };
-  const NAME_HEADER_CANDIDATES = ["Part Name","Description","Item Name","Name","Material Name"];
-
-  // คอลัมน์ตัวอักษรที่จะแสดงใน modal
-  const LETTER_COLUMNS = ["A","B","C","D","H"];
-
-  // ผู้ใช้ → คอลัมน์ผู้ใช้ (I..N)
-  const USER_COL_MAP = { KM: "I", TK: "J", PSO: "K", PST: "L", PK: "M", PA: "N" };
-
-  // ===== STATE =====
-  let headers = [];     // header แถวแรก
-  let rowsRaw = [];     // ข้อมูลดิบทั้งหมด
-  let parts = [];       // [{code,name,model,raw}]
-  let currentUser = null;
-  let activeForm = "issue";
-
-  // ===== HELPERS (DOM) =====
-  const $ = (sel) => document.querySelector(sel);
-  const $$ = (sel) => document.querySelectorAll(sel);
-
-  function showSection(id){
-    $("#homeSection").classList.add("hidden");
-    $("#issueSection").classList.add("hidden");
-    $("#returnSection").classList.add("hidden");
-    document.getElementById(id).classList.remove("hidden");
-  }
-  function showOverlay(v){ $("#userOverlay").style.display = v ? "flex" : "none"; }
-
-  // ===== CSV PARSER =====
-  function parseCSV(text) {
-    const lines = text.replace(/\r/g, "").split("\n");
-    const headersLocal = lines[0].split(",").map(h => h.trim());
-    const rows = lines.slice(1).filter(l => l.trim().length>0).map(line => {
-      const cols = [];
-      let cur = "", inQuotes = false;
-      for (let i=0;i<line.length;i++){
-        const ch=line[i];
-        if(ch==='\"'){
-          if(inQuotes && line[i+1]==='\"'){ cur+='\"'; i++; }
-          else { inQuotes=!inQuotes; }
-        } else if(ch===',' && !inQuotes){ cols.push(cur); cur=""; }
-        else { cur+=ch; }
-      }
-      cols.push(cur);
-      const obj={};
-      headersLocal.forEach((h,idx)=> obj[h]= (cols[idx]||"").trim().replace(/^\"|\"$/g,""));
-      return obj;
-    });
-    return { headers: headersLocal, rows };
-  }
-
-  // ===== DATA UTIL =====
-  function pick(obj, candidates){
-    for(const k of candidates){ if(k in obj && obj[k] !== "") return obj[k]; }
-    return "";
-  }
-  function toNumber(v){
-    if(v===null || v===undefined) return 0;
-    const n = parseFloat(String(v).replace(/,/g,'').trim());
-    return isNaN(n) ? 0 : n;
-  }
-  function colLetterToIndex(letter){
-    letter = letter.toUpperCase().trim();
-    let idx = 0;
-    for (let i=0; i<letter.length; i++){
-      idx = idx * 26 + (letter.charCodeAt(i) - 64);
+      // event handlers
+      document.getElementById('btnSearch').addEventListener('click', onSearch);
+      document.getElementById('searchInput').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') onSearch();
+      });
+      document.getElementById('btnWithdraw').addEventListener('click', () => setAction('Withdraw'));
+      document.getElementById('btnReturn').addEventListener('click', () => setAction('Return'));
     }
-    return idx - 1; // 0-based
-  }
-  function headerByLetter(letter){
-    const idx = colLetterToIndex(letter);
-    return headers[idx] || null;
-  }
-  function getCell(rowObj, letter){
-    const h = headerByLetter(letter);
-    return h ? rowObj[h] : "";
-  }
-  function setCell(rowObj, letter, value){
-    const h = headerByLetter(letter);
-    if(h){ rowObj[h] = String(value); }
-  }
 
-  // ===== LOAD DATA =====
-  async function loadParts() {
-    const res = await fetch(CSV_URL);
-    if(!res.ok) throw new Error("โหลด CSV ไม่สำเร็จ");
-    const text = await res.text();
-    const parsed = parseCSV(text);
-    headers = parsed.headers;
-    rowsRaw = parsed.rows;
-
-    parts = rowsRaw.map(r => ({
-      code: pick(r, keyMap.code),
-      name: pick(r, keyMap.name),
-      model: pick(r, keyMap.model),
-      raw: r
-    })).filter(p => p.code || p.name);
-
-    buildMaterialModalHeader();
-    refreshSelect("issue_select", parts);
-    refreshSelect("return_select", parts);
-  }
-
-  function refreshSelect(selectId, list) {
-    const selectEl = document.getElementById(selectId);
-    selectEl.innerHTML = "";
-    list.forEach(p => {
-      const opt = document.createElement("option");
-      opt.value = p.code || p.name;
-      opt.textContent = `${p.code || "-"} | ${p.name || "-"} ${p.model ? "(" + p.model + ")" : ""}`;
-      selectEl.appendChild(opt);
-    });
-  }
-
-  function wireSearch(searchId, selectId){
-    const searchEl = document.getElementById(searchId);
-    searchEl.addEventListener("input", () => {
-      const q = searchEl.value.toLowerCase();
-      const filtered = parts.filter(p =>
-        (p.code||"").toLowerCase().includes(q) ||
-        (p.name||"").toLowerCase().includes(q) ||
-        (p.model||"").toLowerCase().includes(q)
-      );
-      refreshSelect(selectId, filtered);
-    });
-  }
-
-  // ===== ISSUE/RETURN ADD LINE =====
-  function addLine(tableId, selectId, qtyId, uomId){
-    const selectEl = document.getElementById(selectId);
-    if(selectEl.options.length === 0) return alert("ไม่มีรายการอะไหล่ให้เลือก");
-    const value = selectEl.value;
-    const qty = parseInt(document.getElementById(qtyId).value || "1",10);
-    const uom = document.getElementById(uomId).value || "pcs";
-    if (qty <= 0) return alert("จำนวนต้องมากกว่า 0");
-
-    let selected = parts.find(p => p.code === value)
-      || parts.find(p => (p.code || p.name) === value);
-
-    if(!selected) return alert("ไม่พบอะไหล่ที่เลือก");
-
-    const tbody = document.querySelector(`#${tableId} tbody`);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${selected.code || ""}</td>
-      <td>${selected.name || ""}</td>
-      <td>${selected.model || ""}</td>
-      <td>${qty}</td>
-      <td>${uom}</td>
-      <td><button class="btn small ghost">ลบ</button></td>
-    `;
-    tr.querySelector("button").addEventListener("click", ()=> tr.remove());
-    tbody.appendChild(tr);
-  }
-
-  function wireAddButtons(){
-    $("#issue_add").addEventListener("click", () => {
-      addLine("issue_table","issue_select","issue_qty","issue_uom");
-    });
-    $("#return_add").addEventListener("click", () => {
-      addLine("return_table","return_select","return_qty","return_uom");
-    });
-  }
-
-  // ===== DOWNLOADS (คำขอ & สต็อก) =====
-  function downloadCSV(filename, headersRow, rows){
-    const csv = [headersRow, ...rows]
-      .map(r => r.map(v => `"${String(v??"").replace(/"/g,'""')}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-  }
-
-  function wireDownload(){
-    // ISSUE request
-    $("#issue_download").addEventListener("click", () => {
-      const rowsOut = [];
-      const tbody = $("#issue_table tbody");
-      const requester = $("#issue_requester").value;
-      const team = $("#issue_team").value;
-      const reason = $("#issue_reason").value;
-      const costCenter = $("#issue_costCenter").value;
-      const customer = $("#issue_customer").value;
-      const needDate = $("#issue_needDate").value;
-
-      Array.from(tbody.children).forEach(tr => {
-        const tds = Array.from(tr.children).map(td => td.textContent);
-        rowsOut.push(["Issue", currentUser || "-", requester, team, reason, costCenter, customer, needDate, ...tds.slice(0,5)]);
+    function renderUsers(users) {
+      const container = document.getElementById('userButtons');
+      container.innerHTML = '';
+      (users || []).forEach(u => {
+        const btn = document.createElement('button');
+        btn.className = 'btn secondary';
+        btn.textContent = u;
+        btn.onclick = () => chooseUser(u);
+        container.appendChild(btn);
       });
+      if ((users || []).length === 0) {
+        container.innerHTML = '<small class="error">ไม่พบรายชื่อผู้ใช้งาน</small>';
+      }
+    }
 
-      if(rowsOut.length === 0) return alert("ยังไม่มีรายการอะไหล่ในตาราง");
-      downloadCSV(
-        `spare_part_issue_${new Date().toISOString().slice(0,10)}.csv`,
-        ["Type","User","Requester","Team","Reason","CostCenter","Customer/SN","NeedDate","PartCode","PartName","Model","Qty","UoM"],
-        rowsOut
-      );
-    });
+    function chooseUser(u) {
+      CURRENT_USER = u;
+      document.getElementById('currentUser').textContent = u;
+      // เปิดปุ่มให้เลือกประเภทการทำรายการ
+      document.getElementById('btnWithdraw').disabled = false;
+      document.getElementById('btnReturn').disabled = false;
+      setStatus(`เลือกผู้ใช้งาน: ${u}`);
+    }
 
-    // RETURN request
-    $("#return_download").addEventListener("click", () => {
-      const rowsOut = [];
-      const tbody = $("#return_table tbody");
-      const requester = $("#return_requester").value;
-      const team = $("#return_team").value;
-      const reason = $("#return_reason").value;
-      const condition = $("#return_condition").value;
-      const ref = $("#return_ref").value;
-      const date = $("#return_date").value;
+    function setAction(a) {
+      CURRENT_ACTION = a; // 'Withdraw' หรือ 'Return'
+      document.getElementById('currentAction').textContent = (a === 'Withdraw') ? 'เบิกอะไหล่' : 'คืนอะไหล่';
+      setStatus(`โหมด: ${(a === 'Withdraw') ? 'เบิกอะไหล่' : 'คืนอะไหล่'}. พิมพ์คำค้นแล้วค้นหาได้เลย`);
+    }
 
-      Array.from(tbody.children).forEach(tr => {
-        const tds = Array.from(tr.children).map(td => td.textContent);
-        rowsOut.push(["Return", currentUser || "-", requester, team, reason, condition, ref, date, ...tds.slice(0,5)]);
+    function setStatus(msg, type='info') {
+      const el = document.getElementById('status');
+      el.className = (type === 'error') ? 'error' : (type === 'success') ? 'success' : 'muted';
+      el.textContent = msg || '';
+    }
+
+    function onSearch() {
+      const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+      if (!q) {
+        renderTable([]);
+        setStatus('กรุณาพิมพ์คำค้น (อย่างน้อย 1 ตัวอักษร)');
+        return;
+      }
+      if (!CURRENT_USER) {
+        setStatus('กรุณาเลือกผู้ใช้งานก่อน', 'error');
+        return;
+      }
+      if (!CURRENT_ACTION) {
+        setStatus('กรุณาเลือกประเภทการทำรายการ (เบิก/คืน) ก่อน', 'error');
+        return;
+      }
+      // ค้นหาในคอลัมน์ A (Material) เป็นหลัก แต่จะค้นใน B ด้วยเผื่อใช้งานสะดวก
+      const results = ALL_DATA.filter(r => {
+        const a = (r.A ?? '').toString().toLowerCase();
+        const b = (r.B ?? '').toString().toLowerCase();
+        return a.includes(q) || b.includes(q);
       });
+      renderTable(results);
+      setStatus(`พบ ${results.length.toLocaleString()} รายการสำหรับคำค้น "${q}"`);
+    }
 
-      if(rowsOut.length === 0) return alert("ยังไม่มีรายการอะไหล่ในตาราง");
-      downloadCSV(
-        `spare_part_return_${new Date().toISOString().slice(0,10)}.csv`,
-        ["Type","User","Requester","Team","Reason","Condition","Reference","ReturnDate","PartCode","PartName","Model","Qty","UoM"],
-        rowsOut
-      );
-    });
-
-    // Inventory (สต็อกปัจจุบันในหน้านี้)
-    $("#download_inventory").addEventListener("click", () => {
-      if(headers.length === 0 || rowsRaw.length === 0) return alert("ยังไม่มีข้อมูลสต็อก");
-      const rowsOut = rowsRaw.map(r => headers.map(h => r[h]));
-      downloadCSV(
-        `inventory_updated_${new Date().toISOString().slice(0,10)}.csv`,
-        headers,
-        rowsOut
-      );
-    });
-  }
-
-  // ===== ISSUE CONFIRM: H ลด, I..N เพิ่มตามผู้ใช้ + (ออปชัน) เรียก Apps Script =====
-  function wireIssueConfirm(){
-    $("#issue_confirm").addEventListener("click", async () => {
-      if(!currentUser){
-        showOverlay(true);
-        return alert("กรุณาเลือกผู้ใช้งานก่อน");
+    function renderTable(rows) {
+      const container = document.getElementById('results');
+      if (!rows || rows.length === 0) {
+        container.innerHTML = '<div class="muted">ไม่มีผลลัพธ์</div>';
+        return;
       }
-      const userColLetter = USER_COL_MAP[currentUser];
-      if(!userColLetter) return alert("ไม่พบคอลัมน์ผู้ใช้งานที่แมปไว้");
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th>A (Material)</th>
+          <th>B</th>
+          <th>C</th>
+          <th>H</th>
+          <th>จำนวน (ea)</th>
+          <th>ยืนยัน</th>
+        </tr>
+      `;
+      table.appendChild(thead);
 
-      const hHeader = headerByLetter("H");
-      const uHeader = headerByLetter(userColLetter);
-      if(!hHeader || !uHeader){
-        return alert("ไม่พบหัวคอลัมน์ H หรือคอลัมน์ของผู้ใช้ (I..N) ในไฟล์ CSV");
-      }
+      const tbody = document.createElement('tbody');
+      rows.forEach((r, idx) => {
+        const tr = document.createElement('tr');
 
-      const tbody = $("#issue_table tbody");
-      const rowsTr = Array.from(tbody.children);
-      if(rowsTr.length === 0) return alert("ยังไม่มีรายการอะไหล่ในตาราง");
+        const tdA = document.createElement('td'); tdA.textContent = r.A ?? '';
+        const tdB = document.createElement('td'); tdB.textContent = r.B ?? '';
+        const tdC = document.createElement('td'); tdC.textContent = r.C ?? '';
+        const tdH = document.createElement('td'); tdH.textContent = r.H ?? '';
 
-      const payload = []; // สำหรับส่งไป Apps Script
+        const tdQty = document.createElement('td');
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'number';
+        qtyInput.min = '1';
+        qtyInput.placeholder = 'ea';
+        qtyInput.style.width = '100px';
+        qtyInput.id = `qty_${idx}`;
+        tdQty.appendChild(qtyInput);
 
-      // ตรวจสอบความพร้อมของสต็อกก่อน
-      for(const tr of rowsTr){
-        const [codeCell, nameCell, modelCell, qtyCell] = Array.from(tr.children).map(td => td.textContent);
-        const qty = toNumber(qtyCell);
-        let item = parts.find(p => (p.code||"") === (codeCell||""));
-        if(!item && nameCell){
-          item = parts.find(p => (p.name||"") === (nameCell||"") && (p.model||"") === (modelCell||""));
-        }
-        if(!item){ return alert(`ไม่พบรายการในสต็อก: ${codeCell || nameCell}`); }
-        const rowObj = item.raw;
-        const hVal = toNumber(getCell(rowObj, "H"));
-
-        if (qty <= 0) { return alert(`จำนวนไม่ถูกต้อง (${codeCell || nameCell})`); }
-        if (hVal < qty) { return alert(`สต็อกคลังหลัก (H) ไม่พอสำหรับ ${codeCell || nameCell} (มี ${hVal}, ขอ ${qty})`); }
-
-        // เตรียม payload (ถ้ามี endpoint)
-        payload.push({
-          code: item.code || "",         // แนะนำให้มีรหัส
-          name: item.name || "",
-          user: currentUser,
-          deltaH: -qty,
-          deltaUser: +qty
+        const tdBtn = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.textContent = 'ยืนยัน';
+        btn.onclick = () => submitLog({
+          A: r.A, B: r.B, C: r.C, H: r.H,
+          qtyElId: qtyInput.id
         });
-      }
+        tdBtn.appendChild(btn);
 
-      // อัปเดตในหน้านี้ (in-memory)
-      rowsTr.forEach(tr => {
-        const [codeCell, nameCell, modelCell, qtyCell] = Array.from(tr.children).map(td => td.textContent);
-        const qty = toNumber(qtyCell);
-        let item = parts.find(p => (p.code||"") === (codeCell||""));
-        if(!item && nameCell){
-          item = parts.find(p => (p.name||"") === (nameCell||"") && (p.model||"") === (modelCell||""));
-        }
-        const rowObj = item.raw;
-        const hVal = toNumber(getCell(rowObj, "H"));
-        const uVal = toNumber(getCell(rowObj, USER_COL_MAP[currentUser]));
-        setCell(rowObj, "H", (hVal - qty));
-        setCell(rowObj, USER_COL_MAP[currentUser], (uVal + qty));
+        tr.appendChild(tdA);
+        tr.appendChild(tdB);
+        tr.appendChild(tdC);
+        tr.appendChild(tdH);
+        tr.appendChild(tdQty);
+        tr.appendChild(tdBtn);
+        tbody.appendChild(tr);
       });
+      table.appendChild(tbody);
+      container.innerHTML = '';
+      container.appendChild(table);
+    }
 
-      // เคลียร์ตารางรายการที่เบิกแล้ว
-      $("#issue_table tbody").innerHTML = "";
+    function submitLog({ A, B, C, H, qtyElId }) {
+      const qty = Number(document.getElementById(qtyElId).value || 0);
+      if (!CURRENT_USER) { setStatus('กรุณาเลือกผู้ใช้งานก่อน', 'error'); return; }
+      if (!CURRENT_ACTION) { setStatus('กรุณาเลือกประเภทการทำรายการ (เบิก/คืน) ก่อน', 'error'); return; }
+      if (!A) { setStatus('ข้อมูล Material (คอลัมน์ A) ว่าง', 'error'); return; }
+      if (!(qty > 0)) { setStatus('กรุณากรอกจำนวน (ea) เป็นตัวเลขมากกว่า 0', 'error'); return; }
 
-      // ถ้ามี Apps Script endpoint → POST ไปอัปเดตชีตจริง
-      if(APPS_SCRIPT_ENDPOINT && /^https?:\/\//i.test(APPS_SCRIPT_ENDPOINT)){
-        try{
-          const res = await fetch(APPS_SCRIPT_ENDPOINT, {
-            method: "POST",
-            mode: "cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-          const data = await res.json().catch(()=>({}));
-          if(res.ok && data && data.ok){
-            alert("อัปเดตสต็อกสำเร็จ (หน้าเว็บ + Google Sheet)");
-          }else{
-            alert("อัปเดตหน้าเว็บสำเร็จ แต่ส่งไป Google Sheet ไม่สำเร็จ");
+      const payload = {
+        user: CURRENT_USER,
+        action: CURRENT_ACTION,
+        A, B, C, H,
+        qty
+      };
+
+      setStatus('กำลังบันทึก...', 'info');
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.ok) {
+            setStatus('บันทึกสำเร็จ', 'success');
+          } else {
+            setStatus((res && res.message) || 'เกิดข้อผิดพลาด', 'error');
           }
-        }catch(err){
-          console.error(err);
-          alert("อัปเดตหน้าเว็บสำเร็จ แต่ไม่สามารถเชื่อมต่อ Apps Script ได้");
-        }
-      }else{
-        alert("อัปเดตสต็อกสำเร็จในหน้าเว็บ (ยังไม่เชื่อมต่อ Google Sheet)");
-      }
-    });
-  }
+        })
+        .withFailureHandler(err => {
+          setStatus(`ผิดพลาด: ${err && err.message ? err.message : err}`, 'error');
+        })
+        .appendLog(payload);
+    }
 
-  // ===== MATERIAL SEARCH MODAL =====
-  const modal = $("#materialModal");
-  const modalClose = $("#modalClose");
-  const matSearchInput = $("#mat_search");
-  const matTbody = $("#mat_tbody");
-  const matHeaderRow = $("#mat_header_row");
-  const matCount = $("#mat_count");
-
-  function buildMaterialModalHeader(){
-    matHeaderRow.innerHTML = "";
-    // Name
-    const thName = document.createElement("th"); thName.textContent = "Name"; matHeaderRow.appendChild(thName);
-    // A/B/C/D/H
-    LETTER_COLUMNS.forEach(l => {
-      const idx = colLetterToIndex(l);
-      const th = document.createElement("th");
-      th.textContent = headers[idx] || `${l}1`;
-      matHeaderRow.appendChild(th);
-    });
-    const thPick = document.createElement("th"); thPick.textContent = "เลือก"; matHeaderRow.appendChild(thPick);
-  }
-  function getNameFromRow(rowObj){
-    const fromCandidates = pick(rowObj, NAME_HEADER_CANDIDATES);
-    return fromCandidates || pick(rowObj, keyMap.name) || "";
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
