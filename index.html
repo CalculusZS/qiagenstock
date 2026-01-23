@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -23,12 +22,11 @@
     th { background:#f1f5f9 }
     small.muted { color:var(--muted) }
     .pill { display:inline-block; padding:4px 10px; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe; }
-    #status.ok { color:var(--ok) }  #status.err { color:var(--err) }  #status { color:var(--muted) }
+    #status.ok { color:var(--ok) } #status.err { color:var(--err) } #status { color:var(--muted) }
   </style>
 </head>
 <body>
   <h1>ระบบเบิก/คืนอะไหล่</h1>
-
   <div class="card">
     <h2>เลือกผู้ใช้งาน</h2>
     <div id="userButtons" class="row"><small class="muted">กำลังโหลดรายชื่อ...</small></div>
@@ -59,36 +57,39 @@
     // ==== ตั้งค่าเฉพาะจุดนี้ (ใช้ URL Web App /exec ของคุณ) ====
     const API_BASE = 'https://script.google.com/macros/s/AKfycbyegzrutyW7bF2ygaw2uJxjjU7kWyOuNGAXGP8gdvT4B3-iybc5XDYc8dPSv63wV5SOpg/exec';
 
-    let ALL_DATA = [];       // รายการอะไหล่ทั้งหมด (A,B,C,H)
-    let CURRENT_USER = '';   // KM/TK/PST/PSO/PK/PA
-    let CURRENT_ACTION = ''; // 'Withdraw' | 'Return'
+    let ALL_DATA = [];         // รายการอะไหล่ทั้งหมด (A,B,C,H)
+    let CURRENT_USER = '';     // KM/TK/PST/PSO/PK/PA
+    let CURRENT_ACTION = '';   // 'Withdraw' | 'Return'
 
     // ---------- Utils ----------
-    const qs = sel => document.querySelector(sel);
+    const qs = (sel) => document.querySelector(sel);
     function setStatus(msg, type='info') {
       const el = qs('#status');
-      el.className = type === 'ok' ? 'ok' : type === 'err' ? 'err' : '';
+      el.className = type === 'ok' ? 'ok' : (type === 'err' ? 'err' : '');
       el.textContent = msg || '';
     }
     function createEl(tag, opts={}) {
       const el = document.createElement(tag);
       if (opts.className) el.className = opts.className;
-      if (opts.text) el.textContent = opts.text;
-      if (opts.html) el.innerHTML = opts.html;
+      if (opts.text !== undefined) el.textContent = opts.text;
+      if (opts.html !== undefined) el.innerHTML = opts.html;
       return el;
     }
 
     // ---------- API ----------
-    async function apiGet(action) {
+    async function apiGet(action){
       const url = `${API_BASE}?action=${encodeURIComponent(action)}`;
-      const res = await fetch(url, { method:'GET' });
+      const res = await fetch(url, { method:'GET', cache:'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     }
-    async function apiPost(payload) {
+
+    // ทำให้ POST เป็น simple request (เลี่ยง CORS preflight)
+    async function apiPost(payload){
       const res = await fetch(API_BASE, {
-        method:'POST',
-        headers: { 'Content-Type':'application/json' },
+        method: 'POST',
+        // ไม่ใส่ 'Content-Type: application/json'
+        headers: { 'Accept': 'application/json' },
         body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -96,17 +97,18 @@
     }
 
     // ---------- App Logic ----------
-    async function init() {
+    async function init(){
       try {
         // โหลดผู้ใช้
         const u = await apiGet('users');
-        renderUsers(u.users || []);
+        renderUsers((u && u.users) ? u.users : []);
+
         // โหลดข้อมูลอะไหล่
         const d = await apiGet('parts');
         ALL_DATA = (d && d.rows) ? d.rows : [];
         setStatus(`โหลดข้อมูลแล้ว ${ALL_DATA.length.toLocaleString()} รายการ`);
       } catch (err) {
-        setStatus(`โหลดข้อมูลล้มเหลว: ${err.message || err}`, 'err');
+        setStatus(`โหลดข้อมูลล้มเหลว: ${err && (err.message || String(err))}`, 'err');
       }
 
       // Events
@@ -116,10 +118,10 @@
       qs('#btnReturn').addEventListener('click', () => setAction('Return'));
     }
 
-    function renderUsers(users) {
+    function renderUsers(users){
       const holder = qs('#userButtons');
       holder.innerHTML = '';
-      if (!users.length) {
+      if (!users.length){
         holder.innerHTML = '<small class="muted">ไม่พบรายชื่อผู้ใช้งาน</small>';
         return;
       }
@@ -130,7 +132,7 @@
       });
     }
 
-    function chooseUser(u) {
+    function chooseUser(u){
       CURRENT_USER = u;
       qs('#currentUser').textContent = u;
       qs('#btnWithdraw').disabled = false;
@@ -138,34 +140,34 @@
       setStatus(`เลือกผู้ใช้งาน: ${u}`);
     }
 
-    function setAction(a) {
+    function setAction(a){
       CURRENT_ACTION = a;
       qs('#currentAction').textContent = (a === 'Withdraw') ? 'เบิกอะไหล่' : 'คืนอะไหล่';
       setStatus(`โหมด: ${(a==='Withdraw')?'เบิกอะไหล่':'คืนอะไหล่'} พร้อมค้นหาได้เลย`);
     }
 
-    function onSearch() {
+    function onSearch(){
       const q = (qs('#searchInput').value || '').trim().toLowerCase();
-      if (!q) {
+      if (!q){
         renderTable([]);
         setStatus('กรุณาพิมพ์คำค้น (อย่างน้อย 1 ตัวอักษร)');
         return;
       }
-      if (!CURRENT_USER) { setStatus('กรุณาเลือกผู้ใช้งานก่อน', 'err'); return; }
-      if (!CURRENT_ACTION) { setStatus('กรุณาเลือกประเภทการทำรายการก่อน', 'err'); return; }
+      if (!CURRENT_USER){ setStatus('กรุณาเลือกผู้ใช้งานก่อน', 'err'); return; }
+      if (!CURRENT_ACTION){ setStatus('กรุณาเลือกประเภทการทำรายการก่อน', 'err'); return; }
 
       const results = ALL_DATA.filter(r => {
         const a = (r.A ?? '').toString().toLowerCase();
         const b = (r.B ?? '').toString().toLowerCase();
-        return a.includes(q) || b.includes(q); // ค้น A+B
+        return a.includes(q) || b.includes(q); // ค้น A + B
       });
       renderTable(results);
       setStatus(`พบ ${results.length.toLocaleString()} รายการสำหรับ "${q}"`);
     }
 
-    function renderTable(rows) {
+    function renderTable(rows){
       const container = qs('#results');
-      if (!rows.length) { container.innerHTML = '<small class="muted">ไม่มีผลลัพธ์</small>'; return; }
+      if (!rows.length){ container.innerHTML = '<small class="muted">ไม่มีผลลัพธ์</small>'; return; }
 
       const table = createEl('table');
       const thead = createEl('thead'); thead.innerHTML = `
@@ -205,12 +207,12 @@
       container.appendChild(table);
     }
 
-    async function submitLog({ A, B, C, H, qtyElId }) {
+    async function submitLog({ A, B, C, H, qtyElId }){
       const qty = Number((document.getElementById(qtyElId).value || '0'));
-      if (!CURRENT_USER) { setStatus('กรุณาเลือกผู้ใช้งานก่อน', 'err'); return; }
-      if (!CURRENT_ACTION) { setStatus('กรุณาเลือกประเภทการทำรายการก่อน', 'err'); return; }
-      if (!A) { setStatus('ข้อมูล Material (A) ว่าง', 'err'); return; }
-      if (!(qty > 0)) { setStatus('กรุณากรอกจำนวน (ea) มากกว่า 0', 'err'); return; }
+      if (!CURRENT_USER){ setStatus('กรุณาเลือกผู้ใช้งานก่อน', 'err'); return; }
+      if (!CURRENT_ACTION){ setStatus('กรุณาเลือกประเภทการทำรายการก่อน', 'err'); return; }
+      if (!A){ setStatus('ข้อมูล Material (A) ว่าง', 'err'); return; }
+      if (!(qty > 0)){ setStatus('กรุณากรอกจำนวน (ea) มากกว่า 0', 'err'); return; }
 
       setStatus('กำลังบันทึก...');
       try {
@@ -219,13 +221,13 @@
           action: CURRENT_ACTION, // 'Withdraw' | 'Return'
           A, B, C, H, qty
         });
-        if (res && res.ok) {
+        if (res && res.ok){
           setStatus('บันทึกสำเร็จ', 'ok');
         } else {
-          setStatus(res.message || 'บันทึกล้มเหลว', 'err');
+          setStatus((res && res.message) || 'บันทึกล้มเหลว', 'err');
         }
       } catch (err) {
-        setStatus(`ผิดพลาด: ${err.message || err}`, 'err');
+        setStatus(`ผิดพลาด: ${err && (err.message || String(err))}`, 'err');
       }
     }
 
