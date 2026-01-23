@@ -1,238 +1,150 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ระบบเบิก/คืนอะไหล่ - QIAGEN</title>
-  <style>
-    :root {
-      --primary:#2563eb; --border:#e5e7eb; --muted:#6b7280; --bg:#f8fafc;
-      --ok:#065f46; --err:#991b1b;
-    }
-    body { font-family: "Segoe UI", Tahoma, sans-serif; margin: 20px; color:#111; background:var(--bg); }
-    h1,h2 { margin:0 0 8px 0 }
-    .card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px; }
-    .row { display:flex; flex-wrap:wrap; align-items:center; gap:10px }
-    .btn { padding:10px 16px; border-radius:10px; border:1px solid var(--primary); background:var(--primary); color:#fff; cursor:pointer; }
-    .btn.secondary { background:#fff; color:var(--primary); }
-    .btn:disabled { opacity:.6; cursor:not-allowed }
-    input[type="text"], input[type="number"] { border:1px solid #cbd5e1; border-radius:10px; padding:8px 10px; }
-    table { width:100%; border-collapse:collapse; margin-top:12px; }
-    th,td { border:1px solid var(--border); padding:8px; text-align:left; }
-    th { background:#f1f5f9 }
-    small.muted { color:var(--muted) }
-    .pill { display:inline-block; padding:4px 10px; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe; }
-    #status.ok { color:var(--ok) } #status.err { color:var(--err) } #status { color:var(--muted) }
-  </style>
-</head>
-<body>
-  <h1>ระบบเบิก/คืนอะไหล่</h1>
-  <div class="card">
-    <h2>เลือกผู้ใช้งาน</h2>
-    <div id="userButtons" class="row"><small class="muted">กำลังโหลดรายชื่อ...</small></div>
-    <div><small class="muted">ผู้ใช้งานปัจจุบัน: <span id="currentUser" class="pill">ยังไม่เลือก</span></small></div>
-  </div>
 
-  <div class="card">
-    <h2>เลือกการทำรายการ</h2>
-    <div class="row">
-      <button class="btn" id="btnWithdraw" disabled>เบิกอะไหล่</button>
-      <button class="btn secondary" id="btnReturn" disabled>คืนอะไหล่</button>
-    </div>
-    <div><small class="muted">สถานะ: <span id="currentAction" class="pill">ยังไม่เลือก</span></small></div>
-  </div>
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { motion } from "framer-motion";
 
-  <div class="card">
-    <h2>ค้นหาอะไหล่ (Material - คอลัมน์ A)</h2>
-    <div class="row">
-      <input type="text" id="searchInput" placeholder="พิมพ์รหัสหรือคำค้น แล้วกด Enter/ปุ่มค้นหา" style="min-width:260px" />
-      <button class="btn" id="btnSearch">ค้นหา</button>
-      <small class="muted">จะแสดง A, B, C, H เท่านั้น</small>
-    </div>
-    <div id="status" style="margin-top:8px"></div>
-    <div id="results"></div>
-  </div>
+export default function SparePartsApp() {
+  const users = ["KM", "TK", "PST", "PSO", "PK", "PA"];
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedAction, setSelectedAction] = useState(null);
+  const [search, setSearch] = useState("");
+  const [materials, setMaterials] = useState([]);
+  const [filteredMaterials, setFilteredMaterials] = useState([]);
 
-  <script>
-    // ==== ตั้งค่าเฉพาะจุดนี้ (ใช้ URL Web App /exec ของคุณ) ====
-    const API_BASE = 'https://script.google.com/macros/s/AKfycbyegzrutyW7bF2ygaw2uJxjjU7kWyOuNGAXGP8gdvT4B3-iybc5XDYc8dPSv63wV5SOpg/exec';
-
-    let ALL_DATA = [];         // รายการอะไหล่ทั้งหมด (A,B,C,H)
-    let CURRENT_USER = '';     // KM/TK/PST/PSO/PK/PA
-    let CURRENT_ACTION = '';   // 'Withdraw' | 'Return'
-
-    // ---------- Utils ----------
-    const qs = (sel) => document.querySelector(sel);
-    function setStatus(msg, type='info') {
-      const el = qs('#status');
-      el.className = type === 'ok' ? 'ok' : (type === 'err' ? 'err' : '');
-      el.textContent = msg || '';
-    }
-    function createEl(tag, opts={}) {
-      const el = document.createElement(tag);
-      if (opts.className) el.className = opts.className;
-      if (opts.text !== undefined) el.textContent = opts.text;
-      if (opts.html !== undefined) el.innerHTML = opts.html;
-      return el;
-    }
-
-    // ---------- API ----------
-    async function apiGet(action){
-      const url = `${API_BASE}?action=${encodeURIComponent(action)}`;
-      const res = await fetch(url, { method:'GET', cache:'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    }
-
-    // ทำให้ POST เป็น simple request (เลี่ยง CORS preflight)
-    async function apiPost(payload){
-      const res = await fetch(API_BASE, {
-        method: 'POST',
-        // ไม่ใส่ 'Content-Type: application/json'
-        headers: { 'Accept': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    }
-
-    // ---------- App Logic ----------
-    async function init(){
-      try {
-        // โหลดผู้ใช้
-        const u = await apiGet('users');
-        renderUsers((u && u.users) ? u.users : []);
-
-        // โหลดข้อมูลอะไหล่
-        const d = await apiGet('parts');
-        ALL_DATA = (d && d.rows) ? d.rows : [];
-        setStatus(`โหลดข้อมูลแล้ว ${ALL_DATA.length.toLocaleString()} รายการ`);
-      } catch (err) {
-        setStatus(`โหลดข้อมูลล้มเหลว: ${err && (err.message || String(err))}`, 'err');
-      }
-
-      // Events
-      qs('#btnSearch').addEventListener('click', onSearch);
-      qs('#searchInput').addEventListener('keyup', e => { if (e.key === 'Enter') onSearch(); });
-      qs('#btnWithdraw').addEventListener('click', () => setAction('Withdraw'));
-      qs('#btnReturn').addEventListener('click', () => setAction('Return'));
-    }
-
-    function renderUsers(users){
-      const holder = qs('#userButtons');
-      holder.innerHTML = '';
-      if (!users.length){
-        holder.innerHTML = '<small class="muted">ไม่พบรายชื่อผู้ใช้งาน</small>';
-        return;
-      }
-      users.forEach(u => {
-        const b = createEl('button', { className:'btn secondary', text:u });
-        b.onclick = () => chooseUser(u);
-        holder.appendChild(b);
-      });
-    }
-
-    function chooseUser(u){
-      CURRENT_USER = u;
-      qs('#currentUser').textContent = u;
-      qs('#btnWithdraw').disabled = false;
-      qs('#btnReturn').disabled = false;
-      setStatus(`เลือกผู้ใช้งาน: ${u}`);
-    }
-
-    function setAction(a){
-      CURRENT_ACTION = a;
-      qs('#currentAction').textContent = (a === 'Withdraw') ? 'เบิกอะไหล่' : 'คืนอะไหล่';
-      setStatus(`โหมด: ${(a==='Withdraw')?'เบิกอะไหล่':'คืนอะไหล่'} พร้อมค้นหาได้เลย`);
-    }
-
-    function onSearch(){
-      const q = (qs('#searchInput').value || '').trim().toLowerCase();
-      if (!q){
-        renderTable([]);
-        setStatus('กรุณาพิมพ์คำค้น (อย่างน้อย 1 ตัวอักษร)');
-        return;
-      }
-      if (!CURRENT_USER){ setStatus('กรุณาเลือกผู้ใช้งานก่อน', 'err'); return; }
-      if (!CURRENT_ACTION){ setStatus('กรุณาเลือกประเภทการทำรายการก่อน', 'err'); return; }
-
-      const results = ALL_DATA.filter(r => {
-        const a = (r.A ?? '').toString().toLowerCase();
-        const b = (r.B ?? '').toString().toLowerCase();
-        return a.includes(q) || b.includes(q); // ค้น A + B
-      });
-      renderTable(results);
-      setStatus(`พบ ${results.length.toLocaleString()} รายการสำหรับ "${q}"`);
-    }
-
-    function renderTable(rows){
-      const container = qs('#results');
-      if (!rows.length){ container.innerHTML = '<small class="muted">ไม่มีผลลัพธ์</small>'; return; }
-
-      const table = createEl('table');
-      const thead = createEl('thead'); thead.innerHTML = `
-        <tr>
-          <th>A (Material)</th>
-          <th>B</th>
-          <th>C</th>
-          <th>H</th>
-          <th>จำนวน (ea)</th>
-          <th>ยืนยัน</th>
-        </tr>`;
-      table.appendChild(thead);
-
-      const tbody = createEl('tbody');
-      rows.forEach((r, idx) => {
-        const tr = createEl('tr');
-        const tdA = createEl('td', { text: r.A ?? '' });
-        const tdB = createEl('td', { text: r.B ?? '' });
-        const tdC = createEl('td', { text: r.C ?? '' });
-        const tdH = createEl('td', { text: r.H ?? '' });
-
-        const qtyTd = createEl('td');
-        const qtyInput = createEl('input'); qtyInput.type = 'number'; qtyInput.min = '1'; qtyInput.placeholder = 'ea'; qtyInput.style.width = '100px';
-        qtyInput.id = `qty_${idx}`; qtyTd.appendChild(qtyInput);
-
-        const btnTd = createEl('td');
-        const btn = createEl('button', { className:'btn', text:'ยืนยัน' });
-        btn.onclick = () => submitLog({ A:r.A, B:r.B, C:r.C, H:r.H, qtyElId: qtyInput.id });
-        btnTd.appendChild(btn);
-
-        [tdA, tdB, tdC, tdH, qtyTd, btnTd].forEach(td => tr.appendChild(td));
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-
-      container.innerHTML = '';
-      container.appendChild(table);
-    }
-
-    async function submitLog({ A, B, C, H, qtyElId }){
-      const qty = Number((document.getElementById(qtyElId).value || '0'));
-      if (!CURRENT_USER){ setStatus('กรุณาเลือกผู้ใช้งานก่อน', 'err'); return; }
-      if (!CURRENT_ACTION){ setStatus('กรุณาเลือกประเภทการทำรายการก่อน', 'err'); return; }
-      if (!A){ setStatus('ข้อมูล Material (A) ว่าง', 'err'); return; }
-      if (!(qty > 0)){ setStatus('กรุณากรอกจำนวน (ea) มากกว่า 0', 'err'); return; }
-
-      setStatus('กำลังบันทึก...');
-      try {
-        const res = await apiPost({
-          user: CURRENT_USER,
-          action: CURRENT_ACTION, // 'Withdraw' | 'Return'
-          A, B, C, H, qty
+  // Load CSV from Google Sheets
+  useEffect(() => {
+    fetch(
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQg2ma13Gm9ppdtEaZAb9fLuZn2YmoXFJx3DYb5te4Fua4xej_OFU-_6J6OQBXXdO8AAWlueRQ1omHd/pub?output=csv"
+    )
+      .then((res) => res.text())
+      .then((csv) => {
+        const rows = csv.split("\n").map((r) => r.split(","));
+        const headers = rows[0];
+        const items = rows.slice(1).map((row) => {
+          const obj = {};
+          headers.forEach((h, i) => (obj[h.trim()] = row[i]));
+          return obj;
         });
-        if (res && res.ok){
-          setStatus('บันทึกสำเร็จ', 'ok');
-        } else {
-          setStatus((res && res.message) || 'บันทึกล้มเหลว', 'err');
-        }
-      } catch (err) {
-        setStatus(`ผิดพลาด: ${err && (err.message || String(err))}`, 'err');
-      }
-    }
+        setMaterials(items);
+        setFilteredMaterials(items);
+      });
+  }, []);
 
-    // Go!
-    init();
-  </script>
-</body>
-</html>
+  // Search filter
+  useEffect(() => {
+    if (!search) {
+      setFilteredMaterials(materials);
+      return;
+    }
+    const lower = search.toLowerCase();
+    setFilteredMaterials(
+      materials.filter(
+        (m) =>
+          (m.Material || "").toLowerCase().includes(lower) ||
+          (m.Description || "").toLowerCase().includes(lower)
+      )
+    );
+  }, [search, materials]);
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+      <Card className="w-full max-w-xl shadow-2xl rounded-2xl p-6 bg-white">
+        <CardContent>
+          {!selectedUser && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <h1 className="text-2xl font-bold mb-4 text-center">เลือกผู้ใช้งาน</h1>
+              <div className="grid grid-cols-3 gap-3">
+                {users.map((u) => (
+                  <Button
+                    key={u}
+                    className="rounded-2xl p-4 text-lg"
+                    onClick={() => setSelectedUser(u)}
+                  >
+                    {u}
+                  </Button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {selectedUser && !selectedAction && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <h2 className="text-xl font-semibold mb-4 text-center">
+                ผู้ใช้งาน: {selectedUser}
+              </h2>
+              <div className="flex flex-col gap-4">
+                <Button
+                  className="p-4 text-lg rounded-2xl"
+                  onClick={() => setSelectedAction("request")}
+                >
+                  เบิกอะไหล่
+                </Button>
+                <Button
+                  className="p-4 text-lg rounded-2xl"
+                  onClick={() => setSelectedAction("return")}
+                >
+                  คืนอะไหล่
+                </Button>
+                <Button
+                  variant="secondary"
+                  className="rounded-xl mt-4"
+                  onClick={() => setSelectedUser(null)}
+                >
+                  ◀ กลับ
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {selectedAction === "request" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <h2 className="text-xl font-semibold mb-3 text-center">เบิกอะไหล่</h2>
+              <Input
+                placeholder="ค้นหา Material"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="rounded-xl mb-4"
+              />
+
+              <div className="max-h-64 overflow-y-auto border rounded-xl p-3 bg-gray-50">
+                {filteredMaterials.map((m, index) => (
+                  <div
+                    key={index}
+                    className="p-2 mb-2 bg-white rounded-lg shadow-sm border"
+                  >
+                    <p className="font-semibold">{m.Material}</p>
+                    <p className="text-sm text-gray-600">{m.Description}</p>
+                  </div>
+                ))}
+              </div>
+
+              <Button
+                variant="secondary"
+                className="rounded-xl mt-4"
+                onClick={() => setSelectedAction(null)}
+              >
+                ◀ กลับ
+              </Button>
+            </motion.div>
+          )}
+
+          {selectedAction === "return" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <h2 className="text-xl font-semibold mb-3 text-center">คืนอะไหล่</h2>
+              <p className="text-center text-gray-500 mb-4">(กำลังพัฒนา)</p>
+              <Button
+                variant="secondary"
+                className="rounded-xl"
+                onClick={() => setSelectedAction(null)}
+              >
+                ◀ กลับ
+              </Button>
+            </motion.div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
