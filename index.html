@@ -4,27 +4,11 @@
   <meta charset="UTF-8" />
   <title>QIAGEN Spare Parts Kiosk</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com">function submitAction(action, material, btn){
-  const qtyInput = btn.previousElementSibling;
-  const qty = Number(qtyInput.value);
-  if(!qty || qty <= 0){
-    alert('Please enter quantity');
-    return;
-  }
 
-  fetch(GAS_URL,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action,user:currentUser,material,qty})
-  })
-  .then(r=>r.json())
-  .then(res=>{
-    if(res.error) alert(res.error);
-    else{ alert('Success'); loadStock(); }
-  });
-}
-</script>
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body onload="initServiceLock()" class="bg-slate-100 min-h-screen">
 
 <header class="bg-white shadow flex items-center justify-between px-6 py-4">
@@ -64,9 +48,7 @@
 <section id="page-menu" class="hidden flex items-center justify-center min-h-[calc(100vh-80px)]">
   <div class="bg-white rounded-2xl shadow-xl p-10 max-w-xl w-full text-center">
     <p class="text-lg mb-4">Current user: <span id="currentUser" class="font-semibold"></span></p>
-    <div class="flex justify-center gap-4 mb-6">
-      <button onclick="logout()" class="text-red-600 underline">Logout</button>
-    </div>
+    <button onclick="logout()" class="text-red-600 underline mb-6">Logout</button>
     <div class="flex justify-center gap-6">
       <button onclick="openIssue()" class="bg-blue-600 text-white px-8 py-6 rounded-xl text-xl">Issue</button>
       <button onclick="openReturn()" class="bg-green-600 text-white px-8 py-6 rounded-xl text-xl">Return</button>
@@ -91,7 +73,7 @@
   <button onclick="backToMenu()" class="mt-6 text-slate-500">← Back</button>
 </section>
 
-<!-- VIEW ONLY -->
+<!-- VIEW -->
 <section id="page-view" class="hidden p-6">
   <h2 class="text-2xl font-bold mb-4 text-indigo-700">All Spare Parts (View Only)</h2>
   <select id="instrumentFilter" class="border p-2 rounded mb-4"></select>
@@ -108,32 +90,21 @@ let stockData = [];
 
 function show(id){
   ['page-user','page-menu','page-issue','page-return','page-view'].forEach(p=>{
-    const el = document.getElementById(p);
-    if(el) el.classList.add('hidden');
+    document.getElementById(p).classList.add('hidden');
   });
   document.getElementById(id).classList.remove('hidden');
 }
 
 function initServiceLock(){
-  // force lock on load
-  const popup = document.getElementById('servicePopup');
-  popup.style.display = 'flex';
-  document.getElementById('serviceError').classList.add('hidden');
+  document.getElementById('servicePopup').style.display = 'flex';
 }
 
 function checkService(){
-  const pinInput = document.getElementById('servicePin');
-  const error = document.getElementById('serviceError');
-  const popup = document.getElementById('servicePopup');
-
-  if(pinInput.value.trim() === SERVICE_PASSWORD){
-    error.classList.add('hidden');
-    popup.style.display = 'none';
+  const pin = document.getElementById('servicePin').value.trim();
+  if(pin === SERVICE_PASSWORD){
+    document.getElementById('servicePopup').style.display = 'none';
     show('page-user');
   } else {
-    error.classList.remove('hidden');
-  }
-} else {
     document.getElementById('serviceError').classList.remove('hidden');
   }
 }
@@ -166,6 +137,9 @@ function loadStock(){
     });
 }
 
+const searchIssue = document.getElementById('searchIssue');
+const searchReturn = document.getElementById('searchReturn');
+
 searchIssue.addEventListener('input', e=>renderIssue(e.target.value));
 searchReturn.addEventListener('input', e=>renderReturn(e.target.value));
 
@@ -180,11 +154,6 @@ function renderIssue(q){
         <button class="bg-blue-600 text-white px-4 py-2 rounded" onclick="submitAction('Issue','${s.material}',this)">Issue</button>
       </div>
     </div>`).join('');
-}">
-      <div class="font-semibold">${s.instrument} | ${s.material}</div>
-      <div class="text-sm">${s.productName}</div>
-      <div class="text-sm">Stock: <b>${s.stock}</b></div>
-    </div>`).join('');
 }
 
 function renderReturn(q){
@@ -197,10 +166,6 @@ function renderReturn(q){
         <input type="number" min="1" class="border p-2 w-24" placeholder="Qty" />
         <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="submitAction('Return','${s.material}',this)">Return</button>
       </div>
-    </div>`).join('');
-} | ${s.material}</div>
-      <div class="text-sm">${s.productName}</div>
-      <div class="text-sm">Stock: <b>${s.stock}</b></div>
     </div>`).join('');
 }
 
@@ -218,6 +183,26 @@ function renderView(){
       </div>`).join('');
   };
   sel.onchange();
+}
+
+function submitAction(action, material, btn){
+  const qtyInput = btn.previousElementSibling;
+  const qty = Number(qtyInput.value);
+  if(!qty || qty <= 0){
+    alert('Please enter quantity');
+    return;
+  }
+
+  fetch(GAS_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action,user:currentUser,material,qty})
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.error) alert(res.error);
+    else{ alert('Success'); loadStock(); }
+  });
 }
 </script>
 
