@@ -184,7 +184,9 @@ async function loadCSV() {
   const text = await res.text();
 
   // Robust CSV parsing (supports commas inside quotes)
-  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+  const lines = text.split(/
+?
+/).filter(l => l.trim() !== '');
   const headers = parseCSVLine(lines[0]);
 
   stockData = lines.slice(1).map(line => {
@@ -208,7 +210,13 @@ function parseCSVLine(line) {
     const char = line[i];
 
     if (char === '"') {
-      inQuotes = !inQuotes;
+      // handle escaped double quotes ""
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
     } else if (char === ',' && !inQuotes) {
       result.push(current);
       current = '';
@@ -218,7 +226,7 @@ function parseCSVLine(line) {
   }
   result.push(current);
 
-  return result.map(v => v.replace(/^"|"$/g, '').trim());
+  return result.map(v => v.trim());
 }
 
 function showAllParts() {
