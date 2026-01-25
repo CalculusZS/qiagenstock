@@ -1,239 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>QIAGEN Spare Parts Kiosk</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<title>Qiagen Stock System</title>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+}
+
+h2 {
+  margin-bottom: 10px;
+}
+
+select {
+  padding: 6px;
+  margin-bottom: 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  text-align: center;
+}
+
+th {
+  background: #f2f2f2;
+}
+
+input[type="number"] {
+  width: 70px;
+}
+
+button {
+  padding: 5px 10px;
+  margin: 2px;
+  cursor: pointer;
+}
+</style>
 </head>
 
-<body onload="initServiceLock()" class="bg-slate-100 min-h-screen">
+<body>
 
-<header class="bg-white shadow flex items-center justify-between px-6 py-4">
-  <div class="flex items-center gap-3">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/QIAGEN_Logo.svg" class="h-10" />
-    <span class="text-slate-500 text-sm">QIAGEN</span>
-  </div>
-  <div class="text-slate-400 text-sm">Spare Parts Qiagen System</div>
-</header>
+<h2>Qiagen Stock System</h2>
 
-<!-- SERVICE LOGIN -->
-<div id="servicePopup" class="fixed inset-0 bg-black/50 flex items-center justify-center">
-  <div class="bg-white rounded-xl p-8 w-full max-w-sm text-center">
-    <h2 class="text-2xl font-bold mb-4">Service Login</h2>
-    <input id="servicePin" type="password" placeholder="Enter Service Password" class="border p-3 rounded w-full mb-4" />
-    <button onclick="checkService()" class="bg-slate-800 text-white px-6 py-3 rounded w-full">Enter</button>
-    <p id="serviceError" class="text-red-600 mt-3 hidden">Invalid password</p>
-  </div>
-</div>
+<label>User : </label>
+<select id="userSelect">
+  <option value="KM">KM</option>
+  <option value="TK">TK</option>
+  <option value="PSO">PSO</option>
+  <option value="PK">PK</option>
+  <option value="PST">PST</option>
+  <option value="PA">PA</option>
+</select>
 
-<!-- USER SELECT -->
-<section id="page-user" class="hidden flex items-center justify-center min-h-[calc(100vh-80px)]">
-  <div class="bg-white rounded-2xl shadow-xl p-10 max-w-5xl w-full text-center">
-    <h1 class="text-3xl font-bold mb-6">Please select user</h1>
-    <div class="grid grid-cols-3 gap-6">
-      <button onclick="selectUser('KM')" class="user-btn">KM</button>
-      <button onclick="selectUser('TK')" class="user-btn">TK</button>
-      <button onclick="selectUser('PST')" class="user-btn">PST</button>
-      <button onclick="selectUser('PSO')" class="user-btn">PSO</button>
-      <button onclick="selectUser('PK')" class="user-btn">PK</button>
-      <button onclick="selectUser('PA')" class="user-btn">PA</button>
-    </div>
-  </div>
-</section>
-
-<!-- MENU -->
-<section id="page-menu" class="hidden flex items-center justify-center min-h-[calc(100vh-80px)]">
-  <div class="bg-white rounded-2xl shadow-xl p-10 max-w-xl w-full text-center">
-    <p class="text-lg mb-4">Current user: <span id="currentUser" class="font-semibold"></span></p>
-    <button onclick="logout()" class="text-red-600 underline mb-6">Logout</button>
-    <div class="flex justify-center gap-6">
-      <button onclick="openIssue()" class="bg-blue-600 text-white px-8 py-6 rounded-xl text-xl">Issue</button>
-      <button onclick="openReturn()" class="bg-green-600 text-white px-8 py-6 rounded-xl text-xl">Return</button>
-      <button onclick="openView()" class="bg-indigo-600 text-white px-8 py-6 rounded-xl text-xl">Show All</button>
-    </div>
-  </div>
-</section>
-
-<!-- ISSUE -->
-<section id="page-issue" class="hidden p-6">
-  <h2 class="text-2xl font-bold mb-4 text-blue-700">Issue Spare Parts</h2>
-  <input id="searchIssue" placeholder="Search material" class="border p-2 rounded w-full max-w-md" />
-  <div id="issueResult" class="mt-4 space-y-4"></div>
-  <button onclick="backToMenu()"
-  style="
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    background: #e5e7eb;
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-weight: 600;
-  " class="mt-6 text-slate-500">← Back</button>
-</section>
-
-<!-- RETURN -->
-<section id="page-return" class="hidden p-6">
-  <h2 class="text-2xl font-bold mb-4 text-green-700">Return Spare Parts</h2>
-  <input id="searchReturn" placeholder="Search material" class="border p-2 rounded w-full max-w-md" />
-  <div id="returnResult" class="mt-4 space-y-4"></div>
-  <button onclick="backToMenu()"
-  style="
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    background: #e5e7eb;
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-weight: 600;
-  " class="mt-6 text-slate-500">← Back</button>
-</section>
-
-<!-- VIEW -->
-<section id="page-view" class="hidden p-6">
-  <h2 class="text-2xl font-bold mb-4 text-indigo-700">All Spare Parts (View Only)</h2>
-  <select id="instrumentFilter" class="border p-2 rounded mb-4"></select>
-  <div id="viewResult" class="space-y-4"></div>
-  <button onclick="backToMenu()" class="mt-6 text-slate-500">← Back</button>
-</section>
+<table id="stockTable">
+  <thead>
+    <tr>
+      <th>Instrument</th>
+      <th>Material</th>
+      <th>Product Name</th>
+      <th>Central Stock</th>
+      <th>Qty</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
 <script>
 /************ CONFIG ************/
-const SERVICE_PASSWORD = 'Service';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwIrF3dP8yPMilRbfjTAHLoKc8HrttauauVQNk7xzXmH58phI_MD-pxvcdnsOOAqTy6kg/exec
-';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxpoYB6PrDQ6KeJRhw8TOatuR4XaenWydyED7i9icai5ibNHEH8TOa2kRLAodBcNwjwuQ/exec';
+let currentUser = 'KM';
 
-let currentUser = '';
-let stockData = [];
-
-/************ UI CONTROL ************/
-function show(id){
-  ['page-user','page-menu','page-issue','page-return','page-view'].forEach(p=>{
-    document.getElementById(p).classList.add('hidden');
-  });
-  document.getElementById(id).classList.remove('hidden');
-}
-
-function initServiceLock(){
-  document.getElementById('servicePopup').style.display = 'flex';
-}
-
-function checkService(){
-  const pin = document.getElementById('servicePin').value.trim();
-  if(pin === SERVICE_PASSWORD){
-    document.getElementById('servicePopup').style.display = 'none';
-    show('page-user');
-  } else {
-    document.getElementById('serviceError').classList.remove('hidden');
-  }
-}
-
-function selectUser(u){
-  currentUser = u;
-  document.getElementById('currentUser').innerText = u;
-  show('page-menu');
-}
-
-function logout(){
-  currentUser = '';
-  show('page-user');
-}
-
-function backToMenu(){ show('page-menu'); }
-function openIssue(){ show('page-issue'); loadStock(); }
-function openReturn(){ show('page-return'); loadStock(); }
-function openView(){ show('page-view'); loadStock(); }
-
-/************ DATA ************/
-function loadStock(){
-  fetch(GAS_URL, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    action,
-    user: currentUser,
-    material,
-    qty
-  })
-})
-.then(r => r.text())                // ✅ รับเป็น text
-.then(t => JSON.parse(t))           // ✅ แปลงเป็น JSON เอง
-.then(res => {
-  if (res.error) {
-    alert('❌ ' + res.error);
-  } else {
-    alert('✅ Transaction completed successfully');
-    qtyInput.value = '';
-    loadStock();
-  }
-})
-.catch(err => {
-  console.error(err);
-  alert('❌ System error. Please try again.');
+/************ USER CHANGE ************/
+document.getElementById('userSelect').addEventListener('change', e => {
+  currentUser = e.target.value;
 });
 
+/************ LOAD STOCK ************/
+function loadStock() {
+  fetch(GAS_URL + '?action=getStock')
+    .then(r => r.text())
+    .then(t => JSON.parse(t))
+    .then(data => {
+      const tbody = document.querySelector('#stockTable tbody');
+      tbody.innerHTML = '';
+
+      data.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.instrument}</td>
+          <td>${item.material}</td>
+          <td>${item.productName}</td>
+          <td>${item.stock}</td>
+          <td><input type="number" min="1"></td>
+          <td>
+            <button onclick="submitAction('Issue','${item.material}',this)">Issue</button>
+            <button onclick="submitAction('Return','${item.material}',this)">Return</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    })
+    .catch(err => {
+      console.error(err);
+      alert('Failed to load stock data');
+    });
 }
 
-const searchIssue = document.getElementById('searchIssue');
-const searchReturn = document.getElementById('searchReturn');
-
-searchIssue.addEventListener('input', e=>renderIssue(e.target.value));
-searchReturn.addEventListener('input', e=>renderReturn(e.target.value));
-
-/************ RENDER ************/
-function renderIssue(q){
-  issueResult.innerHTML = stockData
-    .filter(s=>s.material.includes(q))
-    .map(s=>`
-    <div class="border rounded p-4 ${s.stock>0?'':'bg-red-50'}">
-      <div class="font-semibold">${s.instrument} | ${s.material}</div>
-      <div class="text-sm">${s.productName}</div>
-      <div class="text-sm mb-2">Stock: <b>${s.stock}</b></div>
-      <div class="flex items-center gap-3">
-        <input type="number" min="1" max="${s.stock}" class="border p-2 w-24" placeholder="Qty" />
-        <button class="bg-blue-600 text-white px-4 py-2 rounded" onclick="submitAction('Issue','${s.material}',this)">Issue</button>
-      </div>
-    </div>`).join('');
-}
-
-function renderReturn(q){
-  returnResult.innerHTML = stockData
-    .filter(s=>s.material.includes(q))
-    .map(s=>`
-    <div class="border rounded p-4">
-      <div class="font-semibold">${s.instrument} | ${s.material}</div>
-      <div class="text-sm">${s.productName}</div>
-      <div class="text-sm mb-2">Stock: <b>${s.stock}</b></div>
-      <div class="flex items-center gap-3">
-        <input type="number" min="1" class="border p-2 w-24" placeholder="Qty" />
-        <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="submitAction('Return','${s.material}',this)">Return</button>
-      </div>
-    </div>`).join('');
-}
-
-function renderView(){
-  const sel = document.getElementById('instrumentFilter');
-  const inst = [...new Set(stockData.map(s=>s.instrument))];
-  sel.innerHTML = '<option value="">All Instruments</option>' + inst.map(i=>`<option>${i}</option>`).join('');
-  sel.onchange = ()=>{
-    const v = sel.value;
-    viewResult.innerHTML = stockData
-      .filter(s=>!v || s.instrument===v)
-      .map(s=>`
-      <div class="border rounded p-4">
-        <div class="font-semibold">${s.instrument} | ${s.material}</div>
-        <div class="text-sm">${s.productName}</div>
-        <div class="text-sm">Stock: <b>${s.stock}</b></div>
-      </div>`).join('');
-  };
-  sel.onchange();
-}
-
-/************ SUBMIT ************/
+/************ ISSUE / RETURN ************/
 function submitAction(action, material, btn) {
-  const qtyInput = btn.previousElementSibling;
+  const qtyInput = btn.parentElement.previousElementSibling.querySelector('input');
   const qty = Number(qtyInput.value);
 
   if (!qty || qty <= 0) {
@@ -244,9 +128,15 @@ function submitAction(action, material, btn) {
   fetch(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, user: currentUser, material, qty })
+    body: JSON.stringify({
+      action,
+      user: currentUser,
+      material,
+      qty
+    })
   })
-  .then(r => r.json())
+  .then(r => r.text())
+  .then(t => JSON.parse(t))
   .then(res => {
     if (res.error) {
       alert('❌ ' + res.error);
@@ -256,23 +146,15 @@ function submitAction(action, material, btn) {
       loadStock();
     }
   })
-  .catch(() => {
+  .catch(err => {
+    console.error(err);
     alert('❌ System error. Please try again.');
   });
 }
-</script>
 
-<style>
-.user-btn{
-  border:2px solid #cbd5e1;
-  border-radius:1rem;
-  padding:2.5rem 0;
-  font-size:1.25rem;
-  font-weight:600;
-  background:#f8fafc
-}
-.user-btn:hover{background:#eff6ff}
-</style>
+/************ INIT ************/
+loadStock();
+</script>
 
 </body>
 </html>
