@@ -204,21 +204,23 @@ async function searchMaterial() {
 function renderResult(list) {
   const el = document.getElementById('resultArea');
   el.innerHTML = '';
-  list.forEach(s => {
-    const div = document.createElement('div');
-    div.className = `${s.stock > 0 ? 'bg-white' : 'bg-red-50'} p-4 rounded-xl shadow flex justify-between items-center`;
-    div.innerHTML = `
-      <div>
-        <div class="font-semibold">${s.instrument} | ${s.material}</div>
-        <div class="text-sm break-words whitespace-normal">${s.product}</div>
-        <div class="text-xs">Van0243 Stock: <b>${s.stock > 0 ? s.stock : 'NO STOCK'}</b></div>
-      </div>
-      <div class="flex items-center gap-2">
-        <input type="number" min="1" max="${s.stock}" class="border rounded w-20 px-2" />
-        <button ${s.stock === 0 ? 'disabled' : ''} class="px-3 py-1 rounded text-white ${mode === 'Issue' ? 'bg-blue-600' : 'bg-green-600'}" onclick="confirmAction('${s.material}', this)">OK</button>
-      </div>`;
-    el.appendChild(div);
-  });
+
+  if (list.length === 0) return;
+
+  const s = list[0]; // show only 1 row
+  const div = document.createElement('div');
+  div.className = `${s.stock > 0 ? 'bg-white' : 'bg-red-50'} p-4 rounded-xl shadow flex justify-between items-center`;
+  div.innerHTML = `
+    <div>
+      <div class="font-semibold">${s.instrument} | ${s.material}</div>
+      <div class="text-sm break-words whitespace-normal">${s.product}</div>
+      <div class="text-xs">Van0243 Stock: <b class="${s.stock > 0 ? 'text-slate-700' : 'text-red-600'}">${s.stock > 0 ? s.stock : 'NO STOCK'}</b></div>
+    </div>
+    <div class="flex items-center gap-2">
+      <input type="number" min="1" max="${s.stock}" class="border rounded w-20 px-2" />
+      <button ${s.stock === 0 ? 'disabled' : ''} class="px-3 py-1 rounded text-white ${mode === 'Issue' ? 'bg-blue-600' : 'bg-green-600'}" onclick="confirmAction('${s.material}', this)">OK</button>
+    </div>`;
+  el.appendChild(div);
 }
 
 function confirmAction(material, btn) {
