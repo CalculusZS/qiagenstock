@@ -145,6 +145,15 @@ function renderIssue(q){
     <div class="border rounded p-4 ${s.stock>0?'':'bg-red-50'}">
       <div class="font-semibold">${s.instrument} | ${s.material}</div>
       <div class="text-sm">${s.productName}</div>
+      <div class="text-sm mb-2">Stock: <b>${s.stock}</b></div>
+      <div class="flex items-center gap-3">
+        <input type="number" min="1" max="${s.stock}" class="border p-2 w-24" placeholder="Qty" />
+        <button class="bg-blue-600 text-white px-4 py-2 rounded" onclick="submitAction('Issue','${s.material}',this)">Issue</button>
+      </div>
+    </div>`).join('');
+}">
+      <div class="font-semibold">${s.instrument} | ${s.material}</div>
+      <div class="text-sm">${s.productName}</div>
       <div class="text-sm">Stock: <b>${s.stock}</b></div>
     </div>`).join('');
 }
@@ -152,7 +161,7 @@ function renderIssue(q){
 function renderReturn(q){
   returnResult.innerHTML = stockData.filter(s=>s.material.includes(q)).map(s=>`
     <div class="border rounded p-4">
-      <div class="font-semibold">${s.instrument} | ${s.material}</div>
+      <div class="font-semibold">${s.instrument} | ${s.material}</div> | ${s.material}</div>
       <div class="text-sm">${s.productName}</div>
       <div class="text-sm">Stock: <b>${s.stock}</b></div>
     </div>`).join('');
