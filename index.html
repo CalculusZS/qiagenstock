@@ -25,6 +25,11 @@
 <!-- ================= USER SELECT ================= -->
 <div id="userScreen" class="hidden h-full p-6">
   <h2 class="text-2xl font-bold mb-4 text-center">Please Select User</h2>
+  <div class="text-center mb-6">
+    <button onclick="openViewOnly()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl text-lg shadow">
+      📦 View All Spare Parts
+    </button>
+  </div>
   <div class="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
     <button onclick="selectUser('KM')" class="userBtn">👤 KM</button>
     <button onclick="selectUser('TK')" class="userBtn">👤 TK</button>
@@ -33,6 +38,15 @@
     <button onclick="selectUser('PST')" class="userBtn">👤 PST</button>
     <button onclick="selectUser('PA')" class="userBtn">👤 PA</button>
   </div>
+</div>
+
+<!-- ================= VIEW ONLY SPARE PARTS ================= -->
+<div id="viewOnlyScreen" class="hidden h-full p-6 overflow-y-auto">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-bold">All Spare Parts (View Only)</h2>
+    <button onclick="backToUser()" class="text-blue-600">Back</button>
+  </div>
+  <div id="viewOnlyResult" class="space-y-3"></div>
 </div>
 
 <!-- ================= ACTION SELECT ================= -->
@@ -69,7 +83,10 @@
   </div>
 
   <input id="searchInput" placeholder="Search Material" class="border rounded-lg px-3 py-2 w-full mb-4" />
-  <button onclick="searchMaterial()" class="mb-4 bg-slate-800 text-white px-4 py-2 rounded">Search</button>
+  <div class="flex gap-2 mb-4">
+    <button onclick="searchMaterial()" class="bg-slate-800 text-white px-4 py-2 rounded">Search</button>
+    <button onclick="showAllParts()" class="bg-indigo-600 text-white px-4 py-2 rounded">Show All Parts</button>
+  </div>
 
   <div id="resultArea" class="space-y-3"></div>
 </div>
@@ -96,6 +113,30 @@ function checkPIN() {
 }
 
 // ================= USER =================
+function openViewOnly(){
+  userScreen.classList.add('hidden');
+  viewOnlyScreen.classList.remove('hidden');
+  if(stockData.length===0){ loadCSV().then(renderViewOnly); }
+  else renderViewOnly();
+}
+
+function backToUser(){
+  viewOnlyScreen.classList.add('hidden');
+  userScreen.classList.remove('hidden');
+}
+
+function renderViewOnly(){
+  viewOnlyResult.innerHTML='';
+  stockData.forEach(s=>{
+    const div=document.createElement('div');
+    div.className='bg-white p-4 rounded-xl shadow';
+    div.innerHTML=`<div class="font-semibold">${s.instrument} | ${s.material}</div>
+    <div class="text-sm">${s.product}</div>
+    <div class="text-xs text-slate-500">Van0243 Stock: <b>${s.stock}</b></div>`;
+    viewOnlyResult.appendChild(div);
+  });
+}
+
 function selectUser(u) {
   currentUser = u;
   document.getElementById('currentUser').innerText = u;
@@ -151,6 +192,14 @@ async function loadCSV() {
       stock: Number(c[7])
     };
   });
+}
+
+function showAllParts() {
+  if (stockData.length === 0) {
+    loadCSV().then(() => renderResult(stockData));
+  } else {
+    renderResult(stockData);
+  }
 }
 
 async function searchMaterial() {
