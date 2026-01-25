@@ -104,10 +104,18 @@ let stockData = [];
 // ================= PIN =================
 function checkPIN() {
   const v = document.getElementById('pinInput').value;
+  const pinScreenEl = document.getElementById('pinScreen');
+  const userScreenEl = document.getElementById('userScreen');
+  const pinErrorEl = document.getElementById('pinError');
+
   if (v === PIN) {
-    pinScreen.classList.add('hidden');
-    userScreen.classList.remove('hidden');
+    pinErrorEl.classList.add('hidden');
+    pinScreenEl.classList.add('hidden');
+    userScreenEl.classList.remove('hidden');
   } else {
+    pinErrorEl.classList.remove('hidden');
+  }
+} else {
     pinError.classList.remove('hidden');
   }
 }
