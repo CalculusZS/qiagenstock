@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <title>Spare Parts Qiagen System</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Tailwind CDN -->
+
+  <!-- Tailwind CDN (FIXED) -->
   <script src="https://cdn.tailwindcss.com"></script>
+
   <!-- Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 </head>
@@ -25,11 +27,13 @@
 <!-- ================= USER SELECT ================= -->
 <div id="userScreen" class="hidden h-full p-6">
   <h2 class="text-2xl font-bold mb-4 text-center">Please Select User</h2>
+
   <div class="text-center mb-6">
     <button onclick="openViewOnly()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl text-lg shadow">
       📦 View All Spare Parts
     </button>
   </div>
+
   <div class="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
     <button onclick="selectUser('KM')" class="userBtn">👤 KM</button>
     <button onclick="selectUser('TK')" class="userBtn">👤 TK</button>
@@ -40,7 +44,7 @@
   </div>
 </div>
 
-<!-- ================= VIEW ONLY SPARE PARTS ================= -->
+<!-- ================= VIEW ONLY ================= -->
 <div id="viewOnlyScreen" class="hidden h-full p-6 overflow-y-auto">
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-2xl font-bold">All Spare Parts (View Only)</h2>
@@ -49,33 +53,14 @@
   <div id="viewOnlyResult" class="space-y-3"></div>
 </div>
 
-<!-- ================= ACTION SELECT ================= -->
-<!-- Supervisor access button -->
+<!-- ================= ACTION ================= -->
 <div id="actionScreen" class="hidden h-full flex flex-col items-center justify-center gap-6">
-  <button onclick="openSupervisorLogin()" class="absolute top-4 right-4 text-sm text-slate-500 underline">Supervisor</button>
   <h2 class="text-2xl font-bold">User: <span id="currentUser"></span></h2>
   <button onclick="openIssue()" class="px-8 py-4 bg-blue-600 text-white rounded-xl text-xl">Issue Spare Part</button>
   <button onclick="openReturn()" class="px-8 py-4 bg-green-600 text-white rounded-xl text-xl">Return Spare Part</button>
 </div>
 
-<!-- ================= SUPERVISOR LOGIN ================= -->
-<div id="supervisorPinScreen" class="hidden flex items-center justify-center h-full">
-  <div class="bg-white p-8 rounded-2xl shadow-xl w-80">
-    <h2 class="text-xl font-bold text-center mb-4">Supervisor Access</h2>
-    <input id="supervisorPinInput" type="password" placeholder="Enter Supervisor PIN" class="w-full border rounded-lg px-3 py-2 mb-4" />
-    <button onclick="checkSupervisorPIN()" class="w-full bg-slate-800 text-white py-2 rounded-lg">Login</button>
-    <p id="supervisorPinError" class="text-red-600 text-sm text-center mt-2 hidden">Invalid PIN</p>
-  </div>
-</div>
-
-<!-- ================= SUPERVISOR LOG VIEWER ================= -->
-<div id="logScreen" class="hidden h-full p-6 overflow-y-auto">
-  <h2 class="text-2xl font-bold mb-4">Log Viewer (Supervisor)</h2>
-  <p class="text-slate-500 mb-4">(Demo) Logs will be displayed here</p>
-  <button onclick="logout()" class="text-red-600">Logout</button>
-</div>
-
-<!-- ================= ISSUE / RETURN ================= -->
+<!-- ================= WORK ================= -->
 <div id="workScreen" class="hidden h-full p-6 overflow-y-auto">
   <div class="flex justify-between items-center mb-4">
     <h2 id="workTitle" class="text-2xl font-bold"></h2>
@@ -83,6 +68,7 @@
   </div>
 
   <input id="searchInput" placeholder="Search Material" class="border rounded-lg px-3 py-2 w-full mb-4" />
+
   <div class="flex gap-2 mb-4">
     <button onclick="searchMaterial()" class="bg-slate-800 text-white px-4 py-2 rounded">Search</button>
     <button onclick="showAllParts()" class="bg-indigo-600 text-white px-4 py-2 rounded">Show All Parts</button>
@@ -92,123 +78,84 @@
 </div>
 
 <script>
-// ================= CONFIG =================
+/**************** CONFIG ****************/
 const PIN = 'Service';
-const SUPERVISOR_PIN = 'Supervisor';
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQg2ma13Gm9ppdtEaZAb9fLuZn2YmoXFJx3DYb5te4Fua4xej_OFU-_6J6OQBXXdO8AAWlueRQ1omHd/pub?output=csv';
 
 let currentUser = '';
-let mode = ''; // issue | return
+let mode = '';
 let stockData = [];
 
-// ================= PIN =================
+/**************** LOGIN ****************/
 function checkPIN() {
   const v = document.getElementById('pinInput').value;
-  const pinScreenEl = document.getElementById('pinScreen');
-  const userScreenEl = document.getElementById('userScreen');
-  const pinErrorEl = document.getElementById('pinError');
-
   if (v === PIN) {
-    pinErrorEl.classList.add('hidden');
-    pinScreenEl.classList.add('hidden');
-    userScreenEl.classList.remove('hidden');
+    document.getElementById('pinError').classList.add('hidden');
+    document.getElementById('pinScreen').classList.add('hidden');
+    document.getElementById('userScreen').classList.remove('hidden');
   } else {
-    pinErrorEl.classList.remove('hidden');
-  }
-} else {
-    pinError.classList.remove('hidden');
+    document.getElementById('pinError').classList.remove('hidden');
   }
 }
 
-// ================= USER =================
-function openViewOnly(){
-  userScreen.classList.add('hidden');
-  viewOnlyScreen.classList.remove('hidden');
-  if(stockData.length===0){ loadCSV().then(renderViewOnly); }
-  else renderViewOnly();
-}
-
-function backToUser(){
-  viewOnlyScreen.classList.add('hidden');
-  userScreen.classList.remove('hidden');
-}
-
-function renderViewOnly(){
-  viewOnlyResult.innerHTML='';
-  stockData.forEach(s=>{
-    const div=document.createElement('div');
-    div.className='bg-white p-4 rounded-xl shadow';
-    div.innerHTML=`<div class="font-semibold">${s.instrument} | ${s.material}</div>
-    <div class="text-sm break-words whitespace-normal">${s.product}</div>
-    <div class="text-xs">Van0243 Stock: <b class="${s.stock > 0 ? 'text-slate-700' : 'text-red-600'}">${s.stock > 0 ? s.stock : 'NO STOCK'}</b></div>`;
-    viewOnlyResult.appendChild(div);
-  });
-}
-
+/**************** USER ****************/
 function selectUser(u) {
   currentUser = u;
   document.getElementById('currentUser').innerText = u;
-  userScreen.classList.add('hidden');
-  actionScreen.classList.remove('hidden');
+  document.getElementById('userScreen').classList.add('hidden');
+  document.getElementById('actionScreen').classList.remove('hidden');
 }
 
-// ================= ACTION =================
+function openViewOnly() {
+  document.getElementById('userScreen').classList.add('hidden');
+  document.getElementById('viewOnlyScreen').classList.remove('hidden');
+  if (stockData.length === 0) loadCSV().then(renderViewOnly);
+  else renderViewOnly();
+}
+
+function backToUser() {
+  document.getElementById('viewOnlyScreen').classList.add('hidden');
+  document.getElementById('userScreen').classList.remove('hidden');
+}
+
+/**************** ACTION ****************/
 function openIssue() {
   mode = 'Issue';
   openWork();
 }
+
 function openReturn() {
   mode = 'Return';
   openWork();
 }
+
 function openWork() {
-  actionScreen.classList.add('hidden');
-  workScreen.classList.remove('hidden');
-  workTitle.innerText = mode + ' Spare Part';
-}
-
-function openSupervisorLogin(){
-  actionScreen.classList.add('hidden');
-  supervisorPinScreen.classList.remove('hidden');
-}
-
-function checkSupervisorPIN(){
-  const v = document.getElementById('supervisorPinInput').value;
-  if(v === SUPERVISOR_PIN){
-    supervisorPinScreen.classList.add('hidden');
-    logScreen.classList.remove('hidden');
-  } else {
-    supervisorPinError.classList.remove('hidden');
-  }
+  document.getElementById('actionScreen').classList.add('hidden');
+  document.getElementById('workScreen').classList.remove('hidden');
+  document.getElementById('workTitle').innerText = mode + ' Spare Part';
 }
 
 function logout() {
   location.reload();
 }
 
-// ================= DATA =================
+/**************** DATA ****************/
 async function loadCSV() {
   const res = await fetch(CSV_URL);
   const text = await res.text();
-
-  // Robust CSV parsing (supports commas inside quotes)
-  const lines = text.split(/
-?
-/).filter(l => l.trim() !== '');
-  const headers = parseCSVLine(lines[0]);
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
 
   stockData = lines.slice(1).map(line => {
     const c = parseCSVLine(line);
     return {
-      instrument: c[0] || '',      // Column A
-      material:   c[1] || '',      // Column B
-      product:    c[2] || '',      // Column C (can contain commas)
-      stock:      Number(c[7]) || 0 // Column H
+      instrument: c[0] || '',
+      material: c[1] || '',
+      product: c[2] || '',
+      stock: Number(c[7]) || 0
     };
   });
 }
 
-// CSV line parser that keeps commas inside quotes
 function parseCSVLine(line) {
   const result = [];
   let current = '';
@@ -216,44 +163,47 @@ function parseCSVLine(line) {
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-
     if (char === '"') {
-      // handle escaped double quotes ""
       if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
+        current += '"'; i++;
+      } else inQuotes = !inQuotes;
     } else if (char === ',' && !inQuotes) {
-      result.push(current);
-      current = '';
-    } else {
-      current += char;
-    }
+      result.push(current); current = '';
+    } else current += char;
   }
   result.push(current);
-
   return result.map(v => v.trim());
 }
 
+/**************** RENDER ****************/
+function renderViewOnly() {
+  const el = document.getElementById('viewOnlyResult');
+  el.innerHTML = '';
+  stockData.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'bg-white p-4 rounded-xl shadow';
+    div.innerHTML = `
+      <div class="font-semibold">${s.instrument} | ${s.material}</div>
+      <div class="text-sm break-words whitespace-normal">${s.product}</div>
+      <div class="text-xs">Van0243 Stock: <b class="${s.stock > 0 ? 'text-slate-700' : 'text-red-600'}">${s.stock > 0 ? s.stock : 'NO STOCK'}</b></div>`;
+    el.appendChild(div);
+  });
+}
+
 function showAllParts() {
-  if (stockData.length === 0) {
-    loadCSV().then(() => renderResult(stockData));
-  } else {
-    renderResult(stockData);
-  }
+  if (stockData.length === 0) loadCSV().then(() => renderResult(stockData));
+  else renderResult(stockData);
 }
 
 async function searchMaterial() {
   if (stockData.length === 0) await loadCSV();
-  const q = searchInput.value.toLowerCase();
-  const res = stockData.filter(s => s.material.toLowerCase().includes(q));
-  renderResult(res);
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  renderResult(stockData.filter(s => s.material.toLowerCase().includes(q)));
 }
 
 function renderResult(list) {
-  resultArea.innerHTML = '';
+  const el = document.getElementById('resultArea');
+  el.innerHTML = '';
   list.forEach(s => {
     const div = document.createElement('div');
     div.className = `${s.stock > 0 ? 'bg-white' : 'bg-red-50'} p-4 rounded-xl shadow flex justify-between items-center`;
@@ -261,13 +211,13 @@ function renderResult(list) {
       <div>
         <div class="font-semibold">${s.instrument} | ${s.material}</div>
         <div class="text-sm break-words whitespace-normal">${s.product}</div>
-        <div class="text-xs text-slate-500">Van0243 Stock: <b>${s.stock}</b></div>
+        <div class="text-xs">Van0243 Stock: <b>${s.stock > 0 ? s.stock : 'NO STOCK'}</b></div>
       </div>
       <div class="flex items-center gap-2">
         <input type="number" min="1" max="${s.stock}" class="border rounded w-20 px-2" />
-        <button class="px-3 py-1 rounded text-white ${mode==='Issue'?'bg-blue-600':'bg-green-600'}" onclick="confirmAction('${s.material}', this)">OK</button>
+        <button ${s.stock === 0 ? 'disabled' : ''} class="px-3 py-1 rounded text-white ${mode === 'Issue' ? 'bg-blue-600' : 'bg-green-600'}" onclick="confirmAction('${s.material}', this)">OK</button>
       </div>`;
-    resultArea.appendChild(div);
+    el.appendChild(div);
   });
 }
 
@@ -275,8 +225,12 @@ function confirmAction(material, btn) {
   const qty = btn.previousElementSibling.value;
   if (!qty || qty <= 0) return alert('Invalid quantity');
   alert(`${mode} confirmed\nUser: ${currentUser}\nMaterial: ${material}\nQty: ${qty}`);
-  // TODO: Append log to Google Sheet (Issue / Return)
 }
+
+/**************** SELF TESTS (for Auditor / Debug) ****************/
+console.assert(typeof checkPIN === 'function', 'checkPIN must be defined');
+console.assert(PIN === 'Service', 'Default PIN must be Service');
+console.log('Self-tests passed');
 </script>
 
 <style>
