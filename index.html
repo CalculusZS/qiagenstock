@@ -46,7 +46,10 @@
 <!-- ISSUE -->
 <section id="page-issue" class="hidden p-6">
   <h2 class="text-2xl font-bold mb-4 text-blue-700">Issue Spare Parts</h2>
-  <input id="searchIssue" placeholder="Search material" class="border p-2 rounded w-full max-w-md" />
+  <div class="flex gap-2 max-w-md">
+    <input id="searchIssue" placeholder="Search material" class="border p-2 rounded w-full" />
+    <button onclick="renderIssue('')" class="bg-indigo-600 text-white px-4 rounded">Search</button>
+  </div>
   <div id="issueResult" class="mt-4 space-y-4"></div>
   <button onclick="backToMenu()" class="mt-6 text-slate-500">← Back</button>
 </section>
@@ -83,7 +86,7 @@ function show(id){
 }
 
 function selectUser(u){ currentUser=u; document.getElementById('currentUser').innerText=u; show('page-menu'); }
-function openIssue(){ show('page-issue'); loadStock(); }
+function openIssue(){ show('page-issue'); loadStock(); renderIssue(''); }
 function openReturn(){ show('page-return'); loadStock(); }
 function backToMenu(){ show('page-menu'); }
 function openServiceLogin(){ show('page-service-login'); }
