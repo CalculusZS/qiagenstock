@@ -4,7 +4,26 @@
   <meta charset="UTF-8" />
   <title>QIAGEN Spare Parts Kiosk</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com">function submitAction(action, material, btn){
+  const qtyInput = btn.previousElementSibling;
+  const qty = Number(qtyInput.value);
+  if(!qty || qty <= 0){
+    alert('Please enter quantity');
+    return;
+  }
+
+  fetch(GAS_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action,user:currentUser,material,qty})
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.error) alert(res.error);
+    else{ alert('Success'); loadStock(); }
+  });
+}
+</script>
 </head>
 <body onload="initServiceLock()" class="bg-slate-100 min-h-screen">
 
@@ -96,15 +115,25 @@ function show(id){
 }
 
 function initServiceLock(){
-  document.getElementById('servicePopup').style.display = 'flex';
+  // force lock on load
+  const popup = document.getElementById('servicePopup');
+  popup.style.display = 'flex';
+  document.getElementById('serviceError').classList.add('hidden');
 }
 
 function checkService(){
-  const pin = document.getElementById('servicePin').value;
-  if(pin === SERVICE_PASSWORD){
-    document.getElementById('servicePopup').style.display = 'none';
+  const pinInput = document.getElementById('servicePin');
+  const error = document.getElementById('serviceError');
+  const popup = document.getElementById('servicePopup');
+
+  if(pinInput.value.trim() === SERVICE_PASSWORD){
+    error.classList.add('hidden');
+    popup.style.display = 'none';
     show('page-user');
   } else {
+    error.classList.remove('hidden');
+  }
+} else {
     document.getElementById('serviceError').classList.remove('hidden');
   }
 }
@@ -161,7 +190,15 @@ function renderIssue(q){
 function renderReturn(q){
   returnResult.innerHTML = stockData.filter(s=>s.material.includes(q)).map(s=>`
     <div class="border rounded p-4">
-      <div class="font-semibold">${s.instrument} | ${s.material}</div> | ${s.material}</div>
+      <div class="font-semibold">${s.instrument} | ${s.material}</div>
+      <div class="text-sm">${s.productName}</div>
+      <div class="text-sm mb-2">Stock: <b>${s.stock}</b></div>
+      <div class="flex items-center gap-3">
+        <input type="number" min="1" class="border p-2 w-24" placeholder="Qty" />
+        <button class="bg-green-600 text-white px-4 py-2 rounded" onclick="submitAction('Return','${s.material}',this)">Return</button>
+      </div>
+    </div>`).join('');
+} | ${s.material}</div>
       <div class="text-sm">${s.productName}</div>
       <div class="text-sm">Stock: <b>${s.stock}</b></div>
     </div>`).join('');
