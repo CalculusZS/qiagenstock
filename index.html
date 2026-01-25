@@ -1,129 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Spare Parts Qiagen System</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<title>Spare Parts Qiagen System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 h-screen overflow-hidden">
+
+<body class="bg-slate-100 min-h-screen p-4">
 
 <!-- LOGIN -->
-<div id="pinScreen" class="flex items-center justify-center h-full">
-  <div class="bg-white p-8 rounded-xl shadow w-80">
-    <h1 class="text-xl font-bold text-center mb-4">Spare Parts Qiagen System</h1>
-    <input id="pinInput" type="password" placeholder="Service PIN" class="w-full border rounded px-3 py-2 mb-3" />
-    <button onclick="checkPIN()" class="w-full bg-blue-600 text-white py-2 rounded">Login</button>
-    <p id="pinError" class="hidden text-red-600 text-sm text-center mt-2">Invalid PIN</p>
-  </div>
+<div id="login" class="max-w-sm mx-auto bg-white p-6 rounded-xl shadow">
+  <h1 class="text-xl font-bold text-center mb-4">Service Login</h1>
+  <input id="pin" type="password" placeholder="Enter PIN"
+    class="border w-full p-2 rounded mb-3">
+  <button onclick="login()"
+    class="bg-blue-600 text-white w-full py-2 rounded">Login</button>
 </div>
 
-<!-- USER -->
-<div id="userScreen" class="hidden h-full p-6">
-  <h2 class="text-xl font-bold text-center mb-4">Select User</h2>
-  <div class="grid grid-cols-3 gap-4 max-w-xl mx-auto">
-    <button class="userBtn" onclick="selectUser('KM')">KM</button>
-    <button class="userBtn" onclick="selectUser('TK')">TK</button>
-    <button class="userBtn" onclick="selectUser('PSO')">PSO</button>
-    <button class="userBtn" onclick="selectUser('PK')">PK</button>
-    <button class="userBtn" onclick="selectUser('PST')">PST</button>
-    <button class="userBtn" onclick="selectUser('PA')">PA</button>
-  </div>
-</div>
+<!-- MAIN -->
+<div id="main" class="hidden max-w-3xl mx-auto">
+  <h2 class="text-xl font-bold my-4 text-center">
+    User: <span id="user"></span>
+  </h2>
 
-<!-- ACTION -->
-<div id="actionScreen" class="hidden h-full flex flex-col items-center justify-center gap-6">
-  <h2 class="text-xl">User: <b id="currentUser"></b></h2>
-  <button onclick="openWork('Issue')" class="bg-blue-600 text-white px-6 py-3 rounded-xl">Issue</button>
-  <button onclick="openWork('Return')" class="bg-green-600 text-white px-6 py-3 rounded-xl">Return</button>
-</div>
-
-<!-- WORK -->
-<div id="workScreen" class="hidden h-full p-4 overflow-y-auto">
-  <div class="flex justify-between mb-3">
-    <h2 id="workTitle" class="text-xl font-bold"></h2>
-    <button onclick="logout()" class="text-red-600">Logout</button>
+  <div class="flex gap-2 mb-4">
+    <button onclick="setMode('Issue')" class="bg-blue-600 text-white px-4 py-2 rounded">Issue</button>
+    <button onclick="setMode('Return')" class="bg-green-600 text-white px-4 py-2 rounded">Return</button>
+    <button onclick="loadStock()" class="bg-slate-700 text-white px-4 py-2 rounded">Refresh</button>
   </div>
-  <input id="searchInput" placeholder="Search Material" class="border rounded px-3 py-2 w-full mb-3" />
-  <button onclick="search()" class="bg-slate-800 text-white px-4 py-2 rounded mb-4">Search</button>
-  <div id="resultArea" class="space-y-3"></div>
+
+  <div id="list" class="space-y-3"></div>
 </div>
 
 <script>
+/******** CONFIG ********/
 const PIN = 'Service';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxSRVj1j_zNLnStoPvJb2YrXObQCUyB4v5Hrjkx4BP3Zpy7wM3HSHxkNYFbVa9t0iq8dQ/exec';
-let currentUser = '';
-let mode = '';
-let stock = [];
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzMVkDGBlA3zIKTGQfOJG6aZ5R_VQd7fL3ZegMrfq5j/dev'; // <<< ใส่ URL /exec ตรงนี้
 
-function checkPIN(){
-  if(pinInput.value === PIN){
-    pinScreen.classList.add('hidden');
-    userScreen.classList.remove('hidden');
-  } else pinError.classList.remove('hidden');
+let mode = 'Issue';
+
+/******** LOGIN ********/
+function login(){
+  if(pin.value === PIN){
+    login.style.display='none';
+    main.classList.remove('hidden');
+    user.innerText='KM';
+    loadStock();
+  } else {
+    alert('Wrong PIN');
+  }
 }
 
-function selectUser(u){
-  currentUser = u;
-  currentUserEl = document.getElementById('currentUser');
-  currentUserEl.innerText = u;
-  userScreen.classList.add('hidden');
-  actionScreen.classList.remove('hidden');
-}
-
-function openWork(m){
-  mode = m;
-  actionScreen.classList.add('hidden');
-  workScreen.classList.remove('hidden');
-  workTitle.innerText = m + ' Spare Part';
+/******** MODE ********/
+function setMode(m){
+  mode=m;
   loadStock();
 }
 
-async function loadStock(){
-  const res = await fetch(GAS_URL + '?action=getStock');
-  stock = await res.json();
+/******** LOAD STOCK ********/
+function loadStock(){
+  fetch(GAS_URL+'?action=getStock')
+    .then(r=>r.json())
+    .then(render);
 }
 
-function search(){
-  const q = searchInput.value.toLowerCase();
-  const list = stock.filter(s => s.material.toLowerCase().includes(q));
-  render(list);
-}
-
-function render(list){
-  resultArea.innerHTML='';
-  list.forEach(s=>{
+/******** RENDER ********/
+function render(data){
+  list.innerHTML='';
+  data.forEach(s=>{
     const div=document.createElement('div');
-    div.className = s.stock>0?'bg-white':'bg-red-50';
-    div.classList.add('p-3','rounded','shadow','flex','justify-between');
-    div.innerHTML=`<div>
-      <b>${s.instrument} | ${s.material}</b>
-      <div class='text-sm break-words'>${s.product}</div>
-      <div class='text-xs'>Stock: <b>${s.stock>0?s.stock:'NO STOCK'}</b></div>
-    </div>
-    <div class='flex gap-2 items-center'>
-      <input type='number' min='1' max='${s.stock}' class='border w-20 px-2' />
-      <button onclick="submit('${s.material}',this)" class='px-3 py-1 text-white rounded ${mode==='Issue'?'bg-blue-600':'bg-green-600'}'>OK</button>
-    </div>`;
-    resultArea.appendChild(div);
-  })
+    div.className=`p-4 rounded shadow ${s.stock>0?'bg-white':'bg-red-50'}`;
+    div.innerHTML=`
+      <div class="font-semibold">${s.instrument} | ${s.material}</div>
+      <div class="text-sm break-words">${s.productName}</div>
+      <div class="text-sm">
+        Stock:
+        <span class="${s.stock>0?'text-slate-800':'text-red-600'}">
+          ${s.stock>0?s.stock:'NO STOCK'}
+        </span>
+      </div>
+      <div class="mt-2 flex gap-2">
+        <input type="number" min="1" class="border rounded px-2 w-20">
+        <button onclick="submit('${s.material}',this)"
+          class="px-3 py-1 rounded text-white
+          ${mode==='Issue'?'bg-blue-600':'bg-green-600'}">
+          ${mode}
+        </button>
+      </div>`;
+    list.appendChild(div);
+  });
 }
 
+/******** SUBMIT ********/
 function submit(material,btn){
   const qty = btn.previousElementSibling.value;
-  if(!qty||qty<=0) return alert('Invalid qty');
+  if(!qty || qty<=0) return alert('Invalid qty');
+
   fetch(GAS_URL,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:mode,user:currentUser,material,qty})
-  }).then(()=>alert('Saved & Stock Updated')).then(()=>loadStock());
+    body:JSON.stringify({
+      action:mode,
+      user:user.innerText,
+      material:material,
+      qty:Number(qty)
+    })
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.error){
+      alert('ERROR: '+res.error);
+    }else{
+      alert(`SUCCESS\nBefore: ${res.before}\nAfter: ${res.after}`);
+      loadStock();
+    }
+  });
 }
-
-function logout(){ location.reload(); }
 </script>
 
-<style>
-.userBtn{background:white;padding:2rem;border-radius:1rem;box-shadow:0 4px 10px rgba(0,0,0,.1)}
-</style>
 </body>
 </html>
