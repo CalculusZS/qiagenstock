@@ -5,7 +5,7 @@
   <title>QIAGEN Spare Parts Kiosk</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Tailwind -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -19,7 +19,7 @@
   <div class="text-slate-400 text-sm">Spare Parts Qiagen System</div>
 </header>
 
-<!-- SERVICE POPUP -->
+<!-- SERVICE LOGIN -->
 <div id="servicePopup" class="fixed inset-0 bg-black/50 flex items-center justify-center">
   <div class="bg-white rounded-xl p-8 w-full max-w-sm text-center">
     <h2 class="text-2xl font-bold mb-4">Service Login</h2>
@@ -30,7 +30,7 @@
 </div>
 
 <!-- USER SELECT -->
-<section id="page-user" class="flex items-center justify-center min-h-[calc(100vh-80px)] hidden">
+<section id="page-user" class="hidden flex items-center justify-center min-h-[calc(100vh-80px)]">
   <div class="bg-white rounded-2xl shadow-xl p-10 max-w-5xl w-full text-center">
     <h1 class="text-3xl font-bold mb-6">Please select user</h1>
     <div class="grid grid-cols-3 gap-6">
@@ -82,12 +82,14 @@
 </section>
 
 <script>
+/************ CONFIG ************/
 const SERVICE_PASSWORD = 'Service';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw08Hpu38o2WS2MC-qsy_vr2b9ACtzKviYtIuMDYvqj7qx6O9drs0WGRz8g3Iz3YpTs5A/exec';
 
 let currentUser = '';
 let stockData = [];
 
+/************ UI CONTROL ************/
 function show(id){
   ['page-user','page-menu','page-issue','page-return','page-view'].forEach(p=>{
     document.getElementById(p).classList.add('hidden');
@@ -121,16 +123,16 @@ function logout(){
 }
 
 function backToMenu(){ show('page-menu'); }
-
 function openIssue(){ show('page-issue'); loadStock(); }
 function openReturn(){ show('page-return'); loadStock(); }
 function openView(){ show('page-view'); loadStock(); }
 
+/************ DATA ************/
 function loadStock(){
   fetch(GAS_URL+'?action=getStock')
     .then(r=>r.json())
     .then(d=>{
-      stockData = d;
+      stockData = d || [];
       renderIssue('');
       renderReturn('');
       renderView();
@@ -143,8 +145,11 @@ const searchReturn = document.getElementById('searchReturn');
 searchIssue.addEventListener('input', e=>renderIssue(e.target.value));
 searchReturn.addEventListener('input', e=>renderReturn(e.target.value));
 
+/************ RENDER ************/
 function renderIssue(q){
-  issueResult.innerHTML = stockData.filter(s=>s.material.includes(q)).map(s=>`
+  issueResult.innerHTML = stockData
+    .filter(s=>s.material.includes(q))
+    .map(s=>`
     <div class="border rounded p-4 ${s.stock>0?'':'bg-red-50'}">
       <div class="font-semibold">${s.instrument} | ${s.material}</div>
       <div class="text-sm">${s.productName}</div>
@@ -157,7 +162,9 @@ function renderIssue(q){
 }
 
 function renderReturn(q){
-  returnResult.innerHTML = stockData.filter(s=>s.material.includes(q)).map(s=>`
+  returnResult.innerHTML = stockData
+    .filter(s=>s.material.includes(q))
+    .map(s=>`
     <div class="border rounded p-4">
       <div class="font-semibold">${s.instrument} | ${s.material}</div>
       <div class="text-sm">${s.productName}</div>
@@ -175,7 +182,9 @@ function renderView(){
   sel.innerHTML = '<option value="">All Instruments</option>' + inst.map(i=>`<option>${i}</option>`).join('');
   sel.onchange = ()=>{
     const v = sel.value;
-    viewResult.innerHTML = stockData.filter(s=>!v || s.instrument===v).map(s=>`
+    viewResult.innerHTML = stockData
+      .filter(s=>!v || s.instrument===v)
+      .map(s=>`
       <div class="border rounded p-4">
         <div class="font-semibold">${s.instrument} | ${s.material}</div>
         <div class="text-sm">${s.productName}</div>
@@ -185,29 +194,46 @@ function renderView(){
   sel.onchange();
 }
 
-function submitAction(action, material, btn){
+/************ SUBMIT ************/
+function submitAction(action, material, btn) {
   const qtyInput = btn.previousElementSibling;
   const qty = Number(qtyInput.value);
-  if(!qty || qty <= 0){
-    alert('Please enter quantity');
+
+  if (!qty || qty <= 0) {
+    alert('Please enter a valid quantity');
     return;
   }
 
-  fetch(GAS_URL,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action,user:currentUser,material,qty})
+  fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, user: currentUser, material, qty })
   })
-  .then(r=>r.json())
-  .then(res=>{
-    if(res.error) alert(res.error);
-    else{ alert('Success'); loadStock(); }
+  .then(r => r.json())
+  .then(res => {
+    if (res.error) {
+      alert('❌ ' + res.error);
+    } else {
+      alert('✅ Transaction completed successfully');
+      qtyInput.value = '';
+      loadStock();
+    }
+  })
+  .catch(() => {
+    alert('❌ System error. Please try again.');
   });
 }
 </script>
 
 <style>
-.user-btn{border:2px solid #cbd5e1;border-radius:1rem;padding:2.5rem 0;font-size:1.25rem;font-weight:600;background:#f8fafc}
+.user-btn{
+  border:2px solid #cbd5e1;
+  border-radius:1rem;
+  padding:2.5rem 0;
+  font-size:1.25rem;
+  font-weight:600;
+  background:#f8fafc
+}
 .user-btn:hover{background:#eff6ff}
 </style>
 
