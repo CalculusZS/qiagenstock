@@ -8,6 +8,12 @@
 <body class="bg-slate-100 min-h-screen">
 
 <div class="max-w-5xl mx-auto p-6">
+  <!-- Status Bar -->
+  <div id="statusBar" class="hidden mb-4 p-3 rounded flex justify-between text-white">
+    <span id="statusUser"></span>
+    <span id="statusAction"></span>
+    <span id="statusTime"></span>
+  </div>
   <h1 class="text-3xl font-bold mb-6 text-center">ระบบเบิก-คืนอะไหล่</h1>
 
   <!-- หน้าเลือกผู้ใช้งาน -->
@@ -23,8 +29,8 @@
   <!-- เมนู -->
   <div id="menuPage" class="hidden text-center">
     <p class="mb-4">ผู้ใช้งาน: <span id="currentUser" class="font-semibold"></span></p>
-    <button onclick="openIssue()" class="btn mr-2">เบิกอะไหล่</button>
-    <button onclick="openReturn()" class="btn">คืนอะไหล่</button>
+    <button onclick="openIssue()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mr-2">เบิกอะไหล่</button>
+    <button onclick="openReturn()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">คืนอะไหล่</button>
   </div>
 
   <!-- หน้าเบิก/คืน -->
@@ -42,7 +48,7 @@
             <th class="th">A</th>
             <th class="th">B</th>
             <th class="th">C</th>
-            <th class="th">H</th>
+            <th class="th">H</th><th class="th">Stock</th>
             <th class="th">จำนวน</th>
             <th class="th">ยืนยัน</th>
           </tr>
@@ -87,6 +93,13 @@ function openAction(type,color) {
   actionTitle.innerText = type + 'อะไหล่';
   actionTitle.className = `text-xl font-semibold mb-4 text-${color}-600`;
 
+  statusBar.className = `mb-4 p-3 rounded flex justify-between text-white bg-${color}-600`;
+  statusBar.classList.remove('hidden');
+  statusUser.innerText = 'ผู้ใช้: ' + currentUser;
+  statusAction.innerText = 'รายการ: ' + type;
+  statusTime.innerText = new Date().toLocaleString();
+}
+
 }
 
 function backMenu() {
@@ -105,8 +118,8 @@ function searchMaterial() {
       <td class="td">${r[0]}</td>
       <td class="td">${r[1]}</td>
       <td class="td">${r[2]}</td>
-      <td class="td">${r[7]}</td>
-      <td class="td"><input type="number" min="1" class="w-20 border rounded px-2 py-1" /></td>
+      <td class="td">${r[7]}</td><td class="td stock">${r[8] || 0}</td>
+      <td class="td"><input type="number" min="1" class="w-20 border rounded px-2 py-1" max="${r[8] || 0}" /></td>
       <td class="td"><button class="btn" onclick="confirmAction(this,'${r[0]}')">ตกลง</button></td>
     `;
     tbody.appendChild(tr);
@@ -116,8 +129,11 @@ function searchMaterial() {
 }
 
 function confirmAction(btn, material) {
-  const qty = btn.closest('tr').querySelector('input').value;
-  if (!qty) return alert('กรุณาใส่จำนวน');
+  const row = btn.closest('tr');
+  const stock = parseInt(row.querySelector('.stock').innerText);
+  const qty = parseInt(row.querySelector('input').value);
+  if (!qty) return showToast('กรุณาใส่จำนวน','red');
+  if (currentAction === 'เบิก' && qty > stock) return showToast('จำนวนเกิน Stock','red');
 
   fetch(scriptUrl, {
     method: 'POST',
@@ -129,8 +145,9 @@ function confirmAction(btn, material) {
       time: new Date().toISOString()
     })
   })
-  .then(() => alert('บันทึกเรียบร้อย'))
-  .catch(() => alert('ผิดพลาด'));
+  .then(() => showToast('บันทึกเรียบร้อย', currentAction === 'เบิก' ? 'blue' : 'green'))
+  .catch(() => showToast('เกิดข้อผิดพลาด','red'));
+}(() => alert('ผิดพลาด'));
 }
 </script>
 
