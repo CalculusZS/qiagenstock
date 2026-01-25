@@ -3,68 +3,61 @@
 <head>
   <meta charset="UTF-8" />
   <title>ระบบเบิก-คืนอะไหล่</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .hidden { display: none; }
-    button { margin: 5px; padding: 8px 14px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-    th { background: #f2f2f2; }
-    input { padding: 6px; margin: 4px 0; }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-slate-100 min-h-screen">
 
-<h2 id="title">เลือกผู้ใช้งาน</h2>
+<div class="max-w-5xl mx-auto p-6">
+  <h1 class="text-3xl font-bold mb-6 text-center">ระบบเบิก-คืนอะไหล่</h1>
 
-<!-- หน้าเลือกผู้ใช้งาน -->
-<div id="userPage">
-  <button onclick="selectUser('KM')">KM</button>
-  <button onclick="selectUser('TK')">TK</button>
-  <button onclick="selectUser('PST')">PST</button>
-  <button onclick="selectUser('PSO')">PSO</button>
-  <button onclick="selectUser('PK')">PK</button>
-  <button onclick="selectUser('PA')">PA</button>
-</div>
+  <!-- หน้าเลือกผู้ใช้งาน -->
+  <div id="userPage" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+    <button onclick="selectUser('KM')" class="btn">KM</button>
+    <button onclick="selectUser('TK')" class="btn">TK</button>
+    <button onclick="selectUser('PST')" class="btn">PST</button>
+    <button onclick="selectUser('PSO')" class="btn">PSO</button>
+    <button onclick="selectUser('PK')" class="btn">PK</button>
+    <button onclick="selectUser('PA')" class="btn">PA</button>
+  </div>
 
-<!-- หน้าเมนู -->
-<div id="menuPage" class="hidden">
-  <p>ผู้ใช้งาน: <strong id="currentUser"></strong></p>
-  <button onclick="openIssue()">เบิกอะไหล่</button>
-  <button onclick="openReturn()">คืนอะไหล่</button>
-</div>
+  <!-- เมนู -->
+  <div id="menuPage" class="hidden text-center">
+    <p class="mb-4">ผู้ใช้งาน: <span id="currentUser" class="font-semibold"></span></p>
+    <button onclick="openIssue()" class="btn mr-2">เบิกอะไหล่</button>
+    <button onclick="openReturn()" class="btn">คืนอะไหล่</button>
+  </div>
 
-<!-- หน้าเบิก / คืน -->
-<div id="actionPage" class="hidden">
-  <h3 id="actionTitle"></h3>
-  <input type="text" id="search" placeholder="ค้นหา Material" />
-  <button onclick="searchMaterial()">ค้นหา</button>
+  <!-- หน้าเบิก/คืน -->
+  <div id="actionPage" class="hidden">
+    <h2 id="actionTitle" class="text-xl font-semibold mb-4"></h2>
+    <div class="flex gap-2 mb-4">
+      <input id="search" type="text" placeholder="ค้นหา Material" class="flex-1 px-3 py-2 rounded border" />
+      <button onclick="searchMaterial()" class="btn">ค้นหา</button>
+    </div>
 
-  <table id="resultTable" class="hidden">
-    <thead>
-      <tr>
-        <th>A</th><th>B</th><th>C</th><th>H</th><th>จำนวน (ea)</th><th>ยืนยัน</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <div class="overflow-x-auto">
+      <table id="resultTable" class="hidden w-full bg-white rounded shadow">
+        <thead class="bg-slate-200">
+          <tr>
+            <th class="th">A</th>
+            <th class="th">B</th>
+            <th class="th">C</th>
+            <th class="th">H</th>
+            <th class="th">จำนวน</th>
+            <th class="th">ยืนยัน</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
-  <button onclick="backMenu()">ย้อนกลับ</button>
-</div>
-
-<!-- Log -->
-<div id="logPage">
-  <h3>Log การทำรายการ</h3>
-  <table>
-    <thead>
-      <tr><th>เวลา</th><th>ผู้ใช้</th><th>ประเภท</th><th>Material</th><th>จำนวน</th></tr>
-    </thead>
-    <tbody id="logBody"></tbody>
-  </table>
+    <button onclick="backMenu()" class="mt-4 text-slate-600 underline">ย้อนกลับ</button>
+  </div>
 </div>
 
 <script>
 const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQg2ma13Gm9ppdtEaZAb9fLuZn2YmoXFJx3DYb5te4Fua4xej_OFU-_6J6OQBXXdO8AAWlueRQ1omHd/pub?output=csv';
+const scriptUrl = 'PUT_YOUR_APPS_SCRIPT_WEBAPP_URL_HERE';
 let csvData = [];
 let currentUser = '';
 let currentAction = '';
@@ -72,74 +65,78 @@ let currentAction = '';
 fetch(csvUrl)
   .then(res => res.text())
   .then(text => {
-    const rows = text.split('\n').map(r => r.split(','));
-    csvData = rows.slice(1); // ตัด header
+    const rows = text.split('
+').map(r => r.split(','));
+    csvData = rows.slice(1);
   });
 
 function selectUser(u) {
   currentUser = u;
   document.getElementById('currentUser').innerText = u;
-  document.getElementById('userPage').classList.add('hidden');
-  document.getElementById('menuPage').classList.remove('hidden');
+  userPage.classList.add('hidden');
+  menuPage.classList.remove('hidden');
 }
 
-function openIssue() {
-  openAction('เบิกอะไหล่');
-}
-
-function openReturn() {
-  openAction('คืนอะไหล่');
-}
+function openIssue() { openAction('เบิก'); }
+function openReturn() { openAction('คืน'); }
 
 function openAction(type) {
   currentAction = type;
-  document.getElementById('menuPage').classList.add('hidden');
-  document.getElementById('actionPage').classList.remove('hidden');
-  document.getElementById('actionTitle').innerText = type;
+  menuPage.classList.add('hidden');
+  actionPage.classList.remove('hidden');
+  actionTitle.innerText = type + 'อะไหล่';
 }
 
 function backMenu() {
-  document.getElementById('actionPage').classList.add('hidden');
-  document.getElementById('menuPage').classList.remove('hidden');
+  actionPage.classList.add('hidden');
+  menuPage.classList.remove('hidden');
 }
 
 function searchMaterial() {
-  const q = document.getElementById('search').value.toLowerCase();
+  const q = search.value.toLowerCase();
   const tbody = document.querySelector('#resultTable tbody');
   tbody.innerHTML = '';
 
-  csvData.filter(r => r[0].toLowerCase().includes(q)).forEach(r => {
+  csvData.filter(r => r[0]?.toLowerCase().includes(q)).forEach(r => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${r[0]}</td>
-      <td>${r[1]}</td>
-      <td>${r[2]}</td>
-      <td>${r[7]}</td>
-      <td><input type="number" min="1" /></td>
-      <td><button onclick="confirmAction(this,'${r[0]}')">ตกลง</button></td>
+      <td class="td">${r[0]}</td>
+      <td class="td">${r[1]}</td>
+      <td class="td">${r[2]}</td>
+      <td class="td">${r[7]}</td>
+      <td class="td"><input type="number" min="1" class="w-20 border rounded px-2 py-1" /></td>
+      <td class="td"><button class="btn" onclick="confirmAction(this,'${r[0]}')">ตกลง</button></td>
     `;
     tbody.appendChild(tr);
   });
 
-  document.getElementById('resultTable').classList.remove('hidden');
+  resultTable.classList.remove('hidden');
 }
 
 function confirmAction(btn, material) {
-  const qty = btn.parentElement.parentElement.querySelector('input').value;
+  const qty = btn.closest('tr').querySelector('input').value;
   if (!qty) return alert('กรุณาใส่จำนวน');
 
-  const log = document.createElement('tr');
-  log.innerHTML = `
-    <td>${new Date().toLocaleString()}</td>
-    <td>${currentUser}</td>
-    <td>${currentAction}</td>
-    <td>${material}</td>
-    <td>${qty}</td>
-  `;
-  document.getElementById('logBody').appendChild(log);
-  alert('บันทึกเรียบร้อย');
+  fetch(scriptUrl, {
+    method: 'POST',
+    body: JSON.stringify({
+      user: currentUser,
+      action: currentAction,
+      material: material,
+      qty: qty,
+      time: new Date().toISOString()
+    })
+  })
+  .then(() => alert('บันทึกเรียบร้อย'))
+  .catch(() => alert('ผิดพลาด'));
 }
 </script>
+
+<style>
+.btn { @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition; }
+.th { @apply px-3 py-2 text-left; }
+.td { @apply px-3 py-2 border-t; }
+</style>
 
 </body>
 </html>
