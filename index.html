@@ -1,191 +1,201 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>ระบบเบิก-คืนอะไหล่</title>
+  <title>Spare Parts Qiagen System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 </head>
-<body class="bg-slate-100 min-h-screen">
+<body class="bg-slate-100 h-screen overflow-hidden">
 
-<div class="max-w-5xl mx-auto p-6">
-  <!-- Header with Logo -->
-  <div class="flex items-center justify-between mb-4">
-    <div class="flex items-center gap-3">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/QIAGEN_Logo.svg" alt="QIAGEN Logo" class="h-10" />
-      <span class="text-slate-500 text-sm">QIAGEN</span>
-    </div>
-    <div class="text-right text-slate-400 text-sm">Spare Parts System</div>
-  </div>
-  <!-- Status Bar -->
-  <div id="statusBar" class="hidden mb-4 p-3 rounded flex justify-between text-white">
-    <span id="statusUser"></span>
-    <span id="statusAction"></span>
-    <span id="statusTime"></span>
-  </div>
-  <h1 class="text-3xl font-bold mb-2 text-center">ระบบเบิก-คืนอะไหล่</h1>
-<p class="text-center text-slate-600 mb-6 text-lg">กรุณาเลือกผู้ใช้งาน</p>
-
-  <!-- หน้าเลือกผู้ใช้งาน -->
-  <div id="userPage" class="bg-slate-100 min-h-screen flex flex-col items-center justify-center">
-  <div class="bg-white border-2 border-slate-300 rounded-2xl shadow-xl p-8 max-w-5xl w-full">
-    <h1 class="text-3xl font-bold text-center mb-2">กรุณาเลือกผู้ใช้งาน</h1>
-    <p class="text-center text-slate-500 mb-8">Please select user</p>
-
-    <div class="grid grid-cols-3 grid-rows-2 gap-6">
-      <div class="user-card"><button onclick="selectUser('KM',this)" class="user-btn"><span class="icon">👤</span> KM</button></div>
-      <div class="user-card"><button onclick="selectUser('TK',this)" class="user-btn"><span class="icon">👤</span> TK</button></div>
-      <div class="user-card"><button onclick="selectUser('PST',this)" class="user-btn"><span class="icon">👤</span> PST</button></div>
-      <div class="user-card"><button onclick="selectUser('PSO',this)" class="user-btn"><span class="icon">👤</span> PSO</button></div>
-      <div class="user-card"><button onclick="selectUser('PK',this)" class="user-btn"><span class="icon">👤</span> PK</button></div>
-      <div class="user-card"><button onclick="selectUser('PA',this)" class="user-btn"><span class="icon">👤</span> PA</button></div>
-    </div>
+<!-- ================= LOGIN / PIN ================= -->
+<div id="pinScreen" class="flex items-center justify-center h-full">
+  <div class="bg-white p-8 rounded-2xl shadow-xl w-80">
+    <h1 class="text-2xl font-bold text-center mb-4">Spare Parts Qiagen System</h1>
+    <p class="text-center text-slate-500 mb-4">Service Access</p>
+    <input id="pinInput" type="password" placeholder="Enter PIN" class="w-full border rounded-lg px-3 py-2 mb-4" />
+    <button onclick="checkPIN()" class="w-full bg-blue-600 text-white py-2 rounded-lg">Login</button>
+    <p id="pinError" class="text-red-600 text-sm text-center mt-2 hidden">Invalid PIN</p>
   </div>
 </div>
-    <button onclick="selectUser('TK',this)" class="user-btn"><span class="icon">👤</span> TK</button></div>
-    <button onclick="selectUser('PST',this)" class="user-btn"><span class="icon">👤</span> PST</button></div>
-    <button onclick="selectUser('PSO',this)" class="user-btn"><span class="icon">👤</span> PSO</button></div>
-    <button onclick="selectUser('PK',this)" class="user-btn"><span class="icon">👤</span> PK</button></div>
-    <button onclick="selectUser('PA',this)" class="user-btn"><span class="icon">👤</span> PA</button></div>
+
+<!-- ================= USER SELECT ================= -->
+<div id="userScreen" class="hidden h-full p-6">
+  <h2 class="text-2xl font-bold mb-4 text-center">Please Select User</h2>
+  <div class="grid grid-cols-3 gap-4 max-w-3xl mx-auto">
+    <button onclick="selectUser('KM')" class="userBtn">👤 KM</button>
+    <button onclick="selectUser('TK')" class="userBtn">👤 TK</button>
+    <button onclick="selectUser('PSO')" class="userBtn">👤 PSO</button>
+    <button onclick="selectUser('PK')" class="userBtn">👤 PK</button>
+    <button onclick="selectUser('PST')" class="userBtn">👤 PST</button>
+    <button onclick="selectUser('PA')" class="userBtn">👤 PA</button>
+  </div>
+</div>
+
+<!-- ================= ACTION SELECT ================= -->
+<!-- Supervisor access button -->
+<div id="actionScreen" class="hidden h-full flex flex-col items-center justify-center gap-6">
+  <button onclick="openSupervisorLogin()" class="absolute top-4 right-4 text-sm text-slate-500 underline">Supervisor</button>
+  <h2 class="text-2xl font-bold">User: <span id="currentUser"></span></h2>
+  <button onclick="openIssue()" class="px-8 py-4 bg-blue-600 text-white rounded-xl text-xl">Issue Spare Part</button>
+  <button onclick="openReturn()" class="px-8 py-4 bg-green-600 text-white rounded-xl text-xl">Return Spare Part</button>
+</div>
+
+<!-- ================= SUPERVISOR LOGIN ================= -->
+<div id="supervisorPinScreen" class="hidden flex items-center justify-center h-full">
+  <div class="bg-white p-8 rounded-2xl shadow-xl w-80">
+    <h2 class="text-xl font-bold text-center mb-4">Supervisor Access</h2>
+    <input id="supervisorPinInput" type="password" placeholder="Enter Supervisor PIN" class="w-full border rounded-lg px-3 py-2 mb-4" />
+    <button onclick="checkSupervisorPIN()" class="w-full bg-slate-800 text-white py-2 rounded-lg">Login</button>
+    <p id="supervisorPinError" class="text-red-600 text-sm text-center mt-2 hidden">Invalid PIN</p>
+  </div>
+</div>
+
+<!-- ================= SUPERVISOR LOG VIEWER ================= -->
+<div id="logScreen" class="hidden h-full p-6 overflow-y-auto">
+  <h2 class="text-2xl font-bold mb-4">Log Viewer (Supervisor)</h2>
+  <p class="text-slate-500 mb-4">(Demo) Logs will be displayed here</p>
+  <button onclick="logout()" class="text-red-600">Logout</button>
+</div>
+
+<!-- ================= ISSUE / RETURN ================= -->
+<div id="workScreen" class="hidden h-full p-6 overflow-y-auto">
+  <div class="flex justify-between items-center mb-4">
+    <h2 id="workTitle" class="text-2xl font-bold"></h2>
+    <button onclick="logout()" class="text-red-600">Logout</button>
   </div>
 
-  <!-- เมนูเลือกการทำงาน -->
-  <div id="menuPage" class="hidden text-center bg-white border-2 border-slate-300 rounded-xl shadow-md p-6">
-    <p class="mb-6 text-lg">ผู้ใช้งาน: <span id="currentUser" class="font-semibold"></span></p>
-    <div class="flex justify-center gap-6">
-      <button onclick="openIssue()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 rounded-xl text-xl">เบิกอะไหล่</button>
-      <button onclick="openReturn()" class="bg-green-600 hover:bg-green-700 text-white px-8 py-6 rounded-xl text-xl">คืนอะไหล่</button>
-    </div>
-  </div>
+  <input id="searchInput" placeholder="Search Material" class="border rounded-lg px-3 py-2 w-full mb-4" />
+  <button onclick="searchMaterial()" class="mb-4 bg-slate-800 text-white px-4 py-2 rounded">Search</button>
 
-  <!-- หน้าเบิก/คืน -->
-  <div id="actionPage" class="hidden">
-    <h2 id="actionTitle" class="text-xl font-semibold mb-4"></h2>
-    <div class="flex gap-2 mb-4">
-      <input id="search" type="text" placeholder="ค้นหา Material" class="flex-1 px-3 py-2 rounded border" />
-      <button onclick="searchMaterial()" class="btn">ค้นหา</button></div>
-    </div>
-
-    <div class="overflow-x-auto">
-      <table id="resultTable" class="hidden w-full bg-white rounded shadow">
-        <thead class="bg-slate-200">
-          <tr>
-            <th class="th">A</th>
-            <th class="th">B</th>
-            <th class="th">C</th>
-            <th class="th">H</th><th class="th">Stock</th>
-            <th class="th">จำนวน</th>
-            <th class="th">ยืนยัน</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <button onclick="backMenu()" class="mt-4 text-slate-600 underline">ย้อนกลับ</button></div>
-  </div>
+  <div id="resultArea" class="space-y-3"></div>
 </div>
 
 <script>
-const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQg2ma13Gm9ppdtEaZAb9fLuZn2YmoXFJx3DYb5te4Fua4xej_OFU-_6J6OQBXXdO8AAWlueRQ1omHd/pub?output=csv';
-const scriptUrl = 'PUT_YOUR_APPS_SCRIPT_WEBAPP_URL_HERE';
-let csvData = [];
+// ================= CONFIG =================
+const PIN = 'Service';
+const SUPERVISOR_PIN = 'Supervisor';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQg2ma13Gm9ppdtEaZAb9fLuZn2YmoXFJx3DYb5te4Fua4xej_OFU-_6J6OQBXXdO8AAWlueRQ1omHd/pub?output=csv';
+
 let currentUser = '';
-let currentAction = '';
+let mode = ''; // issue | return
+let stockData = [];
 
-fetch(csvUrl)
-  .then(res => res.text())
-  .then(text => {
-    const rows = text.split('
-').map(r => r.split(','));
-    csvData = rows.slice(1);
-  });
+// ================= PIN =================
+function checkPIN() {
+  const v = document.getElementById('pinInput').value;
+  if (v === PIN) {
+    pinScreen.classList.add('hidden');
+    userScreen.classList.remove('hidden');
+  } else {
+    pinError.classList.remove('hidden');
+  }
+}
 
-function selectUser(u,btn) {
-  document.querySelectorAll('.user-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+// ================= USER =================
+function selectUser(u) {
   currentUser = u;
   document.getElementById('currentUser').innerText = u;
-  userPage.classList.add('hidden');
-  menuPage.classList.remove('hidden');
+  userScreen.classList.add('hidden');
+  actionScreen.classList.remove('hidden');
 }
 
-function openIssue() { openAction('เบิก','blue'); }
-function openReturn() { openAction('คืน','green'); }
-
-function openAction(type,color) {
-  currentAction = type;
-  menuPage.classList.add('hidden');
-  actionPage.classList.remove('hidden');
-  actionTitle.innerText = type + 'อะไหล่';
-  actionTitle.className = `text-xl font-semibold mb-4 text-${color}-600`;
-
-  statusBar.className = `mb-4 p-3 rounded flex justify-between text-white bg-${color}-600`;
-  statusBar.classList.remove('hidden');
-  statusUser.innerText = 'ผู้ใช้: ' + currentUser;
-  statusAction.innerText = 'รายการ: ' + type;
-  statusTime.innerText = new Date().toLocaleString();
+// ================= ACTION =================
+function openIssue() {
+  mode = 'Issue';
+  openWork();
+}
+function openReturn() {
+  mode = 'Return';
+  openWork();
+}
+function openWork() {
+  actionScreen.classList.add('hidden');
+  workScreen.classList.remove('hidden');
+  workTitle.innerText = mode + ' Spare Part';
 }
 
+function openSupervisorLogin(){
+  actionScreen.classList.add('hidden');
+  supervisorPinScreen.classList.remove('hidden');
 }
 
-function backMenu() {
-  actionPage.classList.add('hidden');
-  menuPage.classList.remove('hidden');
+function checkSupervisorPIN(){
+  const v = document.getElementById('supervisorPinInput').value;
+  if(v === SUPERVISOR_PIN){
+    supervisorPinScreen.classList.add('hidden');
+    logScreen.classList.remove('hidden');
+  } else {
+    supervisorPinError.classList.remove('hidden');
+  }
 }
 
-function searchMaterial() {
-  const q = search.value.toLowerCase();
-  const tbody = document.querySelector('#resultTable tbody');
-  tbody.innerHTML = '';
+function logout() {
+  location.reload();
+}
 
-  csvData.filter(r => r[0]?.toLowerCase().includes(q)).forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td class="td">${r[0]}</td>
-      <td class="td">${r[1]}</td>
-      <td class="td">${r[2]}</td>
-      <td class="td">${r[7]}</td><td class="td stock">${r[8] || 0}</td>
-      <td class="td"><input type="number" min="1" class="w-20 border rounded px-2 py-1" max="${r[8] || 0}" /></td>
-      <td class="td"><button class="btn" onclick="confirmAction(this,'${r[0]}')">ตกลง</button></div></td>
-    `;
-    tbody.appendChild(tr);
+// ================= DATA =================
+async function loadCSV() {
+  const res = await fetch(CSV_URL);
+  const text = await res.text();
+  const rows = text.split('\n').slice(1);
+  stockData = rows.map(r => {
+    const c = r.split(',');
+    return {
+      instrument: c[0],
+      material: c[1],
+      product: c[2],
+      stock: Number(c[7])
+    };
   });
-
-  resultTable.classList.remove('hidden');
 }
 
-function confirmAction(btn, material) {
-  const row = btn.closest('tr');
-  const stock = parseInt(row.querySelector('.stock').innerText);
-  const qty = parseInt(row.querySelector('input').value);
-  if (!qty) return showToast('กรุณาใส่จำนวน','red');
-  if (currentAction === 'เบิก' && qty > stock) return showToast('จำนวนเกิน Stock','red');
+async function searchMaterial() {
+  if (stockData.length === 0) await loadCSV();
+  const q = searchInput.value.toLowerCase();
+  const res = stockData.filter(s => s.material.toLowerCase().includes(q));
+  renderResult(res);
+}
 
-  fetch(scriptUrl, {
-    method: 'POST',
-    body: JSON.stringify({
-      user: currentUser,
-      action: currentAction,
-      material: material,
-      qty: qty,
-      time: new Date().toISOString()
-    })
-  })
-  .then(() => showToast('บันทึกเรียบร้อย', currentAction === 'เบิก' ? 'blue' : 'green'))
-  .catch(() => showToast('เกิดข้อผิดพลาด','red'));
-}(() => alert('ผิดพลาด'));
+function renderResult(list) {
+  resultArea.innerHTML = '';
+  list.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'bg-white p-4 rounded-xl shadow flex justify-between items-center';
+    div.innerHTML = `
+      <div>
+        <div class="font-semibold">${s.instrument} | ${s.material}</div>
+        <div class="text-sm">${s.product}</div>
+        <div class="text-xs text-slate-500">Van0243 Stock: <b>${s.stock}</b></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <input type="number" min="1" max="${s.stock}" class="border rounded w-20 px-2" />
+        <button class="px-3 py-1 rounded text-white ${mode==='Issue'?'bg-blue-600':'bg-green-600'}" onclick="confirmAction('${s.material}', this)">OK</button>
+      </div>`;
+    resultArea.appendChild(div);
+  });
+}
+
+function confirmAction(material, btn) {
+  const qty = btn.previousElementSibling.value;
+  if (!qty || qty <= 0) return alert('Invalid quantity');
+  alert(`${mode} confirmed\nUser: ${currentUser}\nMaterial: ${material}\nQty: ${qty}`);
+  // TODO: Append log to Google Sheet (Issue / Return)
 }
 </script>
 
 <style>
-.btn { @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition; }
-.th { @apply px-3 py-2 text-left; }
-.td { @apply px-3 py-2 border-t; }
-.user-card { @apply border-2 border-slate-300 rounded-xl p-2 bg-slate-50 hover:shadow-lg transition; }
-.user-card .user-btn { @apply w-full flex items-center justify-center gap-2 bg-white text-lg font-semibold py-6 rounded-lg hover:bg-blue-50 transition; }
-.user-card .user-btn.active { @apply bg-blue-600 text-white scale-105; }
-.icon { @apply text-2xl; }
+.userBtn {
+  background: white;
+  border-radius: 1rem;
+  padding: 2rem;
+  font-size: 1.25rem;
+  box-shadow: 0 10px 20px rgba(0,0,0,.1);
+}
+.userBtn:hover { background:#e2e8f0; }
 </style>
-
 </body>
 </html>
