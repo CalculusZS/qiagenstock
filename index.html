@@ -77,14 +77,16 @@ function selectUser(u) {
   menuPage.classList.remove('hidden');
 }
 
-function openIssue() { openAction('เบิก'); }
-function openReturn() { openAction('คืน'); }
+function openIssue() { openAction('เบิก','blue'); }
+function openReturn() { openAction('คืน','green'); }
 
-function openAction(type) {
+function openAction(type,color) {
   currentAction = type;
   menuPage.classList.add('hidden');
   actionPage.classList.remove('hidden');
   actionTitle.innerText = type + 'อะไหล่';
+  actionTitle.className = `text-xl font-semibold mb-4 text-${color}-600`;
+
 }
 
 function backMenu() {
