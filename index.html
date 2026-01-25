@@ -148,14 +148,32 @@ function openView(){ show('page-view'); loadStock(); }
 
 /************ DATA ************/
 function loadStock(){
-  fetch(GAS_URL+'?action=getStock')
-    .then(r=>r.json())
-    .then(d=>{
-      stockData = d || [];
-      renderIssue('');
-      renderReturn('');
-      renderView();
-    });
+  fetch(GAS_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    action,
+    user: currentUser,
+    material,
+    qty
+  })
+})
+.then(r => r.text())                // ✅ รับเป็น text
+.then(t => JSON.parse(t))           // ✅ แปลงเป็น JSON เอง
+.then(res => {
+  if (res.error) {
+    alert('❌ ' + res.error);
+  } else {
+    alert('✅ Transaction completed successfully');
+    qtyInput.value = '';
+    loadStock();
+  }
+})
+.catch(err => {
+  console.error(err);
+  alert('❌ System error. Please try again.');
+});
+
 }
 
 const searchIssue = document.getElementById('searchIssue');
