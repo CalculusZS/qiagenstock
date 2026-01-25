@@ -14,23 +14,24 @@
     <span id="statusAction"></span>
     <span id="statusTime"></span>
   </div>
-  <h1 class="text-3xl font-bold mb-6 text-center">ระบบเบิก-คืนอะไหล่</h1>
+  <h1 class="text-3xl font-bold mb-2 text-center">ระบบเบิก-คืนอะไหล่</h1>
+<p class="text-center text-slate-600 mb-6 text-lg">กรุณาเลือกผู้ใช้งาน</p>
 
   <!-- หน้าเลือกผู้ใช้งาน -->
-  <div id="userPage" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-    <button onclick="selectUser('KM')" class="btn">KM</button>
-    <button onclick="selectUser('TK')" class="btn">TK</button>
-    <button onclick="selectUser('PST')" class="btn">PST</button>
-    <button onclick="selectUser('PSO')" class="btn">PSO</button>
-    <button onclick="selectUser('PK')" class="btn">PK</button>
-    <button onclick="selectUser('PA')" class="btn">PA</button>
+  <div id="userPage" class="bg-white border-2 border-slate-300 rounded-xl shadow-md p-6 grid grid-cols-2 md:grid-cols-3 gap-4">
+    <div class="user-card"><button onclick="selectUser('KM',this)" class="user-btn"><span class="icon">👤</span> KM</button></div>
+    <button onclick="selectUser('TK',this)" class="user-btn"><span class="icon">👤</span> TK</button></div>
+    <button onclick="selectUser('PST',this)" class="user-btn"><span class="icon">👤</span> PST</button></div>
+    <button onclick="selectUser('PSO',this)" class="user-btn"><span class="icon">👤</span> PSO</button></div>
+    <button onclick="selectUser('PK',this)" class="user-btn"><span class="icon">👤</span> PK</button></div>
+    <button onclick="selectUser('PA',this)" class="user-btn"><span class="icon">👤</span> PA</button></div>
   </div>
 
   <!-- เมนู -->
   <div id="menuPage" class="hidden text-center">
     <p class="mb-4">ผู้ใช้งาน: <span id="currentUser" class="font-semibold"></span></p>
-    <button onclick="openIssue()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mr-2">เบิกอะไหล่</button>
-    <button onclick="openReturn()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">คืนอะไหล่</button>
+    <button onclick="openIssue()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mr-2">เบิกอะไหล่</button></div>
+    <button onclick="openReturn()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">คืนอะไหล่</button></div>
   </div>
 
   <!-- หน้าเบิก/คืน -->
@@ -38,7 +39,7 @@
     <h2 id="actionTitle" class="text-xl font-semibold mb-4"></h2>
     <div class="flex gap-2 mb-4">
       <input id="search" type="text" placeholder="ค้นหา Material" class="flex-1 px-3 py-2 rounded border" />
-      <button onclick="searchMaterial()" class="btn">ค้นหา</button>
+      <button onclick="searchMaterial()" class="btn">ค้นหา</button></div>
     </div>
 
     <div class="overflow-x-auto">
@@ -57,7 +58,7 @@
       </table>
     </div>
 
-    <button onclick="backMenu()" class="mt-4 text-slate-600 underline">ย้อนกลับ</button>
+    <button onclick="backMenu()" class="mt-4 text-slate-600 underline">ย้อนกลับ</button></div>
   </div>
 </div>
 
@@ -76,7 +77,9 @@ fetch(csvUrl)
     csvData = rows.slice(1);
   });
 
-function selectUser(u) {
+function selectUser(u,btn) {
+  document.querySelectorAll('.user-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
   currentUser = u;
   document.getElementById('currentUser').innerText = u;
   userPage.classList.add('hidden');
@@ -120,7 +123,7 @@ function searchMaterial() {
       <td class="td">${r[2]}</td>
       <td class="td">${r[7]}</td><td class="td stock">${r[8] || 0}</td>
       <td class="td"><input type="number" min="1" class="w-20 border rounded px-2 py-1" max="${r[8] || 0}" /></td>
-      <td class="td"><button class="btn" onclick="confirmAction(this,'${r[0]}')">ตกลง</button></td>
+      <td class="td"><button class="btn" onclick="confirmAction(this,'${r[0]}')">ตกลง</button></div></td>
     `;
     tbody.appendChild(tr);
   });
@@ -155,6 +158,10 @@ function confirmAction(btn, material) {
 .btn { @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition; }
 .th { @apply px-3 py-2 text-left; }
 .td { @apply px-3 py-2 border-t; }
+.user-card { @apply border-2 border-slate-300 rounded-xl p-2 bg-slate-50 hover:shadow-lg transition; }
+.user-card .user-btn { @apply w-full flex items-center justify-center gap-2 bg-white text-lg font-semibold py-6 rounded-lg hover:bg-blue-50 transition; }
+.user-card .user-btn.active { @apply bg-blue-600 text-white scale-105; }
+.icon { @apply text-2xl; }
 </style>
 
 </body>
