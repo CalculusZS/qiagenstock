@@ -4,26 +4,11 @@
   <meta charset="UTF-8" />
   <title>QIAGEN Spare Parts Kiosk</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com">function renderView(){
-  const sel = document.getElementById('instrumentFilter');
-  const inst = [...new Set(stockData.map(s=>s.instrument))];
-  sel.innerHTML = '<option value="">All Instruments</option>' + inst.map(i=>`<option>${i}</option>`).join('');
-  sel.onchange = ()=>{
-    const v = sel.value;
-    viewResult.innerHTML = stockData.filter(s=>!v||s.instrument===v).map(s=>`
-      <div class="border rounded p-4">
-        <div class="font-semibold">${s.instrument} | ${s.material}</div>
-        <div class="text-sm break-words">${s.productName}</div>
-        <div class="text-sm">Stock: <b>${s.stock}</b></div>
-      </div>`).join('');
-  };
-  sel.onchange();
-}
-</script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 min-h-screen">
+<body onload="initServiceLock()" class="bg-slate-100 min-h-screen">
 
-<header class="bg-white shadow flex items-center justify-between px-6 py-4" ondblclick="openServiceLogin()">
+<header class="bg-white shadow flex items-center justify-between px-6 py-4">
   <div class="flex items-center gap-3">
     <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/QIAGEN_Logo.svg" class="h-10" />
     <span class="text-slate-500 text-sm">QIAGEN</span>
@@ -31,10 +16,20 @@
   <div class="text-slate-400 text-sm">Spare Parts Qiagen System</div>
 </header>
 
+<!-- SERVICE POPUP -->
+<div id="servicePopup" class="fixed inset-0 bg-black/50 flex items-center justify-center">
+  <div class="bg-white rounded-xl p-8 w-full max-w-sm text-center">
+    <h2 class="text-2xl font-bold mb-4">Service Login</h2>
+    <input id="servicePin" type="password" placeholder="Enter Service Password" class="border p-3 rounded w-full mb-4" />
+    <button onclick="checkService()" class="bg-slate-800 text-white px-6 py-3 rounded w-full">Enter</button>
+    <p id="serviceError" class="text-red-600 mt-3 hidden">Invalid password</p>
+  </div>
+</div>
+
 <!-- USER SELECT -->
-<section id="page-user" class="flex items-center justify-center min-h-[calc(100vh-80px)]">
-  <div class="bg-white rounded-2xl shadow-xl p-10 max-w-5xl w-full">
-    <h1 class="text-3xl font-bold text-center mb-6">Please select user</h1>
+<section id="page-user" class="flex items-center justify-center min-h-[calc(100vh-80px)] hidden">
+  <div class="bg-white rounded-2xl shadow-xl p-10 max-w-5xl w-full text-center">
+    <h1 class="text-3xl font-bold mb-6">Please select user</h1>
     <div class="grid grid-cols-3 gap-6">
       <button onclick="selectUser('KM')" class="user-btn">KM</button>
       <button onclick="selectUser('TK')" class="user-btn">TK</button>
@@ -42,8 +37,6 @@
       <button onclick="selectUser('PSO')" class="user-btn">PSO</button>
       <button onclick="selectUser('PK')" class="user-btn">PK</button>
       <button onclick="selectUser('PA')" class="user-btn">PA</button>
-    </div>
-      <button onclick="logout()" class="mt-6 text-slate-500 underline">Log out</button>
     </div>
   </div>
 </section>
@@ -66,10 +59,7 @@
 <!-- ISSUE -->
 <section id="page-issue" class="hidden p-6">
   <h2 class="text-2xl font-bold mb-4 text-blue-700">Issue Spare Parts</h2>
-  <div class="flex gap-2 max-w-md">
-    <input id="searchIssue" placeholder="Search material" class="border p-2 rounded w-full" />
-    <button onclick="renderIssue('')" class="bg-indigo-600 text-white px-4 rounded">Search</button>
-  </div>
+  <input id="searchIssue" placeholder="Search material" class="border p-2 rounded w-full max-w-md" />
   <div id="issueResult" class="mt-4 space-y-4"></div>
   <button onclick="backToMenu()" class="mt-6 text-slate-500">← Back</button>
 </section>
@@ -79,7 +69,7 @@
   <h2 class="text-2xl font-bold mb-4 text-green-700">Return Spare Parts</h2>
   <input id="searchReturn" placeholder="Search material" class="border p-2 rounded w-full max-w-md" />
   <div id="returnResult" class="mt-4 space-y-4"></div>
-  <button onclick="goBack()" class="mt-6 text-slate-500">← Back</button>
+  <button onclick="backToMenu()" class="mt-6 text-slate-500">← Back</button>
 </section>
 
 <!-- VIEW ONLY -->
@@ -87,64 +77,64 @@
   <h2 class="text-2xl font-bold mb-4 text-indigo-700">All Spare Parts (View Only)</h2>
   <select id="instrumentFilter" class="border p-2 rounded mb-4"></select>
   <div id="viewResult" class="space-y-4"></div>
-  <button onclick="goBack()" class="mt-6 text-slate-500">← Back</button>
-</section>
-
-<!-- SERVICE LOGIN -->
-<section id="page-service-login" class="hidden flex items-center justify-center min-h-[calc(100vh-80px)]">
-  <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-    <h2 class="text-2xl font-bold mb-4">Service Login</h2>
-    <input id="pinInput" type="password" placeholder="Enter PIN" class="border p-3 rounded w-full mb-4" />
-    <button onclick="checkPIN()" class="bg-slate-800 text-white px-6 py-3 rounded w-full">Login</button>
-    <p id="pinError" class="text-red-600 mt-3 hidden">Invalid PIN</p>
-  </div>
+  <button onclick="backToMenu()" class="mt-6 text-slate-500">← Back</button>
 </section>
 
 <script>
-const SERVICE_PIN = 'me9jv';
+const SERVICE_PASSWORD = 'Service';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw08Hpu38o2WS2MC-qsy_vr2b9ACtzKviYtIuMDYvqj7qx6O9drs0WGRz8g3Iz3YpTs5A/exec';
 
 let currentUser = '';
 let stockData = [];
 
 function show(id){
-  ['page-user','page-menu','page-issue','page-return','page-service-login']
-    .forEach(p=>document.getElementById(p).classList.add('hidden'));
+  ['page-user','page-menu','page-issue','page-return','page-view'].forEach(p=>{
+    const el = document.getElementById(p);
+    if(el) el.classList.add('hidden');
+  });
   document.getElementById(id).classList.remove('hidden');
 }
 
-function selectUser(u){ currentUser=u; document.getElementById('currentUser').innerText=u; show('page-menu'); }
-function openIssue(){ show('page-issue'); loadStock(); renderIssue(''); }
-function openReturn(){ show('page-return'); loadStock(); renderReturn(''); }
-function openView(){ show('page-view'); loadStock(); }
+function initServiceLock(){
+  document.getElementById('servicePopup').style.display = 'flex';
+}
+
+function checkService(){
+  const pin = document.getElementById('servicePin').value;
+  if(pin === SERVICE_PASSWORD){
+    document.getElementById('servicePopup').style.display = 'none';
+    show('page-user');
+  } else {
+    document.getElementById('serviceError').classList.remove('hidden');
+  }
+}
+
+function selectUser(u){
+  currentUser = u;
+  document.getElementById('currentUser').innerText = u;
+  show('page-menu');
+}
+
 function logout(){
   currentUser = '';
   show('page-user');
 }
 
-function goBack(){
-  show('page-menu');
-}{ currentUser=''; show('page-user'); }
-
 function backToMenu(){ show('page-menu'); }
-function openServiceLogin(){ show('page-service-login'); }
 
-function checkPIN(){
-  const pin = pinInput.value;
-  if(pin === SERVICE_PIN){ pinError.classList.add('hidden'); show('page-menu'); }
-  else pinError.classList.remove('hidden');
-}
+function openIssue(){ show('page-issue'); loadStock(); }
+function openReturn(){ show('page-return'); loadStock(); }
+function openView(){ show('page-view'); loadStock(); }
 
 function loadStock(){
   fetch(GAS_URL+'?action=getStock')
     .then(r=>r.json())
     .then(d=>{
-      stockData=d;
+      stockData = d;
       renderIssue('');
       renderReturn('');
       renderView();
     });
-});
 }
 
 searchIssue.addEventListener('input', e=>renderIssue(e.target.value));
@@ -154,42 +144,34 @@ function renderIssue(q){
   issueResult.innerHTML = stockData.filter(s=>s.material.includes(q)).map(s=>`
     <div class="border rounded p-4 ${s.stock>0?'':'bg-red-50'}">
       <div class="font-semibold">${s.instrument} | ${s.material}</div>
-      <div class="text-sm break-words">${s.productName}</div>
-      <div class="text-sm">Stock: <b>${s.stock>0?s.stock:'NO STOCK'}</b></div>
-      <input type="number" min="1" max="${s.stock}" class="border p-2 mt-2 w-32" />
-      <button class="ml-4 bg-blue-600 text-white px-4 py-2 rounded" onclick="submit('Issue','${s.material}',this)">Issue</button>
+      <div class="text-sm">${s.productName}</div>
+      <div class="text-sm">Stock: <b>${s.stock}</b></div>
     </div>`).join('');
 }
 
 function renderReturn(q){
   returnResult.innerHTML = stockData.filter(s=>s.material.includes(q)).map(s=>`
-    <div class="border rounded p-4 ${s.stock>0?'':'bg-red-50'}">
+    <div class="border rounded p-4">
       <div class="font-semibold">${s.instrument} | ${s.material}</div>
-      <div class="text-sm break-words">${s.productName}</div>
+      <div class="text-sm">${s.productName}</div>
       <div class="text-sm">Stock: <b>${s.stock}</b></div>
-      <input type="number" min="1" class="border p-2 mt-2 w-32" />
-      <button class="ml-4 bg-green-600 text-white px-4 py-2 rounded" onclick="submit('Return','${s.material}',this)">Return</button>
-    </div>`).join('');
-}</div>
-      <input type="number" min="1" class="border p-2 mt-2 w-32" />
-      <button class="ml-4 bg-green-600 text-white px-4 py-2 rounded" onclick="submit('Return','${s.material}',this)">Return</button>
     </div>`).join('');
 }
 
-function submit(action, material, btn){
-  const qty = Number(btn.previousElementSibling.value);
-  if(!qty || qty<=0) return alert('Invalid qty');
-
-  fetch(GAS_URL,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action,user:currentUser,material,qty})
-  })
-  .then(r=>r.json())
-  .then(res=>{
-    if(res.error) alert(res.error);
-    else{ alert('Success'); loadStock(); }
-  });
+function renderView(){
+  const sel = document.getElementById('instrumentFilter');
+  const inst = [...new Set(stockData.map(s=>s.instrument))];
+  sel.innerHTML = '<option value="">All Instruments</option>' + inst.map(i=>`<option>${i}</option>`).join('');
+  sel.onchange = ()=>{
+    const v = sel.value;
+    viewResult.innerHTML = stockData.filter(s=>!v || s.instrument===v).map(s=>`
+      <div class="border rounded p-4">
+        <div class="font-semibold">${s.instrument} | ${s.material}</div>
+        <div class="text-sm">${s.productName}</div>
+        <div class="text-sm">Stock: <b>${s.stock}</b></div>
+      </div>`).join('');
+  };
+  sel.onchange();
 }
 </script>
 
