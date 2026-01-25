@@ -3,54 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <title>Qiagen Stock System</title>
-
 <style>
-body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-}
-
-h2 {
-  margin-bottom: 10px;
-}
-
-select {
-  padding: 6px;
-  margin-bottom: 10px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th, td {
-  border: 1px solid #ccc;
-  padding: 6px;
-  text-align: center;
-}
-
-th {
-  background: #f2f2f2;
-}
-
-input[type="number"] {
-  width: 70px;
-}
-
-button {
-  padding: 5px 10px;
-  margin: 2px;
-  cursor: pointer;
-}
+body { font-family: Arial; padding: 20px; }
+table { width:100%; border-collapse: collapse; }
+th, td { border:1px solid #ccc; padding:6px; text-align:center; }
+th { background:#f2f2f2; }
+input { width:70px; }
+button { margin:2px; }
 </style>
 </head>
-
 <body>
 
 <h2>Qiagen Stock System</h2>
 
-<label>User : </label>
+<label>User:</label>
 <select id="userSelect">
   <option value="KM">KM</option>
   <option value="TK">TK</option>
@@ -66,7 +32,7 @@ button {
       <th>Instrument</th>
       <th>Material</th>
       <th>Product Name</th>
-      <th>Central Stock</th>
+      <th>Central Stock (Van0243)</th>
       <th>Qty</th>
       <th>Action</th>
     </tr>
@@ -75,16 +41,13 @@ button {
 </table>
 
 <script>
-/************ CONFIG ************/
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxpoYB6PrDQ6KeJRhw8TOatuR4XaenWydyED7i9icai5ibNHEH8TOa2kRLAodBcNwjwuQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzpEMCy93WOw0sttRFxspfhMBVmkX_-kHGztnbhvf_P48iU89bXopJdepthVU3Xd7dC4Q/exec';
 let currentUser = 'KM';
 
-/************ USER CHANGE ************/
-document.getElementById('userSelect').addEventListener('change', e => {
+document.getElementById('userSelect').onchange = e => {
   currentUser = e.target.value;
-});
+};
 
-/************ LOAD STOCK ************/
 function loadStock() {
   fetch(GAS_URL + '?action=getStock')
     .then(r => r.text())
@@ -92,7 +55,6 @@ function loadStock() {
     .then(data => {
       const tbody = document.querySelector('#stockTable tbody');
       tbody.innerHTML = '';
-
       data.forEach(item => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -108,14 +70,9 @@ function loadStock() {
         `;
         tbody.appendChild(tr);
       });
-    })
-    .catch(err => {
-      console.error(err);
-      alert('Failed to load stock data');
     });
 }
 
-/************ ISSUE / RETURN ************/
 function submitAction(action, material, btn) {
   const qtyInput = btn.parentElement.previousElementSibling.querySelector('input');
   const qty = Number(qtyInput.value);
@@ -152,7 +109,6 @@ function submitAction(action, material, btn) {
   });
 }
 
-/************ INIT ************/
 loadStock();
 </script>
 
