@@ -1,123 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Spare Parts Qiagen System</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <title>QIAGEN Spare Parts Kiosk</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-slate-100 min-h-screen">
 
-<body class="bg-slate-100 min-h-screen p-4">
-
-<!-- LOGIN -->
-<div id="login" class="max-w-sm mx-auto bg-white p-6 rounded-xl shadow">
-  <h1 class="text-xl font-bold text-center mb-4">Service Login</h1>
-  <input id="pin" type="password" placeholder="Enter PIN"
-    class="border w-full p-2 rounded mb-3">
-  <button onclick="login()"
-    class="bg-blue-600 text-white w-full py-2 rounded">Login</button>
-</div>
-
-<!-- MAIN -->
-<div id="main" class="hidden max-w-3xl mx-auto">
-  <h2 class="text-xl font-bold my-4 text-center">
-    User: <span id="user"></span>
-  </h2>
-
-  <div class="flex gap-2 mb-4">
-    <button onclick="setMode('Issue')" class="bg-blue-600 text-white px-4 py-2 rounded">Issue</button>
-    <button onclick="setMode('Return')" class="bg-green-600 text-white px-4 py-2 rounded">Return</button>
-    <button onclick="loadStock()" class="bg-slate-700 text-white px-4 py-2 rounded">Refresh</button>
+<header class="bg-white shadow flex items-center justify-between px-6 py-4" ondblclick="openServiceLogin()">
+  <div class="flex items-center gap-3">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/QIAGEN_Logo.svg" class="h-10" />
+    <span class="text-slate-500 text-sm">QIAGEN</span>
   </div>
+  <div class="text-slate-400 text-sm">Spare Parts Qiagen System</div>
+</header>
 
-  <div id="list" class="space-y-3"></div>
-</div>
+<!-- USER SELECT -->
+<section id="page-user" class="flex items-center justify-center min-h-[calc(100vh-80px)]">
+  <div class="bg-white rounded-2xl shadow-xl p-10 max-w-5xl w-full">
+    <h1 class="text-3xl font-bold text-center mb-6">Please select user</h1>
+    <div class="grid grid-cols-3 gap-6">
+      <button onclick="selectUser('KM')" class="user-btn">KM</button>
+      <button onclick="selectUser('TK')" class="user-btn">TK</button>
+      <button onclick="selectUser('PST')" class="user-btn">PST</button>
+      <button onclick="selectUser('PSO')" class="user-btn">PSO</button>
+      <button onclick="selectUser('PK')" class="user-btn">PK</button>
+      <button onclick="selectUser('PA')" class="user-btn">PA</button>
+    </div>
+  </div>
+</section>
+
+<!-- MENU -->
+<section id="page-menu" class="hidden flex items-center justify-center min-h-[calc(100vh-80px)]">
+  <div class="bg-white rounded-2xl shadow-xl p-10 max-w-xl w-full text-center">
+    <p class="text-lg mb-6">Current user: <span id="currentUser" class="font-semibold"></span></p>
+    <div class="flex justify-center gap-6">
+      <button onclick="openIssue()" class="bg-blue-600 text-white px-8 py-6 rounded-xl text-xl">Issue</button>
+      <button onclick="openReturn()" class="bg-green-600 text-white px-8 py-6 rounded-xl text-xl">Return</button>
+      <button onclick="openIssue()" class="bg-indigo-600 text-white px-8 py-6 rounded-xl text-xl">Show All</button>
+    </div>
+  </div>
+</section>
+
+<!-- ISSUE -->
+<section id="page-issue" class="hidden p-6">
+  <h2 class="text-2xl font-bold mb-4 text-blue-700">Issue Spare Parts</h2>
+  <input id="searchIssue" placeholder="Search material" class="border p-2 rounded w-full max-w-md" />
+  <div id="issueResult" class="mt-4 space-y-4"></div>
+  <button onclick="backToMenu()" class="mt-6 text-slate-500">← Back</button>
+</section>
+
+<!-- RETURN -->
+<section id="page-return" class="hidden p-6">
+  <h2 class="text-2xl font-bold mb-4 text-green-700">Return Spare Parts</h2>
+  <input id="searchReturn" placeholder="Search material" class="border p-2 rounded w-full max-w-md" />
+  <div id="returnResult" class="mt-4 space-y-4"></div>
+  <button onclick="backToMenu()" class="mt-6 text-slate-500">← Back</button>
+</section>
+
+<!-- SERVICE LOGIN -->
+<section id="page-service-login" class="hidden flex items-center justify-center min-h-[calc(100vh-80px)]">
+  <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+    <h2 class="text-2xl font-bold mb-4">Service Login</h2>
+    <input id="pinInput" type="password" placeholder="Enter PIN" class="border p-3 rounded w-full mb-4" />
+    <button onclick="checkPIN()" class="bg-slate-800 text-white px-6 py-3 rounded w-full">Login</button>
+    <p id="pinError" class="text-red-600 mt-3 hidden">Invalid PIN</p>
+  </div>
+</section>
 
 <script>
-/******** CONFIG ********/
-const PIN = 'Service';
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw08Hpu38o2WS2MC-qsy_vr2b9ACtzKviYtIuMDYvqj7qx6O9drs0WGRz8g3Iz3YpTs5A/exec'; // <<< ใส่ URL /exec ตรงนี้
+const SERVICE_PIN = 'me9jv';
+const GAS_URL = 'PUT_YOUR_EXEC_URL_HERE';
 
-let mode = 'Issue';
+let currentUser = '';
+let stockData = [];
 
-/******** LOGIN ********/
-function login(){
-  if(pin.value === PIN){
-    login.style.display='none';
-    main.classList.remove('hidden');
-    user.innerText='KM';
-    loadStock();
-  } else {
-    alert('Wrong PIN');
-  }
+function show(id){
+  ['page-user','page-menu','page-issue','page-return','page-service-login']
+    .forEach(p=>document.getElementById(p).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
 }
 
-/******** MODE ********/
-function setMode(m){
-  mode=m;
-  loadStock();
+function selectUser(u){ currentUser=u; document.getElementById('currentUser').innerText=u; show('page-menu'); }
+function openIssue(){ show('page-issue'); loadStock(); }
+function openReturn(){ show('page-return'); loadStock(); }
+function backToMenu(){ show('page-menu'); }
+function openServiceLogin(){ show('page-service-login'); }
+
+function checkPIN(){
+  const pin = pinInput.value;
+  if(pin === SERVICE_PIN){ pinError.classList.add('hidden'); show('page-menu'); }
+  else pinError.classList.remove('hidden');
 }
 
-/******** LOAD STOCK ********/
 function loadStock(){
   fetch(GAS_URL+'?action=getStock')
     .then(r=>r.json())
-    .then(render);
+    .then(d=>{ stockData=d; renderIssue(''); renderReturn(''); });
 }
 
-/******** RENDER ********/
-function render(data){
-  list.innerHTML='';
-  data.forEach(s=>{
-    const div=document.createElement('div');
-    div.className=`p-4 rounded shadow ${s.stock>0?'bg-white':'bg-red-50'}`;
-    div.innerHTML=`
+searchIssue.addEventListener('input', e=>renderIssue(e.target.value));
+searchReturn.addEventListener('input', e=>renderReturn(e.target.value));
+
+function renderIssue(q){
+  issueResult.innerHTML = stockData.filter(s=>s.material.includes(q)).map(s=>`
+    <div class="border rounded p-4 ${s.stock>0?'':'bg-red-50'}">
       <div class="font-semibold">${s.instrument} | ${s.material}</div>
       <div class="text-sm break-words">${s.productName}</div>
-      <div class="text-sm">
-        Stock:
-        <span class="${s.stock>0?'text-slate-800':'text-red-600'}">
-          ${s.stock>0?s.stock:'NO STOCK'}
-        </span>
-      </div>
-      <div class="mt-2 flex gap-2">
-        <input type="number" min="1" class="border rounded px-2 w-20">
-        <button onclick="submit('${s.material}',this)"
-          class="px-3 py-1 rounded text-white
-          ${mode==='Issue'?'bg-blue-600':'bg-green-600'}">
-          ${mode}
-        </button>
-      </div>`;
-    list.appendChild(div);
-  });
+      <div class="text-sm">Stock: <b>${s.stock>0?s.stock:'NO STOCK'}</b></div>
+      <input type="number" min="1" max="${s.stock}" class="border p-2 mt-2 w-32" />
+      <button class="ml-4 bg-blue-600 text-white px-4 py-2 rounded" onclick="submit('Issue','${s.material}',this)">Issue</button>
+    </div>`).join('');
 }
 
-/******** SUBMIT ********/
-function submit(material,btn){
-  const qty = btn.previousElementSibling.value;
+function renderReturn(q){
+  returnResult.innerHTML = stockData.filter(s=>s.material.includes(q)).map(s=>`
+    <div class="border rounded p-4">
+      <div class="font-semibold">${s.material}</div>
+      <input type="number" min="1" class="border p-2 mt-2 w-32" />
+      <button class="ml-4 bg-green-600 text-white px-4 py-2 rounded" onclick="submit('Return','${s.material}',this)">Return</button>
+    </div>`).join('');
+}
+
+function submit(action, material, btn){
+  const qty = Number(btn.previousElementSibling.value);
   if(!qty || qty<=0) return alert('Invalid qty');
 
   fetch(GAS_URL,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      action:mode,
-      user:user.innerText,
-      material:material,
-      qty:Number(qty)
-    })
+    body:JSON.stringify({action,user:currentUser,material,qty})
   })
   .then(r=>r.json())
   .then(res=>{
-    if(res.error){
-      alert('ERROR: '+res.error);
-    }else{
-      alert(`SUCCESS\nBefore: ${res.before}\nAfter: ${res.after}`);
-      loadStock();
-    }
+    if(res.error) alert(res.error);
+    else{ alert('Success'); loadStock(); }
   });
 }
 </script>
+
+<style>
+.user-btn{border:2px solid #cbd5e1;border-radius:1rem;padding:2.5rem 0;font-size:1.25rem;font-weight:600;background:#f8fafc}
+.user-btn:hover{background:#eff6ff}
+</style>
 
 </body>
 </html>
