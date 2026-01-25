@@ -131,7 +131,7 @@ function renderViewOnly(){
     const div=document.createElement('div');
     div.className='bg-white p-4 rounded-xl shadow';
     div.innerHTML=`<div class="font-semibold">${s.instrument} | ${s.material}</div>
-    <div class="text-sm">${s.product}</div>
+    <div class="text-sm break-words whitespace-normal">${s.product}</div>
     <div class="text-xs text-slate-500">Van0243 Stock: <b>${s.stock}</b></div>`;
     viewOnlyResult.appendChild(div);
   });
@@ -217,7 +217,7 @@ function renderResult(list) {
     div.innerHTML = `
       <div>
         <div class="font-semibold">${s.instrument} | ${s.material}</div>
-        <div class="text-sm">${s.product}</div>
+        <div class="text-sm break-words whitespace-normal">${s.product}</div>
         <div class="text-xs text-slate-500">Van0243 Stock: <b>${s.stock}</b></div>
       </div>
       <div class="flex items-center gap-2">
