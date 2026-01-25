@@ -132,7 +132,7 @@ function renderViewOnly(){
     div.className='bg-white p-4 rounded-xl shadow';
     div.innerHTML=`<div class="font-semibold">${s.instrument} | ${s.material}</div>
     <div class="text-sm break-words whitespace-normal">${s.product}</div>
-    <div class="text-xs text-slate-500">Van0243 Stock: <b>${s.stock}</b></div>`;
+    <div class="text-xs">Van0243 Stock: <b class="${s.stock > 0 ? 'text-slate-700' : 'text-red-600'}">${s.stock > 0 ? s.stock : 'NO STOCK'}</b></div>`;
     viewOnlyResult.appendChild(div);
   });
 }
