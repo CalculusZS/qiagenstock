@@ -1,78 +1,153 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Qiagen Stock System</title>
-<style>
-body { font-family: Arial; padding: 20px; }
-table { width:100%; border-collapse: collapse; }
-th, td { border:1px solid #ccc; padding:6px; text-align:center; }
-th { background:#f2f2f2; }
-input { width:70px; }
-button { margin:2px; }
-</style>
+  <meta charset="UTF-8" />
+  <title>QIAGEN Spare Parts Kiosk</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
 
-<h2>Qiagen Stock System</h2>
+<body onload="initServiceLock()" class="bg-slate-100 min-h-screen">
 
-<label>User:</label>
-<select id="userSelect">
-  <option value="KM">KM</option>
-  <option value="TK">TK</option>
-  <option value="PSO">PSO</option>
-  <option value="PK">PK</option>
-  <option value="PST">PST</option>
-  <option value="PA">PA</option>
-</select>
+<header class="bg-white shadow flex items-center justify-between px-6 py-4">
+  <div class="flex items-center gap-3">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/QIAGEN_Logo.svg" class="h-10" />
+    <span class="text-slate-500 text-sm">QIAGEN</span>
+  </div>
+  <div class="text-slate-400 text-sm">Spare Parts Qiagen System</div>
+</header>
 
-<table id="stockTable">
-  <thead>
-    <tr>
-      <th>Instrument</th>
-      <th>Material</th>
-      <th>Product Name</th>
-      <th>Central Stock (Van0243)</th>
-      <th>Qty</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+<!-- SERVICE LOGIN -->
+<div id="servicePopup" class="fixed inset-0 bg-black/50 flex items-center justify-center">
+  <div class="bg-white rounded-xl p-8 w-full max-w-sm text-center">
+    <h2 class="text-2xl font-bold mb-4">Service Login</h2>
+    <input id="servicePin" type="password" placeholder="Enter Service Password"
+      class="border p-3 rounded w-full mb-4" />
+    <button onclick="checkService()"
+      class="bg-slate-800 text-white px-6 py-3 rounded w-full">Enter</button>
+    <p id="serviceError" class="text-red-600 mt-3 hidden">Invalid password</p>
+  </div>
+</div>
+
+<!-- USER SELECT -->
+<section id="page-user" class="hidden flex items-center justify-center min-h-[calc(100vh-80px)]">
+  <div class="bg-white rounded-2xl shadow-xl p-10 max-w-5xl w-full text-center">
+    <h1 class="text-3xl font-bold mb-6">Please select user</h1>
+    <div class="grid grid-cols-3 gap-6">
+      <button onclick="selectUser('KM')" class="user-btn">KM</button>
+      <button onclick="selectUser('TK')" class="user-btn">TK</button>
+      <button onclick="selectUser('PSO')" class="user-btn">PSO</button>
+      <button onclick="selectUser('PK')" class="user-btn">PK</button>
+      <button onclick="selectUser('PST')" class="user-btn">PST</button>
+      <button onclick="selectUser('PA')" class="user-btn">PA</button>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN -->
+<section id="page-main" class="hidden p-6">
+  <div class="flex justify-end mb-4">
+    <button onclick="backToUser()" class="bg-slate-600 text-white px-4 py-2 rounded">
+      Back
+    </button>
+  </div>
+
+  <div class="bg-white rounded-xl shadow p-6">
+    <table class="w-full text-sm border">
+      <thead class="bg-slate-200">
+        <tr>
+          <th class="border p-2">Instrument</th>
+          <th class="border p-2">Material</th>
+          <th class="border p-2">Product Name</th>
+          <th class="border p-2">Central Stock</th>
+          <th class="border p-2">Qty</th>
+          <th class="border p-2">Action</th>
+        </tr>
+      </thead>
+      <tbody id="stockBody"></tbody>
+    </table>
+  </div>
+</section>
 
 <script>
+/* ================= CONFIG ================= */
+const SERVICE_PASSWORD = 'Service';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzpEMCy93WOw0sttRFxspfhMBVmkX_-kHGztnbhvf_P48iU89bXopJdepthVU3Xd7dC4Q/exec';
-let currentUser = 'KM';
 
-document.getElementById('userSelect').onchange = e => {
-  currentUser = e.target.value;
-};
+let currentUser = '';
+let stockData = [];
 
-function loadStock() {
-  fetch(GAS_URL + '?action=getStock')
+/* ================= FETCH HELPER ================= */
+function fetchJSON(url, options = {}) {
+  return fetch(url, options)
     .then(r => r.text())
-    .then(t => JSON.parse(t))
+    .then(t => JSON.parse(t));
+}
+
+/* ================= SERVICE LOGIN ================= */
+function initServiceLock() {
+  document.getElementById('servicePopup').style.display = 'flex';
+}
+
+function checkService() {
+  const pin = document.getElementById('servicePin').value;
+  if (pin === SERVICE_PASSWORD) {
+    document.getElementById('servicePopup').style.display = 'none';
+    document.getElementById('page-user').classList.remove('hidden');
+  } else {
+    document.getElementById('serviceError').classList.remove('hidden');
+  }
+}
+
+/* ================= USER ================= */
+function selectUser(user) {
+  currentUser = user;
+  document.getElementById('page-user').classList.add('hidden');
+  document.getElementById('page-main').classList.remove('hidden');
+  loadStock();
+}
+
+function backToUser() {
+  document.getElementById('page-main').classList.add('hidden');
+  document.getElementById('page-user').classList.remove('hidden');
+}
+
+/* ================= LOAD STOCK ================= */
+function loadStock() {
+  fetchJSON(GAS_URL + '?action=getStock')
     .then(data => {
-      const tbody = document.querySelector('#stockTable tbody');
-      tbody.innerHTML = '';
-      data.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${item.instrument}</td>
-          <td>${item.material}</td>
-          <td>${item.productName}</td>
-          <td>${item.stock}</td>
-          <td><input type="number" min="1"></td>
-          <td>
-            <button onclick="submitAction('Issue','${item.material}',this)">Issue</button>
-            <button onclick="submitAction('Return','${item.material}',this)">Return</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
+      stockData = data || [];
+      renderStock();
     });
 }
 
+function renderStock() {
+  const body = document.getElementById('stockBody');
+  body.innerHTML = '';
+
+  stockData.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="border p-2">${item.instrument}</td>
+      <td class="border p-2">${item.material}</td>
+      <td class="border p-2">${item.productName}</td>
+      <td class="border p-2">${item.stock}</td>
+      <td class="border p-2">
+        <input type="number" min="1" class="border p-1 w-20">
+      </td>
+      <td class="border p-2">
+        <button onclick="submitAction('Issue','${item.material}',this)"
+          class="bg-blue-600 text-white px-2 py-1 rounded">Issue</button>
+        <button onclick="submitAction('Return','${item.material}',this)"
+          class="bg-green-600 text-white px-2 py-1 rounded">Return</button>
+      </td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+/* ================= SUBMIT ================= */
 function submitAction(action, material, btn) {
   const qtyInput = btn.parentElement.previousElementSibling.querySelector('input');
   const qty = Number(qtyInput.value);
@@ -82,7 +157,7 @@ function submitAction(action, material, btn) {
     return;
   }
 
-  fetch(GAS_URL, {
+  fetchJSON(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -92,8 +167,6 @@ function submitAction(action, material, btn) {
       qty
     })
   })
-  .then(r => r.text())
-  .then(t => JSON.parse(t))
   .then(res => {
     if (res.error) {
       alert('❌ ' + res.error);
@@ -103,14 +176,22 @@ function submitAction(action, material, btn) {
       loadStock();
     }
   })
-  .catch(err => {
-    console.error(err);
-    alert('❌ System error. Please try again.');
-  });
+  .catch(() => alert('❌ System error'));
 }
-
-loadStock();
 </script>
+
+<style>
+.user-btn {
+  background:#0f172a;
+  color:white;
+  padding:20px;
+  border-radius:12px;
+  font-size:20px;
+}
+.user-btn:hover {
+  background:#1e293b;
+}
+</style>
 
 </body>
 </html>
