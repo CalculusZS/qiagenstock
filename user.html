@@ -1,20 +1,51 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
+  <meta charset="UTF-8">
+  <title>Stock ERP</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="header">👤 Select User</div>
-<div class="container">
-  <select onchange="localStorage.setItem('user',this.value)">
-    <option>Kitti</option>
-    <option>Tatchai</option>
-    <option>Parinyachat</option>
-    <option>Phurilap</option>
-    <option>Penporn</option>
-    <option>Phuriwat</option>
-  </select>
-  <button onclick="location.href='menu.html'">Continue</button>
-</div>
+
+<header>
+  <h1>📦 Stock ERP System</h1>
+  <button onclick="logout()">Logout</button>
+</header>
+
+<section class="card">
+  <h2>ทำรายการ</h2>
+
+  <input type="text" placeholder="🔍 Search Material"
+         onkeyup="searchMaterial(this.value)">
+
+  <select id="material"></select>
+
+  <input type="number" id="qty" placeholder="จำนวน">
+
+  <div class="btn-group">
+    <button class="withdraw" onclick="transaction('withdraw')">เบิก</button>
+    <button class="return" onclick="transaction('return')">คืน</button>
+  </div>
+</section>
+
+<section class="card">
+  <h2>📊 Stock ทั้งหมด</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Material</th>
+        <th>Name</th>
+        <th>Stock</th>
+      </tr>
+    </thead>
+    <tbody id="data"></tbody>
+  </table>
+</section>
+
+<script src="js/app.js"></script>
+<script>
+  loadMaterials();
+  loadAll();
+</script>
 </body>
 </html>
