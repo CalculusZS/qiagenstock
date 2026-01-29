@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwRDxydQccL62C0NgEFtnKs92SwLHTMlUvOlMwXpsCZQVIYa1uoXqjfjd5QYegHkKKPuw/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzeGXqN2Ay4n_BxpHrQbFg-QfSpQYn_AVmBPEmnFrsuGbNgeQeOYvZVovKpyxqs8YDAMA/exec";
 
 document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("loginBtn");
