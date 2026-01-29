@@ -9,22 +9,28 @@ function login() {
   const pwd = document.getElementById("pwd").value;
 
   fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "login",
-      password: Service
-    })
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    action: "login",
+    password: pwd
   })
-  .then(r => r.json())
-  .then(res => {
-    if (res.success) {
-      window.location.href = "user.html";
-    } else {
-      alert("❌ Password ไม่ถูกต้อง");
-    }
-  })
-  .catch(() => alert("❌ ไม่สามารถเชื่อมต่อระบบได้"));
-}
+})
+.then(r => r.json())
+.then(res => {
+  if (res.success) {
+    window.location.href = "user.html";
+  } else {
+    alert("❌ Password ไม่ถูกต้อง");
+  }
+})
+.catch(err => {
+  alert("❌ ติดต่อ Server ไม่ได้");
+  console.error(err);
+});
+
 
 // ================= LOAD MATERIAL =================
 function loadMaterials() {
