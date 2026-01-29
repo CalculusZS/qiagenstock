@@ -1,127 +1,90 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwnyXSUQGLArH-n0ZQ4UU9-qed39KOjDtdk3Q-y_lg1eQUMNpTGKDw-HXdWMY4hYBYMuA/exec";
+const API_URL =
+"https://script.google.com/macros/s/AKfycbzKLZGMyl6mKzTfOhbmtyflEt4_wnoV9Xvp7-MLNzT7kkyiBlH6sNOOLy3zzIjZjdm4/exec";
 
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("loginBtn").onclick = login;
-});
+let MATERIALS = [];
 
+// ===== LOGIN =====
 function login() {
   const pwd = document.getElementById("password").value;
-  if (!pwd) return alert("กรุณาใส่ Password");
-
-  fetch(`${API_URL}?action=login&password=${encodeURIComponent(pwd)}`)
+  fetch(`${API_URL}?action=login&password=${pwd}`)
     .then(r => r.json())
     .then(res => {
       if (res.success) {
-        localStorage.setItem("user", "admin");
+        localStorage.setItem("login", "1");
         location.href = "user.html";
-      } else {
-        alert("❌ Password ไม่ถูกต้อง");
-      }
-    })
-    .catch(() => alert("❌ ติดต่อ Server ไม่ได้"));
-}
-
-
-
-// ================= LOAD MATERIAL =================
-function loadMaterials() {
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "getMaterialList" })
-  })
-  .then(r => r.json())
-  .then(res => {
-    if (!res.success) {
-      alert("โหลดข้อมูลไม่สำเร็จ");
-      return;
-    }
-    MATERIALS = res.data;
-    renderMaterialDropdown(MATERIALS);
-  });
-}
-
-// ================= RENDER DROPDOWN =================
-function renderMaterialDropdown(list) {
-  const select = document.getElementById("material");
-  select.innerHTML = "";
-
-  list.forEach(item => {
-    const opt = document.createElement("option");
-    opt.value = item.material;
-    opt.textContent =
-      `${item.material} | ${item.product} | Stock: ${item.stock}`;
-    select.appendChild(opt);
-  });
-}
-
-// ================= SEARCH =================
-function searchMaterial(keyword) {
-  const k = keyword.toLowerCase();
-  const filtered = MATERIALS.filter(m =>
-    m.material.toLowerCase().includes(k) ||
-    m.product.toLowerCase().includes(k)
-  );
-  renderMaterialDropdown(filtered);
-}
-
-// ================= TRANSACTION =================
-function transaction(type) {
-  const material = document.getElementById("material").value;
-  const qty = Number(document.getElementById("qty").value);
-  const user = localStorage.getItem("user");
-
-  if (!material || qty <= 0) {
-    alert("กรุณากรอกข้อมูลให้ครบ");
-    return;
-  }
-
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: "transaction",
-      type: type,
-      material: material,
-      qty: qty,
-      user: user
-    })
-  })
-  .then(r => r.json())
-  .then(res => {
-    if (res.success) {
-      alert("✅ ทำรายการสำเร็จ");
-      document.getElementById("qty").value = "";
-      loadMaterials();
-    } else {
-      alert("❌ " + res.msg);
-    }
-  });
-}
-
-// ================= LOAD ALL =================
-function loadAll() {
-  fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "getAll" })
-  })
-  .then(r => r.json())
-  .then(res => {
-    if (!res.success) return;
-
-    const tbody = document.getElementById("data");
-    tbody.innerHTML = "";
-
-    res.data.forEach(r => {
-      const tr = document.createElement("tr");
-
-      const stockClass = r[7] <= 0 ? "low-stock" : "";
-
-      tr.innerHTML = `
-        <td>${r[0]}</td>
-        <td>${r[1]}</td>
-        <td>${r[2]}</td>
-        <td class="${stockClass}">${r[7]}</td>
-      `;
-      tbody.appendChild(tr);
+      } else alert("Password ไม่ถูกต้อง");
     });
+}
+
+function logout() {
+  localStorage.clear();
+  location.href = "index.html";
+}
+
+// ===== LOAD MATERIAL =====
+function loadMaterials() {
+  fetch(`${API_URL}?action=list`)
+    .then(r => r.json())
+    .then(data => {
+      MATERIALS = data;
+      renderMaterialDropdown(data);
+    });
+}
+
+function renderMaterialDropdown(list) {
+  const s = document.getElementById("material");
+  s.innerHTML = "";
+  list.forEach(m => {
+    const o = document.createElement("option");
+    o.value = m.code;
+    o.textContent = `${m.code} | ${m.name} | Stock:${m.qty}`;
+    s.appendChild(o);
   });
+}
+
+// ===== SEARCH =====
+function searchMaterial(k) {
+  const key = k.toLowerCase();
+  renderMaterialDropdown(
+    MATERIALS.filter(m =>
+      m.code.toLowerCase().includes(key) ||
+      m.name.toLowerCase().includes(key)
+    )
+  );
+}
+
+// ===== TRANSACTION =====
+function transaction(type) {
+  const code = material.value;
+  const qty  = qtyInput = document.getElementById("qty").value;
+
+  if (!code || qty <= 0) return alert("กรอกข้อมูลให้ครบ");
+
+  fetch(`${API_URL}?action=${type}&code=${code}&qty=${qty}`)
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        alert("สำเร็จ");
+        loadMaterials();
+        loadAll();
+      } else alert(res.msg);
+    });
+}
+
+// ===== LOAD TABLE =====
+function loadAll() {
+  fetch(`${API_URL}?action=list`)
+    .then(r => r.json())
+    .then(data => {
+      const tb = document.getElementById("data");
+      tb.innerHTML = "";
+      data.forEach(r => {
+        tb.innerHTML += `
+          <tr class="${r.qty<=0?'low':''}">
+            <td>${r.code}</td>
+            <td>${r.name}</td>
+            <td>${r.qty}</td>
+          </tr>`;
+      });
+    });
 }
