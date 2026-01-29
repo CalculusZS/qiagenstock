@@ -1,40 +1,24 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzeGXqN2Ay4n_BxpHrQbFg-QfSpQYn_AVmBPEmnFrsuGbNgeQeOYvZVovKpyxqs8YDAMA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwnyXSUQGLArH-n0ZQ4UU9-qed39KOjDtdk3Q-y_lg1eQUMNpTGKDw-HXdWMY4hYBYMuA/exec";
 
 document.addEventListener("DOMContentLoaded", () => {
-  const btn = document.getElementById("loginBtn");
-  btn.addEventListener("click", login);
+  document.getElementById("loginBtn").onclick = login;
 });
 
 function login() {
   const pwd = document.getElementById("password").value;
+  if (!pwd) return alert("กรุณาใส่ Password");
 
-  if (!pwd) {
-    alert("กรุณาใส่ Password");
-    return;
-  }
-
-  fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      action: "login",
-      password: pwd
-    })
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        window.location.href = "user.html";
+  fetch(`${API_URL}?action=login&password=${encodeURIComponent(pwd)}`)
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        localStorage.setItem("user", "admin");
+        location.href = "user.html";
       } else {
         alert("❌ Password ไม่ถูกต้อง");
       }
     })
-    .catch(err => {
-      console.error(err);
-      alert("❌ ติดต่อ Server ไม่ได้");
-    });
+    .catch(() => alert("❌ ติดต่อ Server ไม่ได้"));
 }
 
 
