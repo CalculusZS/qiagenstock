@@ -1,124 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Spare Parts Qiagen System</title>
-
-<style>
-  body { font-family: Arial, sans-serif; background:#f4f6f8; }
-  table { width:100%; border-collapse: collapse; background:#fff; }
-  th, td { padding:8px; border:1px solid #ddd; text-align:left; }
-  th { background:#e9ecef; }
-  button { padding:5px 10px; cursor:pointer; }
-  .issue { background:#0d6efd; color:#fff; border:none; }
-  .return { background:#198754; color:#fff; border:none; }
-</style>
+  <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
-
-<h2>Spare Parts Qiagen System</h2>
-
-<table id="stockTable">
-  <thead>
-    <tr>
-      <th>Instrument</th>
-      <th>Material</th>
-      <th>Product Name</th>
-      <th>Central Stock</th>
-      <th>Qty</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
-<script>
-/* ================= CONFIG ================= */
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbySnQMFoJx3Dh81wLkJDdSEJap_wqsExrM_yo7t6Zul0ZGTJwqGGBPIYUhsQlSTDKACJA/exec";
-const CURRENT_USER = "Van0243"; // เปลี่ยนได้ตามระบบ login
-
-/* ================= LOAD STOCK ================= */
-function loadStock() {
-  fetch(`${SCRIPT_URL}?action=getStock`)
-    .then(res => res.json())
-    .then(data => renderTable(data))
-    .catch(err => {
-      console.error(err);
-      alert("Load stock failed");
-    });
-}
-
-/* ================= RENDER TABLE ================= */
-function renderTable(data) {
-  const tbody = document.querySelector("#stockTable tbody");
-  tbody.innerHTML = "";
-
-  data.forEach(item => {
-    const tr = document.createElement("tr");
-
-    tr.innerHTML = `
-      <td>${item.instrument}</td>
-      <td>${item.material}</td>
-      <td>${item.productName}</td>
-      <td>${item.stock}</td>
-      <td>
-        <input type="number" min="1" style="width:60px;">
-      </td>
-      <td>
-        <button class="issue">Issue</button>
-        <button class="return">Return</button>
-      </td>
-    `;
-
-    const qtyInput = tr.querySelector("input");
-    const issueBtn = tr.querySelector(".issue");
-    const returnBtn = tr.querySelector(".return");
-
-    issueBtn.onclick = () => submitAction("Issue", item.material, qtyInput);
-    returnBtn.onclick = () => submitAction("Return", item.material, qtyInput);
-
-    tbody.appendChild(tr);
-  });
-}
-
-/* ================= SUBMIT ISSUE / RETURN ================= */
-function submitAction(action, material, qtyInput) {
-  const qty = Number(qtyInput.value);
-
-  if (!qty || qty <= 0) {
-    alert("Please enter valid quantity");
-    return;
-  }
-
-  fetch(SCRIPT_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      action: action,
-      user: CURRENT_USER,
-      material: material,
-      qty: qty
-    })
-  })
-  .then(res => res.json())
-  .then(res => {
-    if (res.success === true) {
-      alert("Transaction completed successfully");
-      qtyInput.value = "";
-      loadStock();
-    } else {
-      alert(res.message || "System error");
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    alert("System error");
-  });
-}
-
-/* ================= INIT ================= */
-loadStock();
-</script>
-
+<div class="header">🔒 Spare Part System</div>
+<div class="container">
+  <label>Password</label>
+  <input type="password" id="pwd">
+  <button onclick="login()">Login</button>
+</div>
+<script src="js/app.js"></script>
 </body>
 </html>
