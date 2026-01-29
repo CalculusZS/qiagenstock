@@ -12,7 +12,7 @@ function login() {
     method: "POST",
     body: JSON.stringify({
       action: "login",
-      password: pwd
+      password: Service
     })
   })
   .then(r => r.json())
