@@ -1,5 +1,5 @@
 // ================= CONFIG =================
-const API_URL = "PUT_YOUR_APPS_SCRIPT_URL_HERE";
+const API_URL = "https://script.google.com/macros/s/AKfycbxdtiD7FND3hvysksc24JsknwM69X_RPcZldlF_NGB2vOisfHnPZckYz08qYFWKIkKIiA/exec";
 
 // ================= GLOBAL =================
 let MATERIALS = [];
