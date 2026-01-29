@@ -1,5 +1,5 @@
 // ================= CONFIG =================
-const API_URL = "https://script.google.com/macros/s/AKfycbxdtiD7FND3hvysksc24JsknwM69X_RPcZldlF_NGB2vOisfHnPZckYz08qYFWKIkKIiA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzf3GIBDtYuiJD_T7C6WvFKD1BGrdASkDNUC-rkqOPjc-TiVGvERjZiXfiR4HVHDUtAbA/exec";
 
 // ================= GLOBAL =================
 let MATERIALS = [];
