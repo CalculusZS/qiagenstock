@@ -1,12 +1,67 @@
-body { background:#f4f6f9; font-family:Segoe UI; margin:0 }
-.header { background:#1e88e5; color:white; padding:15px }
-.container {
-  max-width:800px; margin:30px auto; background:white;
-  padding:20px; border-radius:8px;
+body {
+  font-family: "Segoe UI", sans-serif;
+  margin: 0;
+  background: #f4f6f9;
 }
-input, select, button {
-  width:100%; margin-top:10px; padding:10px;
+
+header {
+  background: #1f2937;
+  color: white;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
 }
+
+.card {
+  background: white;
+  margin: 20px;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+input, select {
+  padding: 8px;
+  width: 100%;
+  margin: 5px 0;
+}
+
 button {
-  background:#1e88e5; color:white; border:none;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.btn-group {
+  display: flex;
+  gap: 10px;
+}
+
+.withdraw { background:#ef4444; color:white; }
+.return   { background:#22c55e; color:white; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border-bottom: 1px solid #ddd;
+  padding: 8px;
+}
+
+.low {
+  background: #fee2e2;
+}
+
+.login-page {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.login-box {
+  background:white;
+  padding:30px;
+  border-radius:10px;
+  text-align:center;
 }
