@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body onload="loadMaterials()">
+<div class="header">🔧 Withdraw</div>
+<div class="container">
+  <input placeholder="Search" onkeyup="searchMaterial(this.value)">
+  <select id="material"></select>
+  <input id="qty" type="number" min="1">
+  <button onclick="transaction('withdraw')">Confirm</button>
+</div>
+<script src="js/app.js"></script>
+</body>
+</html>
