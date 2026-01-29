@@ -1,35 +1,42 @@
-// ================= CONFIG =================
-const API_URL = "https://script.google.com/macros/s/AKfycbwOhhICmi2EEMHTxZj4rrnlk0wESjQPgjY88iclbtGJjp_Y47tMznKvrLLu1gi0WxgE/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzf3GIBDtYuiJD_T7C6WvFKD1BGrdASkDNUC-rkqOPjc-TiVGvERjZiXfiR4HVHDUtAbA/exec";
 
-// ================= GLOBAL =================
-let MATERIALS = [];
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("loginBtn");
+  btn.addEventListener("click", login);
+});
 
-// ================= LOGIN =================
 function login() {
-  const pwd = document.getElementById("pwd").value;
+  const pwd = document.getElementById("password").value;
+
+  if (!pwd) {
+    alert("กรุณาใส่ Password");
+    return;
+  }
 
   fetch(API_URL, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    action: "login",
-    password: pwd
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      action: "login",
+      password: pwd
+    })
   })
-})
-.then(r => r.json())
-.then(res => {
-  if (res.success) {
-    window.location.href = "user.html";
-  } else {
-    alert("❌ Password ไม่ถูกต้อง");
-  }
-})
-.catch(err => {
-  alert("❌ ติดต่อ Server ไม่ได้");
-  console.error(err);
-});
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        window.location.href = "user.html";
+      } else {
+        alert("❌ Password ไม่ถูกต้อง");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      alert("❌ ติดต่อ Server ไม่ได้");
+    });
+}
+
 
 
 // ================= LOAD MATERIAL =================
