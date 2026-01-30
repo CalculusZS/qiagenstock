@@ -6,16 +6,21 @@
     <title>Select User</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body onload="initUserPage()">
-    <div class="header">👤 Select User</div>
-    <div class="container">
-        <div id="userGrid" class="user-grid" style="display: grid; gap: 10px; margin: 20px 0;">
-            Loading users...
-        </div>
+<body onload="initUserPage()" style="background:#f8fafc;">
+    <div class="header" style="background:#1e293b; color:white; padding:15px; text-align:center; font-weight:bold; font-size:18px;">
+        👤 SELECT USER
+    </div>
+
+    <div class="container" style="max-width:500px; margin:20px auto; padding:0 15px;">
+        <p style="color:#64748b; font-size:14px; text-align:center; margin-bottom:20px;">Please select your name before proceeding:</p>
         
-        <div class="cta-row" style="display: flex; gap: 10px;">
-            <button class="btn-primary" onclick="navigate('withdraw.html')">Withdraw</button>
-            <button class="btn-success" onclick="navigate('return.html')">Return</button>
+        <div id="userGrid" style="display:grid; gap:10px; margin-bottom:30px;">
+            <p style="text-align:center; color:#94a3b8;">Loading names...</p>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <button onclick="navigate('withdraw.html')" style="background:#ef4444; color:white; border:none; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer;">WITHDRAW</button>
+            <button onclick="navigate('return.html')" style="background:#22c55e; color:white; border:none; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer;">RETURN</button>
         </div>
     </div>
 
@@ -23,30 +28,35 @@
     <script>
         async function initUserPage() {
             const grid = document.getElementById('userGrid');
-            if (!grid) return; // ป้องกัน Error innerHTML ของ null
-
             const users = await window.loadUsers();
+            
             if (users.length === 0) {
-                grid.innerHTML = "Error: Cannot load users. Check API URL.";
+                grid.innerHTML = "Error loading users.";
                 return;
             }
-            
-            grid.innerHTML = users.map(name => 
-                `<button class="user-btn" onclick="select(this, '${name}')">${name}</button>`
-            ).join('');
+
+            // แสดงเฉพาะชื่อที่เป็น String ไม่ให้เป็น [object Object]
+            grid.innerHTML = users.map(name => {
+                const displayName = typeof name === 'object' ? (name.name || name.User) : name;
+                return `<button class="user-btn" onclick="selectUser(this, '${displayName}')" 
+                        style="padding:15px; background:white; border:2px solid #e2e8f0; border-radius:12px; font-weight:600; color:#1e293b; text-align:left; cursor:pointer; transition:0.2s;">
+                        ${displayName}
+                        </button>`;
+            }).join('');
         }
 
-        function select(btn, name) {
-            document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+        function selectUser(btn, name) {
+            document.querySelectorAll('.user-btn').forEach(b => {
+                b.style.borderColor = '#e2e8f0';
+                b.style.background = 'white';
+            });
+            btn.style.borderColor = '#2563eb';
+            btn.style.background = '#eff6ff';
             sessionStorage.setItem('selectedUser', name);
         }
 
         function navigate(path) {
-            if (!sessionStorage.getItem('selectedUser')) {
-                alert("Please select a user first!");
-                return;
-            }
+            if (!sessionStorage.getItem('selectedUser')) return alert("กรุณาเลือกชื่อก่อน!");
             location.href = path;
         }
     </script>
