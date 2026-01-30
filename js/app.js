@@ -97,3 +97,10 @@ window.login = function (){
   if (pass === PASSWORD) location.href = 'user-select.html';
   else alert('Incorrect password');
 };
+function goBack(){
+  if (document.referrer) {
+    history.back();            // กลับหน้าก่อน
+  } else {
+    location.href = 'user-select.html';  // ถ้าไม่มี referrer ให้กลับไปหน้าเลือกผู้ใช้
+  }
+}
