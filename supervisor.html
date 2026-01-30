@@ -2,123 +2,121 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Supervisor Control Panel</title>
+  <title>Supervisor Panel</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
-    :root { --primary: #1e293b; --accent: #2563eb; --success: #10b981; }
-    body { background: #f8fafc; font-family: 'Inter', sans-serif; margin: 0; }
+    :root { --primary: #1e293b; --accent: #2563eb; }
+    body { background: #f8fafc; font-family: sans-serif; margin: 0; }
     .header-panel { background: var(--primary); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
-    .container { max-width: 1100px; margin: 20px auto; padding: 0 20px; }
-    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 24px; margin-bottom: 24px; border: 1px solid #e2e8f0; }
-    .modern-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    .modern-table th { background: #f8fafc; padding: 12px; text-align: left; color: #64748b; border-bottom: 2px solid #e2e8f0; font-size: 12px; }
-    .modern-table td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; }
-    .user-pill { background: #eff6ff; color: #1d4ed8; padding: 4px 12px; border-radius: 99px; font-weight: 600; font-size: 13px; }
-    .qty-input { width: 80px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; }
-    .btn-add { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-    .input-text { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; }
-    #display_prod_name { font-size: 12px; color: #2563eb; margin-top: 5px; font-weight: bold; }
+    .card { background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+    .modern-table { width: 100%; border-collapse: collapse; }
+    .modern-table th { background: #f8fafc; padding: 12px; text-align: left; font-size: 12px; color: #64748b; border-bottom: 2px solid #e2e8f0; }
+    .modern-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+    .user-pill { background: #eff6ff; color: #1d4ed8; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 13px; }
+    #display_prod_name { margin-top: 8px; font-weight: bold; color: #2563eb; font-size: 14px; }
+    .qty-input { width: 70px; padding: 8px; border: 1px solid #ddd; border-radius: 6px; text-align: center; }
   </style>
 </head>
 <body onload="onSupLoad()">
   <div class="header-panel">
-    <div style="font-size: 1.25rem; font-weight: 700;">🚀 Supervisor Control Panel</div>
-    <button onclick="location.href='user-select.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Back</button>
+    <div style="font-size: 20px; font-weight: bold;">🚀 Supervisor Control</div>
+    <button onclick="goBack()" style="background:none; border:1px solid white; color:white; padding:8px 15px; border-radius:6px; cursor:pointer;">Back</button>
   </div>
 
-  <div class="container">
+  <div class="container" style="max-width: 1000px; margin: 20px auto; padding: 0 20px;">
     <div class="card">
-      <h3>📥 Add Stock to 0243</h3>
-      <div style="display:flex; gap:12px; align-items:center;">
-        <div style="flex: 1;">
-          <input id="sup_mat_add" class="input-text" style="width:100%" placeholder="Scan or Type Material Number..." oninput="lookupProductName(this.value)">
+      <h3 style="margin-top:0;">📥 Add Stock to 0243</h3>
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <div style="flex:1;">
+          <input type="text" id="sup_mat_add" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;" 
+                 placeholder="Enter Material Number..." oninput="lookupMat(this.value)">
           <div id="display_prod_name">Product: -</div>
         </div>
-        <input id="sup_qty_add" type="number" class="qty-input" placeholder="Qty">
-        <button class="btn-add" onclick="supAddTo0243()">Add to Stock</button>
+        <input type="number" id="sup_qty_add" class="qty-input" style="height:38px;" placeholder="Qty">
+        <button onclick="doAdd()" style="background:var(--accent); color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:bold; cursor:pointer;">Add Stock</button>
       </div>
     </div>
 
     <div class="card">
-      <h3>🔍 Person Stock Inspector</h3>
-      <div style="overflow-x:auto;">
-        <table class="modern-table">
-          <thead>
-            <tr>
-              <th>Holder (ผู้ถือครอง)</th>
-              <th>Material</th>
-              <th>Product Name</th>
-              <th>Qty (จำนวน)</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="sup_users_table_body">
-            <tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8;">Scanning personal stocks...</td></tr>
-          </tbody>
-        </table>
-      </div>
+      <h3 style="margin-top:0;">🔍 Person Stock Inspector</h3>
+      <table class="modern-table">
+        <thead>
+          <tr>
+            <th>Holder</th>
+            <th>Material</th>
+            <th>Product Name</th>
+            <th>Qty</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="sup_users_table_body"></tbody>
+      </table>
     </div>
   </div>
 
   <script src="js/app.js"></script>
   <script>
-    // รายชื่อพนักงาน (ต้องตรงกับชื่อคอลัมน์ใน Sheet)
+    // รายชื่อพนักงาน (คอลัมน์ I-N)
     const USERS = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
 
-    async function onSupLoad() { 
-        await window.loadStockData('all'); // โหลดข้อมูลจาก app.js
-        await refreshTable(); 
+    async function onSupLoad() {
+        await window.loadStockData('all');
     }
 
-    // ฟังก์ชันค้นหาชื่อสินค้าขณะพิมพ์
-    function lookupProductName(mat) {
-        const item = rows.find(r => String(r.Material) === String(mat));
-        const display = document.getElementById('display_prod_name');
-        display.textContent = item ? `Product: ${item['Product Name']}` : "Product: Not found";
+    // โชว์ Product Name อัตโนมัติ 
+    function lookupMat(val) {
+        const product = window.findProductByMaterial(val);
+        const div = document.getElementById('display_prod_name');
+        if (product) {
+            div.textContent = "Product: " + product['Product Name'];
+            div.style.color = "#2563eb";
+        } else {
+            div.textContent = "Product: Not found";
+            div.style.color = "#ef4444";
+        }
     }
 
-    async function refreshTable() {
-      const tbody = document.getElementById('sup_users_table_body');
-      let html = '';
-      
-      // rows มาจากไฟล์ app.js หลังจากเรียก loadStockData
-      rows.forEach(row => {
-        USERS.forEach(user => {
-          const val = Number(row[user] || 0);
-          if (val > 0) {
-            const uid = `id_${row['Material']}_${user}`;
-            html += `<tr>
-              <td><span class="user-pill">${user}</span></td>
-              <td style="font-weight:700;">${row['Material']}</td>
-              <td style="color:#475569; font-size:13px;">${row['Product Name'] || ''}</td>
-              <td><input type="number" class="qty-input" id="${uid}" value="${val}"></td>
-              <td><button style="background:#10b981; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;" 
-                  onclick="handleDeduct('${row['Material']}','${user}')">Deduct Used</button></td>
-            </tr>`;
-          }
+    function refreshTable() {
+        const tbody = document.getElementById('sup_users_table_body');
+        let html = '';
+        rows.forEach(row => {
+            USERS.forEach(name => {
+                const qty = Number(row[name] || 0);
+                if (qty > 0) {
+                    const tid = `id_${row.Material}_${name}`;
+                    html += `
+                        <tr>
+                            <td><span class="user-pill">${name}</span></td>
+                            <td><b>${row.Material}</b></td>
+                            <td style="font-size:12px; color:#64748b;">${row['Product Name'] || ''}</td>
+                            <td><input type="number" id="${tid}" class="qty-input" value="${qty}"></td>
+                            <td>
+                                <button onclick="doDeduct('${row.Material}', '${name}', '${tid}')" 
+                                        style="background:#10b981; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">
+                                    Deduct Used
+                                </button>
+                            </td>
+                        </tr>`;
+                }
+            });
         });
-      });
-      tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:30px;">No one is currently holding stock.</td></tr>';
+        tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">No stock held by persons.</td></tr>';
     }
 
-    async function supAddTo0243() {
-      const mat = document.getElementById('sup_mat_add').value;
-      const qty = document.getElementById('sup_qty_add').value;
-      if(!mat || !qty) return alert('Please enter both Material and Quantity');
-      
-      // เรียกฟังก์ชันผ่าน API ใน app.js (ต้องมั่นใจว่าใน Google Script มี action=addStock)
-      const res = await fetch(`${API}?action=addStock&password=${PASSWORD}&material=${mat}&qty=${qty}`).then(r => r.json());
-      if(res.success) { 
-        alert('Stock updated successfully'); 
-        location.reload(); 
-      }
+    async function doAdd() {
+        const mat = document.getElementById('sup_mat_add').value;
+        const qty = document.getElementById('sup_qty_add').value;
+        if(!mat || !qty) return alert("Fill all fields");
+        const res = await window.supAddStock(mat, qty);
+        if(res.success) { alert("Stock Added!"); location.reload(); }
     }
 
-    async function handleDeduct(mat, user) {
-      const qty = document.getElementById(`id_${mat}_${user}`).value;
-      if(!confirm(`Deduct ${qty} from ${user}?`)) return;
-      const res = await fetch(`${API}?action=return&password=${PASSWORD}&material=${mat}&qty=${qty}&user=${user}&status=USED`).then(r => r.json());
-      if(res.success) { alert('Success!'); onSupLoad(); }
+    async function doDeduct(mat, name, tid) {
+        const qty = document.getElementById(tid).value;
+        if(!confirm(`Deduct ${qty} from ${name}?`)) return;
+        // เรียกใช้ฟังก์ชันที่ระบุว่าผู้ทำรายการคือ Supervisor
+        const res = await window.supDeductUser(mat, name, qty);
+        if(res.success) { alert("Deducted Successfully!"); onSupLoad(); }
     }
   </script>
 </body>
