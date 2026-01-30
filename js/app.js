@@ -2,7 +2,7 @@ const API = "https://script.google.com/macros/s/AKfycbw7Eg3Z0JuePwx2mXA-rAGLaN_A
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 
-let rows = []; // ตัวแปรเก็บข้อมูลสต็อกหลัก
+let rows = []; // เก็บข้อมูลสต็อกทั้งหมดที่โหลดมา
 
 /* ===== 2. Authentication & Navigation ===== */
 window.login = function() {
@@ -10,25 +10,36 @@ window.login = function() {
     if (passValue === PASSWORD) {
         sessionStorage.setItem('isLoggedIn', 'true');
         location.href = 'user-select.html';
-    } else { alert('Invalid Password!'); }
+    } else { 
+        alert('Invalid Password!'); 
+    }
 };
 
 window.checkSupervisor = function() {
     const p = prompt("Enter Supervisor Password:");
     if (p === SUP_PASSWORD) {
         sessionStorage.setItem('isSupervisor', 'true');
+        alert("Supervisor access granted!");
+        // เด้งไปหน้าจัดการของ Supervisor
         location.href = 'supervisor.html'; 
-    } else if (p !== null) { alert("Wrong Password!"); }
+    } else if (p !== null) { 
+        alert("Wrong Password!"); 
+    }
 };
 
-window.goBack = () => { location.href = 'user-select.html'; };
+window.goBack = () => { 
+    location.href = 'user-select.html'; 
+};
 
-/* ===== 3. Data Fetching (Users & Stock) ===== */
+/* ===== 3. Data Loading Functions ===== */
 window.loadUsers = async function() {
     try {
         const res = await fetch(`${API}?action=users&password=${PASSWORD}`).then(r => r.json());
         return res.success ? res.users : [];
-    } catch (e) { return []; }
+    } catch (e) { 
+        console.error("Load users failed", e);
+        return []; 
+    }
 };
 
 window.loadStockData = async function(pageType) {
@@ -36,38 +47,40 @@ window.loadStockData = async function(pageType) {
         const res = await fetch(`${API}?action=list2&password=${PASSWORD}`).then(r => r.json());
         if (res.success) {
             rows = res.rows;
-            // ถ้าอยู่ในหน้า Withdraw/Return/Show All จะรัน renderTable
+            // ตรวจสอบว่าต้องเรนเดอร์ตารางหน้าไหน
             if (document.getElementById('data')) {
                 renderTable(rows, pageType);
             }
-            // ถ้าอยู่ในหน้า Supervisor จะรัน refreshTable (ถ้ามีฟังก์ชันนี้อยู่)
+            // ถ้าอยู่ในหน้า Supervisor ให้รันฟังก์ชันรีเฟรชตารางของหน้านั้น
             if (typeof refreshTable === 'function') {
                 refreshTable();
             }
         }
-    } catch (e) { console.error("Load failed", e); }
+    } catch (e) { 
+        console.error("Load stock failed", e); 
+    }
 };
 
-/* ===== 4. Helper Function (สำหรับการทำ Auto-lookup) ===== */
+/* ===== 4. Helper Functions ===== */
 window.findProductByMaterial = (mat) => {
     if (!rows) return null;
     return rows.find(r => String(r.Material).trim() === String(mat).trim());
 };
 
-/* ===== 5. UI Rendering (หน้า Withdraw / Return / Show All) ===== */
+/* ===== 5. UI Rendering (For Withdraw / Return / Show All) ===== */
 function renderTable(dataList, type) {
     const container = document.getElementById('data');
     if (!container) return;
     const currentUser = sessionStorage.getItem('selectedUser') || '';
 
     container.innerHTML = dataList.map((item, index) => {
-        // กำหนดจำนวนสต็อกที่จะโชว์ตามประเภทหน้า
+        // กำหนดค่าสต็อกที่จะแสดงตามประเภทหน้า
         const stockQty = type === 'withdraw' ? (item['0243'] || 0) : 
                          type === 'return' ? (item[currentUser] || 0) : (item['0243'] || 0);
         
         const actionUI = (type === 'withdraw' || type === 'return') ? `
             <div style="display:flex; gap:5px; justify-content:flex-end;">
-                <input type="number" id="qty_${index}" style="width:50px; text-align:center; border:1px solid #ddd; border-radius:5px;" placeholder="0">
+                <input type="number" id="qty_${index}" style="width:55px; text-align:center; border:1px solid #ddd; border-radius:5px;" placeholder="0">
                 <button onclick="handleAction('${type}', '${item.Material}', ${index})" 
                         style="background:${type==='withdraw'?'#ef4444':'#22c55e'}; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">
                     ${type==='withdraw'?'WITHDRAW':'RETURN'}
@@ -81,18 +94,19 @@ function renderTable(dataList, type) {
                     <div style="font-weight:bold; font-size:14px;">${item.Material}</div>
                     <div style="font-size:11px; color:#64748b;">${item['Product Name'] || ''}</div>
                 </td>
-                <td style="text-align:center; font-weight:bold;">${stockQty}</td>
+                <td style="text-align:center; font-weight:bold; font-size:15px;">${stockQty}</td>
                 <td style="text-align:right;">${actionUI}</td>
             </tr>
         `;
     }).join('');
 }
 
-/* ===== 6. Core Actions (Transaction Logic) ===== */
+/* ===== 6. Core User Actions (Withdraw / Return) ===== */
 window.handleAction = async function(type, material, index) {
     const input = document.getElementById(`qty_${index}`);
     const qty = Number(input.value);
     const user = sessionStorage.getItem('selectedUser');
+
     if (qty <= 0) return alert("Please enter quantity");
     
     input.disabled = true;
@@ -106,25 +120,48 @@ window.handleAction = async function(type, material, index) {
             alert("Failed: " + res.msg);
             input.disabled = false;
         }
-    } catch (e) { alert("Network Error"); input.disabled = false; }
+    } catch (e) { 
+        alert("Network Error"); 
+        input.disabled = false; 
+    }
 };
 
-/* ===== 7. Supervisor Specific Actions (Log as Supervisor) ===== */
+/* ===== 7. Supervisor Exclusive Actions ===== */
+// ฟังก์ชันเติมสต็อก (Log as Supervisor)
 window.supAddStock = async function(mat, qty) {
-    // บันทึก Log ว่าเป็น Supervisor เป็นคนเติม
     const url = `${API}?action=addStock&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=Supervisor`;
-    return await fetch(url).then(r => r.json());
+    try {
+        const response = await fetch(url);
+        return await response.json();
+    } catch (e) {
+        return { success: false, msg: "Network error" };
+    }
 };
 
+// ฟังก์ชันตัดยอดพนักงาน (Deduct Used - Log as Supervisor)
 window.supDeductUser = async function(mat, user, qty) {
-    // บันทึก Log ว่าเป็น Supervisor เป็นคนตัดยอด (Deduct Used)
+    // ส่ง admin=Supervisor เพื่อบันทึกใน Log ว่าหัวหน้าเป็นคนตัดยอดให้
     const url = `${API}?action=return&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}&status=USED&admin=Supervisor`;
-    return await fetch(url).then(r => r.json());
+    try {
+        const response = await fetch(url);
+        return await response.json();
+    } catch (e) {
+        return { success: false, msg: "Network error" };
+    }
 };
 
-/* ===== 8. Search Function ===== */
-window.searchStock = (k, t) => {
-    const filtered = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(k.toLowerCase())));
-    if (document.getElementById('data')) renderTable(filtered, t);
-    if (typeof refreshTable === 'function') refreshTable(filtered);
+/* ===== 8. Search & Filtering ===== */
+window.searchStock = (keyword, type) => {
+    const filtered = rows.filter(r => 
+        Object.values(r).some(v => String(v).toLowerCase().includes(keyword.toLowerCase()))
+    );
+    
+    // รีเฟรชตารางตามหน้าปัจจุบัน
+    if (document.getElementById('data')) {
+        renderTable(filtered, type);
+    }
+    if (typeof refreshTable === 'function') {
+        // ส่งข้อมูลที่ฟิลเตอร์แล้วไปให้ตาราง Supervisor (ถ้ามี)
+        refreshTable(filtered); 
+    }
 };
