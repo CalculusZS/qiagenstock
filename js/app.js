@@ -1,5 +1,5 @@
 /* ===== Config ===== */
-const API = "https://script.google.com/macros/s/AKfycbzDyWbBwyxnQUxtf6EUsAyKVu-eZjblA1aZMEKYDl587SUYfJZTljUNaJDQzTpNVPhzcQ/exec"; // <-- replace with your GAS Web App URL
+const API = "https://script.google.com/macros/s/AKfycbyU5Gi6v1zP5yGt0V78A8xFJYMF_J4VS5DWz3g78IAfIPYQotPyXoBMao8ns7IzwVbzEQ/exec"; // <-- replace with your GAS Web App URL
 const PASSWORD = "Service";
 
 let rows = [];
