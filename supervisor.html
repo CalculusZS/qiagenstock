@@ -9,18 +9,13 @@
     .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
     @media (max-width: 720px){ .grid-2{ grid-template-columns: 1fr; } }
     .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#f8fafc; border:1px solid #e5e7eb; }
-    
-    /* สไตล์ตารางใหม่แบบ Responsive */
     .table-container { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid #e5e7eb; }
     .inspector-table { width: 100%; border-collapse: collapse; background: #fff; min-width: 600px; }
     .inspector-table th { background: #f8fafc; padding: 12px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; color: #475569; }
     .inspector-table td { padding: 12px 15px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; color: #1e293b; }
-    .inspector-table tr:last-child td { border-bottom: none; }
-    
     .input-qty { width: 70px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; }
-    .btn-used { background-color: #10b981; border: none; color: white; padding: 7px 15px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+    .btn-used { background-color: #10b981; border: none; color: white; padding: 7px 15px; border-radius: 6px; cursor: pointer; font-weight: 500; }
     .btn-used:hover { background-color: #059669; }
-    
     .muted { color:#6b7280; font-size:12px; margin-top: 10px; }
   </style>
 </head>
@@ -53,19 +48,12 @@
     </div>
 
     <div class="card stack">
-      <h3 style="margin:0;">Material Inspector</h3>
-      <div class="grid-2">
-        <div class="input-wrap">
-          <span class="search-icon">🔎</span>
-          <input id="sup_mat_check" class="search-input" list="materialList" placeholder="Type Material to inspect..." />
-          <button class="search-btn" onclick="supLoadMaterial()">Load</button>
-        </div>
-        <div class="row" style="align-items:center;">
-          <label class="pill">
-            <input type="checkbox" id="sup_reconcile" style="transform:scale(1.1);" />
-            Auto-reconcile delta with 0243
-          </label>
-        </div>
+      <div class="row" style="justify-content: space-between; align-items: center;">
+        <h3 style="margin:0;">Material Inspector (Pending Use)</h3>
+        <label class="pill">
+          <input type="checkbox" id="sup_reconcile" style="transform:scale(1.1);" />
+          Auto-reconcile delta with 0243
+        </label>
       </div>
 
       <div id="sup_table_wrapper" style="display:none;">
@@ -76,31 +64,87 @@
                 <th>User Name</th>
                 <th>Material</th>
                 <th>Product Name</th>
-                <th>Qty</th>
+                <th>Current Qty</th>
                 <th style="text-align: center;">Action</th>
               </tr>
             </thead>
-            <tbody id="sup_users_table_body">
-              </tbody>
+            <tbody id="sup_users_table_body"></tbody>
           </table>
         </div>
-        <div class="muted">* Clicking "Used" will update columns I-N and record usage log.</div>
+        <div class="muted">* List shows only users with quantity > 0. Clicking "Used" will update Column I-N.</div>
       </div>
     </div>
   </div>
 
-  <script src="js/app.js?v=17"></script> 
+  <script src="js/app.js?v=20"></script>
   <script>
+    const USER_NAMES = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
+
     async function onSupLoad(){
       try {
         if (typeof supRequire === 'function') supRequire();
         if (typeof loadAllWithSchema === 'function') {
-          await loadAllWithSchema();
+          await loadAllWithSchema(); // ดึงข้อมูล rows มาไว้ในตัวแปร global
+          renderAutoInspector(); // แสดงตารางอัตโนมัติ
+          
+          // เติม datalist สำหรับการค้นหา/เพิ่มสต็อก
           const dl = document.getElementById('materialList');
           dl.innerHTML = (Array.isArray(rows) ? rows : [])
             .map(r => `<option value="${r['Material']}">${r['Material']} - ${r['Product Name'] ?? ''}</option>`).join('');
         }
       } catch(e) { console.error(e); }
+    }
+
+    function renderAutoInspector() {
+      const wrapper = document.getElementById('sup_table_wrapper');
+      const tbody = document.getElementById('sup_users_table_body');
+      let html = '';
+
+      rows.forEach(row => {
+        USER_NAMES.forEach(user => {
+          const userQty = Number(row[user] || 0);
+          if (userQty > 0) {
+            html += `
+              <tr>
+                <td style="font-weight:600;">${user}</td>
+                <td>${row['Material']}</td>
+                <td>${row['Product Name'] || ''}</td>
+                <td>
+                  <input type="number" class="input-qty" id="sup_user_${row['Material']}_${user}" value="${userQty}" />
+                </td>
+                <td style="text-align:center;">
+                  <button class="btn-used" onclick="supMarkAsUsed('${row['Material']}','${user}')">Used</button>
+                </td>
+              </tr>
+            `;
+          }
+        });
+      });
+
+      if (html !== '') {
+        wrapper.style.display = 'block';
+        tbody.innerHTML = html;
+      } else {
+        wrapper.style.display = 'block';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No pending materials found in columns I-N.</td></tr>';
+      }
+    }
+
+    async function supMarkAsUsed(material, user){
+      const input = document.getElementById(`sup_user_${material}_${user}`);
+      const qty = Number(input?.value || 0);
+      const reconcile = document.getElementById('sup_reconcile')?.checked ? 'true' : 'false';
+
+      if(!confirm(`Confirm update for ${user}?`)) return;
+
+      const res = await supSetUserQty({ material, user, qty, reconcile, status: 'USED' }); 
+      if(res.success) {
+        alert('Updated successfully');
+        await loadAllWithSchema(); // รีโหลดข้อมูลใหม่จากชีท
+        renderAutoInspector(); // วาดตารางใหม่
+      } else {
+        alert('Error: ' + res.msg);
+      }
     }
 
     async function supAddTo0243(){
@@ -111,60 +155,8 @@
       alert(res.success ? 'Added successfully' : 'Failed: ' + res.msg);
       if(res.success) {
         document.getElementById('sup_qty_add').value = '';
-        if(document.getElementById('sup_mat_check').value === material) supLoadMaterial();
-      }
-    }
-
-    // ฟังก์ชัน Load ข้อมูลและสร้างตาราง
-    async function supLoadMaterial(){
-      const material = (document.getElementById('sup_mat_check').value || '').trim();
-      if(!material) return alert('Please enter Material');
-
-      const res = await supGetMaterial(material); 
-      if(!res.success) return alert(res.msg || 'Not found');
-      
-      const data = res.data || {};
-      const wrapper = document.getElementById('sup_table_wrapper');
-      const tbody = document.getElementById('sup_users_table_body');
-
-      wrapper.style.display = 'block'; // แสดงตาราง
-      
-      tbody.innerHTML = (data.users || []).map(u => `
-        <tr>
-          <td style="font-weight:600;">${u.name}</td>
-          <td>${material}</td>
-          <td>${data.productName || 'N/A'}</td>
-          <td>
-            <input type="number" class="input-qty" id="sup_user_${u.name}" value="${Number(u.qty || 0)}" />
-          </td>
-          <td style="text-align:center;">
-            <button class="btn-used" onclick="supMarkAsUsed('${material}','${u.name}')">Used</button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    async function supMarkAsUsed(material, user){
-      const input = document.getElementById(`sup_user_${user}`);
-      const qty = Number(input?.value || 0);
-      const reconcile = document.getElementById('sup_reconcile')?.checked ? 'true' : 'false';
-
-      if(!confirm(`Confirm update for ${user}?`)) return;
-
-      // ส่งค่าไปยัง Google Apps Script
-      const res = await supSetUserQty({ 
-        material, 
-        user, 
-        qty, 
-        reconcile, 
-        status: 'USED' 
-      }); 
-
-      if(res.success) {
-        alert('Successfully updated Columns I-N');
-        supLoadMaterial(); // Refresh ข้อมูลในตาราง
-      } else {
-        alert('Error: ' + res.msg);
+        await loadAllWithSchema();
+        renderAutoInspector();
       }
     }
   </script>
