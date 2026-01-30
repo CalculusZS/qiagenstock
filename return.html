@@ -1,14 +1,15 @@
+<!-- return.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Return Parts</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body onload="initReturn()">
   <div class="header">
-    <div class="title">🔄 <span>Return</span></div>
+    <div class="title">🔄 Return</div>
     <div class="actions">
       <button class="btn-ghost" onclick="goBack()">Back</button>
     </div>
@@ -16,17 +17,17 @@
 
   <div class="container">
     <div class="card stack">
-      <div class="row">
-        <div>User:&nbsp;<strong id="username">-</strong></div>
+      <div class="row" style="justify-content:space-between;">
+        <div>User: <strong id="username">-</strong></div>
       </div>
 
       <div class="input-wrap">
         <span class="search-icon">🔎</span>
-        <input id="keyword" class="search-input" placeholder="Search anything">
+        <input id="keyword" class="search-input" placeholder="Search anything (Instrument / Material / Product Name / Type / 0243)" />
         <button class="search-btn" onclick="doSearchAll()">Search</button>
       </div>
 
-      <table class="mt-12">
+      <table>
         <thead>
           <tr>
             <th>Instrument</th>
@@ -55,14 +56,14 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=7"></script>
+  <script src="js/app.js?v=9"></script>
   <script>
     function initReturn(){
       const user = resolveUser();
       document.getElementById('username').textContent = user || '-';
       loadAllWithSchema().then(() => {
-        const kwAll = document.getElementById('keyword');
-        kwAll?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearchAll(); });
+        const kw = document.getElementById('keyword');
+        kw?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearchAll(); });
       });
     }
     function doSearchAll(){
