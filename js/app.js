@@ -2,30 +2,28 @@ const API = "https://script.google.com/macros/s/AKfycbw7Eg3Z0JuePwx2mXA-rAGLaN_A
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 
-let rows = []; 
+let rows = []; // ตัวแปรเก็บข้อมูลสต็อกหลัก
 
-/* ===== 1. Authentication & Supervisor (แก้ให้เด้งไปหน้าจัดการ) ===== */
+/* ===== 2. Authentication & Navigation ===== */
 window.login = function() {
-    const passInput = document.getElementById('password');
-    if (passInput?.value.trim() === PASSWORD) {
+    const passValue = document.getElementById('password')?.value.trim();
+    if (passValue === PASSWORD) {
         sessionStorage.setItem('isLoggedIn', 'true');
         location.href = 'user-select.html';
     } else { alert('Invalid Password!'); }
 };
 
 window.checkSupervisor = function() {
-    const p = prompt("Enter Supervisor Password:"); 
+    const p = prompt("Enter Supervisor Password:");
     if (p === SUP_PASSWORD) {
         sessionStorage.setItem('isSupervisor', 'true');
-        alert("Supervisor access granted!");
-        // เปลี่ยนหน้าไปยังไฟล์ supervisor.html ที่คุณอัปโหลดไว้
         location.href = 'supervisor.html'; 
-    } else if (p !== null) { 
-        alert("Wrong Password!"); 
-    }
+    } else if (p !== null) { alert("Wrong Password!"); }
 };
 
-/* ===== 2. Data Fetching (ดึงรายชื่อจากคอลัมน์ I-N) ===== */
+window.goBack = () => { location.href = 'user-select.html'; };
+
+/* ===== 3. Data Fetching (Users & Stock) ===== */
 window.loadUsers = async function() {
     try {
         const res = await fetch(`${API}?action=users&password=${PASSWORD}`).then(r => r.json());
@@ -38,21 +36,44 @@ window.loadStockData = async function(pageType) {
         const res = await fetch(`${API}?action=list2&password=${PASSWORD}`).then(r => r.json());
         if (res.success) {
             rows = res.rows;
-            renderTable(rows, pageType);
+            // ถ้าอยู่ในหน้า Withdraw/Return/Show All จะรัน renderTable
+            if (document.getElementById('data')) {
+                renderTable(rows, pageType);
+            }
+            // ถ้าอยู่ในหน้า Supervisor จะรัน refreshTable (ถ้ามีฟังก์ชันนี้อยู่)
+            if (typeof refreshTable === 'function') {
+                refreshTable();
+            }
         }
-    } catch (e) { console.error("Error loading data", e); }
+    } catch (e) { console.error("Load failed", e); }
 };
 
-/* ===== 3. UI Rendering (ข้อมูลครบ: Instrument, Material, Name) ===== */
+/* ===== 4. Helper Function (สำหรับการทำ Auto-lookup) ===== */
+window.findProductByMaterial = (mat) => {
+    if (!rows) return null;
+    return rows.find(r => String(r.Material).trim() === String(mat).trim());
+};
+
+/* ===== 5. UI Rendering (หน้า Withdraw / Return / Show All) ===== */
 function renderTable(dataList, type) {
     const container = document.getElementById('data');
     if (!container) return;
     const currentUser = sessionStorage.getItem('selectedUser') || '';
 
     container.innerHTML = dataList.map((item, index) => {
-        // เลือกคอลัมน์สต็อกตามประเภทหน้า
-        const stockQty = type === 'withdraw' ? (item['0243'] || 0) : (item[currentUser] || 0);
+        // กำหนดจำนวนสต็อกที่จะโชว์ตามประเภทหน้า
+        const stockQty = type === 'withdraw' ? (item['0243'] || 0) : 
+                         type === 'return' ? (item[currentUser] || 0) : (item['0243'] || 0);
         
+        const actionUI = (type === 'withdraw' || type === 'return') ? `
+            <div style="display:flex; gap:5px; justify-content:flex-end;">
+                <input type="number" id="qty_${index}" style="width:50px; text-align:center; border:1px solid #ddd; border-radius:5px;" placeholder="0">
+                <button onclick="handleAction('${type}', '${item.Material}', ${index})" 
+                        style="background:${type==='withdraw'?'#ef4444':'#22c55e'}; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">
+                    ${type==='withdraw'?'WITHDRAW':'RETURN'}
+                </button>
+            </div>` : '';
+
         return `
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 10px;">
@@ -60,47 +81,50 @@ function renderTable(dataList, type) {
                     <div style="font-weight:bold; font-size:14px;">${item.Material}</div>
                     <div style="font-size:11px; color:#64748b;">${item['Product Name'] || ''}</div>
                 </td>
-                <td style="text-align:center; font-weight:bold; font-size:16px;">${stockQty}</td>
-                <td style="text-align:right;">
-                    <div style="display:flex; gap:5px; justify-content:flex-end;">
-                        <input type="number" id="qty_${index}" style="width:50px; text-align:center; border:1px solid #ddd; border-radius:5px;" placeholder="0">
-                        <button onclick="handleAction('${type}', '${item.Material}', ${index})" 
-                                style="background:${type==='withdraw'?'#ef4444':'#22c55e'}; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                            ${type==='withdraw'?'WITHDRAW':'RETURN'}
-                        </button>
-                    </div>
-                </td>
+                <td style="text-align:center; font-weight:bold;">${stockQty}</td>
+                <td style="text-align:right;">${actionUI}</td>
             </tr>
         `;
     }).join('');
 }
 
+/* ===== 6. Core Actions (Transaction Logic) ===== */
 window.handleAction = async function(type, material, index) {
     const input = document.getElementById(`qty_${index}`);
     const qty = Number(input.value);
     const user = sessionStorage.getItem('selectedUser');
-
     if (qty <= 0) return alert("Please enter quantity");
     
     input.disabled = true;
     try {
-        const res = await fetch(`${API}?action=${type}&password=${PASSWORD}&material=${encodeURIComponent(material)}&qty=${qty}&user=${encodeURIComponent(user)}`).then(r => r.json());
+        const url = `${API}?action=${type}&password=${PASSWORD}&material=${encodeURIComponent(material)}&qty=${qty}&user=${encodeURIComponent(user)}`;
+        const res = await fetch(url).then(r => r.json());
         if (res.success) {
             alert("Success!");
             window.loadStockData(type);
         } else {
-            alert("Error: " + res.msg);
+            alert("Failed: " + res.msg);
             input.disabled = false;
         }
-    } catch (e) {
-        alert("Network Error");
-        input.disabled = false;
-    }
+    } catch (e) { alert("Network Error"); input.disabled = false; }
 };
 
+/* ===== 7. Supervisor Specific Actions (Log as Supervisor) ===== */
+window.supAddStock = async function(mat, qty) {
+    // บันทึก Log ว่าเป็น Supervisor เป็นคนเติม
+    const url = `${API}?action=addStock&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=Supervisor`;
+    return await fetch(url).then(r => r.json());
+};
+
+window.supDeductUser = async function(mat, user, qty) {
+    // บันทึก Log ว่าเป็น Supervisor เป็นคนตัดยอด (Deduct Used)
+    const url = `${API}?action=return&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}&status=USED&admin=Supervisor`;
+    return await fetch(url).then(r => r.json());
+};
+
+/* ===== 8. Search Function ===== */
 window.searchStock = (k, t) => {
     const filtered = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(k.toLowerCase())));
-    renderTable(filtered, t);
+    if (document.getElementById('data')) renderTable(filtered, t);
+    if (typeof refreshTable === 'function') refreshTable(filtered);
 };
-
-window.goBack = () => { location.href = 'user-select.html'; };
