@@ -1,49 +1,34 @@
 const API = "https://script.google.com/macros/s/AKfycbw7Eg3Z0JuePwx2mXA-rAGLaN_Agwyb2ROGE3JPmFRNR1oF5G7yTe2PvdgbFWCZewAYmw/exec";  
 const PASSWORD = "Service";
-const SUP_PASSWORD = "Qiagen";
 
-let rows = []; // Store stock data globally
-
-/* ===== 2. Utility Functions ===== */
-const qs = id => document.getElementById(id);
-const resolveUser = () => sessionStorage.getItem('selectedUser') || '';
-
-/* ===== 3. Authentication & Navigation ===== */
+/* ===== 1. Fix Authentication (Global Scope) ===== */
 window.login = function() {
-    const passInput = qs('password');
+    const passInput = document.getElementById('password');
     const passValue = (passInput?.value || '').trim();
+    
     if (passValue === PASSWORD) {
+        // บันทึกสถานะว่าล็อกอินแล้ว (เผื่อใช้ตรวจสอบ)
+        sessionStorage.setItem('isLoggedIn', 'true');
         location.href = 'user-select.html';
     } else {
-        alert('Invalid Password! Please try again.');
+        alert('Invalid Password! (Hint: Service)');
     }
 };
 
-function supAuth(p) { 
-    if (p === SUP_PASSWORD) { 
-        sessionStorage.setItem('isSupervisor', '1'); 
-        return true; 
-    } 
-    return false; 
-}
-
-const goBack = () => { 
-    if (document.referrer) history.back();
-    else location.href = 'user-select.html'; 
-};
-
-/* ===== 4. Data Fetching (Users & Stock) ===== */
-async function loadUsers() {
+/* ===== 2. Data Fetching Functions ===== */
+window.loadUsers = async function() {
     try {
         const url = `${API}?action=users&password=${encodeURIComponent(PASSWORD)}`;
         const response = await fetch(url);
         const data = await response.json();
         return data.success ? data.users : [];
     } catch (error) {
-        console.error("Error loading users:", error);
+        console.error("Fetch Error:", error);
         return [];
     }
-}
+};
+
+// ... (ฟังก์ชันอื่นๆ เช่น loadStockData, handleTransaction ให้คงไว้ตามเดิม แต่เพิ่ม window. นำหน้าชื่อฟังก์ชัน)
 
 async function loadStockData(pageType) {
     try {
