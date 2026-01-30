@@ -4,40 +4,78 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    :root { --primary: #2563eb; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; }
+    body { background-color: var(--bg); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .sup-container { max-width: 1000px; margin: 20px auto; padding: 0 15px; }
+    
+    /* สไตล์การ์ดใหม่ */
+    .dashboard-card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 25px; margin-bottom: 25px; border: 1px solid #e2e8f0; }
+    .card-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    
+    /* ปรับแต่งฟอร์ม Add Stock */
+    .add-stock-flex { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; }
+    .form-group { flex: 1; min-width: 200px; }
+    .form-group label { display: block; font-size: 0.875rem; font-weight: 600; color: #64748b; margin-bottom: 5px; }
+    .modern-input { width: 100%; padding: 10px 15px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; transition: border 0.2s; }
+    .modern-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .btn-add { background: var(--primary); color: white; border: none; padding: 11px 25px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn-add:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    /* ตาราง Inspector */
+    .table-wrapper { overflow-x: auto; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .modern-table { width: 100%; border-collapse: collapse; text-align: left; background: white; }
+    .modern-table th { background: #f1f5f9; padding: 15px; font-size: 0.875rem; color: #475569; border-bottom: 2px solid #e2e8f0; }
+    .modern-table td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; }
+    .user-badge { background: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 999px; font-weight: 600; font-size: 0.85rem; }
+    .input-used { width: 70px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-weight: bold; }
+    .btn-used-action { background: var(--success); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  </style>
 </head>
 <body onload="onSupLoad()">
   <div class="header">
-    <div class="title">🛠️ Supervisor Panel</div>
-    <button class="btn-ghost" onclick="goBack()">Back</button>
+    <div class="title">🛠️ Supervisor Dashboard</div>
+    <button class="btn-ghost" onclick="goBack()">Back to App</button>
   </div>
 
-  <div class="container">
-    <div class="card stack">
-      <h3>Add Stock to 0243 (เพิ่มอะไหล่)</h3>
-      <div class="row">
-        <input id="sup_mat_add" placeholder="Material No. (เช่น 9025186)" style="flex:1;">
-        <input id="sup_qty_add" type="number" placeholder="Qty" style="width:80px;">
-        <button class="btn-primary" onclick="supAddTo0243()">Add to Stock</button>
+  <div class="sup-container">
+    <div class="dashboard-card">
+      <div class="card-title">📥 Add Stock to Central (0243)</div>
+      <div class="add-stock-flex">
+        <div class="form-group">
+          <label>Material Number</label>
+          <input id="sup_mat_add" list="matList" class="modern-input" placeholder="Search Material...">
+          <datalist id="matList"></datalist>
+        </div>
+        <div class="form-group" style="flex: 0 0 120px;">
+          <label>Quantity</label>
+          <input id="sup_qty_add" type="number" class="modern-input" placeholder="0">
+        </div>
+        <button class="btn-add" onclick="supAddTo0243()">Confirm Add</button>
       </div>
     </div>
 
-    <div class="card stack">
-      <h3>Material Inspector (ตัดยอดที่คนถืออยู่)</h3>
-      <label class="pill">
-        <input type="checkbox" id="sup_reconcile"> Auto-reconcile with 0243
-      </label>
-      <div class="table-container">
-        <table class="inspector-table" style="width:100%; border-collapse:collapse;">
-          <thead style="background:#f1f5f9;">
+    <div class="dashboard-card">
+      <div class="card-title">🔍 Person Stock Inspector</div>
+      <div style="margin-bottom:15px;">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="sup_reconcile" checked style="width:18px; height:18px;">
+          <span style="font-weight:600; color:#475569;">Auto-reconcile with 0243 (ลดยอดคน = เพิ่มยอดส่วนกลางอัตโนมัติ)</span>
+        </label>
+      </div>
+      <div class="table-wrapper">
+        <table class="modern-table">
+          <thead>
             <tr>
-              <th>User</th>
+              <th>Holder</th>
               <th>Material</th>
-              <th>Qty Used</th>
+              <th>Product Name</th>
+              <th>Qty to Deduct</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody id="sup_users_table_body">
-            <tr><td colspan="4" style="text-align:center; padding:20px;">Loading...</td></tr>
+            <tr><td colspan="5" style="text-align:center; padding:30px;">Loading data...</td></tr>
           </tbody>
         </table>
       </div>
@@ -46,53 +84,78 @@
 
   <script src="js/app.js"></script>
   <script>
-    const USERS = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
+    const USER_KEYS = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
 
-    async function onSupLoad() { await refreshTable(); }
+    async function onSupLoad() { 
+      await refreshSupervisor(); 
+    }
 
-    async function refreshTable() {
-      await loadAllWithSchema(); // โหลดข้อมูล rows จาก app.js
+    async function refreshSupervisor() {
+      await loadAllWithSchema(); // ดึงข้อมูลใหม่จาก Google Sheets
+      renderInspectorTable();
+      updateDatalist();
+    }
+
+    function updateDatalist() {
+      const dl = document.getElementById('matList');
+      dl.innerHTML = rows.map(r => `<option value="${r['Material']}">${r['Product Name'] || ''}</option>`).join('');
+    }
+
+    function renderInspectorTable() {
       const tbody = document.getElementById('sup_users_table_body');
       let html = '';
       rows.forEach(row => {
-        USERS.forEach(user => {
+        USER_KEYS.forEach(user => {
           const val = Number(row[user] || 0);
           if (val > 0) {
             const uid = `id_${row['Material']}_${user}`;
-            html += `<tr style="border-bottom:1px solid #ddd;">
-              <td style="padding:10px;"><strong>${user}</strong></td>
-              <td>${row['Material']}</td>
-              <td><input type="number" id="${uid}" value="${val}" style="width:60px; text-align:center;"></td>
-              <td><button class="btn-used" onclick="handleUsed('${row['Material']}','${user}')">Used</button></td>
+            html += `<tr>
+              <td><span class="user-badge">${user}</span></td>
+              <td style="font-family:monospace; font-weight:bold;">${row['Material']}</td>
+              <td style="color:#64748b; font-size:0.85rem;">${row['Product Name'] || ''}</td>
+              <td><input type="number" class="input-used" id="${uid}" value="${val}" min="1"></td>
+              <td><button class="btn-used-action" onclick="submitUsed('${row['Material']}','${user}')">Deduct</button></td>
             </tr>`;
           }
         });
       });
-      tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center; padding:20px;">No pending materials</td></tr>';
+      tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8;">No pending items in personal stocks.</td></tr>';
     }
 
-    async function handleUsed(mat, user) {
+    async function submitUsed(mat, user) {
       const qty = Number(document.getElementById(`id_${mat}_${user}`).value);
-      const rec = document.getElementById('sup_reconcile').checked ? 'true' : 'false';
-      if (!confirm(`ยืนยันตัดยอด ${qty} หน่วย จาก ${user}?`)) return;
+      const isRec = document.getElementById('sup_reconcile').checked ? 'true' : 'false';
+      
+      if (!confirm(`คุณต้องการหักยอดใช้ไป ${qty} หน่วย จาก ${user} ใช่หรือไม่?`)) return;
 
-      const res = await supSetUserQty({ material: mat, user: user, qty: qty, reconcile: rec, status: 'USED' });
-      if(res.success) { alert('ตัดยอดสำเร็จ'); await refreshTable(); }
-      else { alert('ผิดพลาด: ' + res.msg); }
+      const res = await supSetUserQty({ 
+        material: mat, 
+        user: user, 
+        qty: qty, 
+        reconcile: isRec, 
+        status: 'USED' 
+      });
+
+      if(res.success) {
+        alert('ตัดยอดสำเร็จ!');
+        await refreshSupervisor();
+      } else {
+        alert('Error: ' + res.msg);
+      }
     }
 
     async function supAddTo0243() {
-      const mat = document.getElementById('sup_mat_add').value;
-      const qty = document.getElementById('sup_qty_add').value;
-      if(!mat || !qty) return alert('กรุณาระบุข้อมูลให้ครบ');
+      const mat = document.getElementById('sup_mat_add').value.trim();
+      const qty = Number(document.getElementById('sup_qty_add').value);
+      if(!mat || qty <= 0) return alert('กรุณาระบุ Material และจำนวนให้ถูกต้อง');
       
       const res = await supAddStock(mat, qty);
       if(res.success) { 
-        alert('เพิ่มอะไหล่เข้าสต็อกกลางสำเร็จ'); 
+        alert('เพิ่มสต็อกกลางสำเร็จ'); 
         document.getElementById('sup_mat_add').value = '';
         document.getElementById('sup_qty_add').value = '';
-        await refreshTable(); 
-      } else { alert('ล้มเหลว: ' + res.msg); }
+        await refreshSupervisor(); 
+      }
     }
   </script>
 </body>
