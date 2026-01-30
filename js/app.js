@@ -89,3 +89,63 @@ async function transactionV2({type, material, qty, user}){
   }catch(e){ alert('Network error. Please try again.'); return false; }
   finally{ if(btn) btn.disabled = false; }
 }
+/* ===== Supervisor Auth (Frontend) ===== */
+const SUP_PASSWORD = "Qiagen"; // <<-- per request
+
+// mark login state in sessionStorage so we can guard supervisor.html
+function supAuth(pass){
+  if (pass === SUP_PASSWORD) {
+    sessionStorage.setItem('isSupervisor', '1');
+    return true;
+  }
+  return false;
+}
+function supIsLoggedIn(){
+  return sessionStorage.getItem('isSupervisor') === '1';
+}
+function supRequire(){
+  if (!supIsLoggedIn()) {
+    alert('Supervisor access required');
+    location.href = 'user-select.html';
+  }
+}
+function supLogout(){
+  sessionStorage.removeItem('isSupervisor');
+}
+
+/* ===== Supervisor – Frontend API calls (send sup_password) ===== */
+async function supAddStock(material, qty){
+  try{
+    const url = `${API}?action=sup_add_stock`
+      + `&password=${encodeURIComponent(PASSWORD)}`
+      + `&sup_password=${encodeURIComponent(SUP_PASSWORD)}`
+      + `&material=${encodeURIComponent(material)}&qty=${encodeURIComponent(qty)}`;
+    const res = await fetch(url).then(r=>r.json());
+    return !!res.success;
+  }catch(e){ return false; }
+}
+
+async function supGetMaterial(material){
+  try{
+    const url = `${API}?action=sup_get_material`
+      + `&password=${encodeURIComponent(PASSWORD)}`
+      + `&sup_password=${encodeURIComponent(SUP_PASSWORD)}`
+      + `&material=${encodeURIComponent(material)}`;
+    const res = await fetch(url).then(r=>r.json());
+    return res.success ? res.data : null;
+  }catch(e){ return null; }
+}
+
+async function supSetUserQty({ material, user, qty, reconcile='false' }){
+  try{
+    const url = `${API}?action=sup_set_user_qty`
+      + `&password=${encodeURIComponent(PASSWORD)}`
+      + `&sup_password=${encodeURIComponent(SUP_PASSWORD)}`
+      + `&material=${encodeURIComponent(material)}`
+      + `&user=${encodeURIComponent(user)}`
+      + `&qty=${encodeURIComponent(qty)}`
+      + `&reconcile=${encodeURIComponent(reconcile)}`;
+    const res = await fetch(url).then(r=>r.json());
+    return !!res.success;
+  }catch(e){ return false; }
+}
