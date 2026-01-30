@@ -1,60 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Return Parts</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Return - Stock Management</title>
+  <link rel="stylesheet" href="css/style.css">
   <style>
-    .search-sticky { position: sticky; top: 60px; z-index: 100; background: #0b1220; padding: 15px; margin: -15px -15px 15px -15px; }
-    .item-row td { vertical-align: middle; border-bottom: 1px solid #f1f5f9; padding: 12px 8px; background: #fff; }
-    .qty-input { width: 60px !important; height: 40px; text-align: center; border: 2px solid #e2e8f0; border-radius: 8px; font-weight: bold; }
-    .stock-num { font-size: 18px; font-weight: 800; color: #16a34a; text-align: center; }
-    .detail-wrap { display: flex; flex-direction: column; }
-    .txt-mat { font-weight: 800; font-size: 15px; color: #1e293b; }
-    .txt-prod { font-size: 12px; color: #64748b; line-height: 1.2; }
-    .txt-inst { font-size: 10px; color: #16a34a; font-weight: bold; text-transform: uppercase; }
+    /* ใช้สไตล์เดียวกับหน้า Withdraw เพื่อความต่อเนื่องของ UI */
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f4f6f8; margin: 0; }
+    .header { background: #1f2937; color: #fff; padding: 15px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .container { padding: 15px; max-width: 800px; margin: auto; }
+    .search-box { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 15px; font-size: 16px; box-sizing: border-box; }
+    .user-info { background: #fff; padding: 10px 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: #4b5563; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    th { background: #f8fafc; color: #64748b; font-size: 12px; text-align: left; padding: 12px 10px; border-bottom: 1px solid #e2e8f0; }
+    .item-row { border-bottom: 1px solid #f1f5f9; }
+    .btn-back { background: transparent; border: 1px solid #fff; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+    .qty-input-sm { width: 50px; height: 36px; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .btn-success { background: #22c55e; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body onload="initReturn()">
-  <div class="header">
-    <div class="title">🔄 Return (คืนอะไหล่)</div>
-    <div class="actions"><button class="btn-ghost" onclick="goBack()">Back</button></div>
+  <div class="header" style="background: #065f46;"> <div style="font-weight: bold; font-size: 18px;">🔄 RETURN</div>
+    <button class="btn-back" onclick="goBack()">BACK</button>
   </div>
 
   <div class="container">
-    <div style="padding: 10px; color: #fff; font-size: 14px;">
-      User: <strong id="username" style="color:#4ade80;">-</strong>
-    </div>
+    <div class="user-info">Logged in as: <strong id="current-user">-</strong></div>
+    
+    <input type="text" id="search" class="search-box" placeholder="🔍 Search items to return..." oninput="searchStock(this.value, 'return')">
 
-    <div class="search-sticky">
-      <input type="text" id="keyword" class="search-input" 
-             placeholder="🔍 ค้นหาอะไหล่ที่จะคืน..." oninput="doSearch()">
-    </div>
-
-    <table style="width: 100%; border-collapse: collapse;">
+    <table>
       <thead>
-        <tr style="font-size: 11px; color: #94a3b8; text-align: left;">
-          <th width="55%">DETAILS</th>
-          <th width="15%" style="text-align:center;">ON HAND</th>
-          <th width="30%" style="text-align:right;">ACTION</th>
+        <tr>
+          <th>DETAILS</th>
+          <th style="text-align:center;">YOUR STOCK</th>
+          <th style="text-align:right; padding-right:10px;">ACTION</th>
         </tr>
       </thead>
-      <tbody id="data"></tbody>
+      <tbody id="data">
+        </tbody>
     </table>
   </div>
 
   <script src="js/app.js"></script>
   <script>
-    function initReturn(){
-      const user = resolveUser();
-      if(!user) { alert("กรุณาเลือก User ก่อน"); location.href='user-select.html'; return; }
-      document.getElementById('username').textContent = user;
-      loadAllWithSchema('return'); // ดึงข้อมูลและระบุว่าเป็นหน้าคืน
-    }
-    function doSearch(){
-      const k = document.getElementById('keyword').value;
-      searchAll(k, 'return');
+    function initReturn() {
+      const user = sessionStorage.getItem('selectedUser');
+      if (!user) {
+        alert("Please select a user first");
+        location.href = 'user-select.html';
+        return;
+      }
+      document.getElementById('current-user').textContent = user;
+      window.loadStockData('return');
     }
   </script>
 </body>
