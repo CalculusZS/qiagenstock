@@ -1,14 +1,15 @@
+<!-- withdraw.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Withdraw Parts</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body onload="initWithdraw()">
   <div class="header">
-    <div class="title">🔧 <span>Withdraw</span></div>
+    <div class="title">🔧 Withdraw</div>
     <div class="actions">
       <button class="btn-ghost" onclick="goBack()">Back</button>
     </div>
@@ -16,26 +17,18 @@
 
   <div class="container">
     <div class="card stack">
-      <div class="row">
-        <div>User:&nbsp;<strong id="username">-</strong></div>
+      <div class="row" style="justify-content:space-between;">
+        <div>User: <strong id="username">-</strong></div>
       </div>
 
-      <!-- Search All -->
+      <!-- Search ALL columns -->
       <div class="input-wrap">
         <span class="search-icon">🔎</span>
-        <input id="keyword" class="search-input" placeholder="Search anything">
+        <input id="keyword" class="search-input" placeholder="Search anything (Instrument / Material / Product Name / Type / 0243)" />
         <button class="search-btn" onclick="doSearchAll()">Search</button>
       </div>
 
-      <!-- (Optional) Search Material only -->
-      <!--
-      <div class="row">
-        <input id="keywordMaterial" class="search-input w-100" placeholder="Search Material only (column B)">
-        <button class="btn-ghost" onclick="doSearchMaterial()">Search Material</button>
-      </div>
-      -->
-
-      <table class="mt-12">
+      <table>
         <thead>
           <tr>
             <th>Instrument</th>
@@ -64,25 +57,19 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=7"></script>
+  <script src="js/app.js?v=9"></script>
   <script>
     function initWithdraw(){
       const user = resolveUser();
       document.getElementById('username').textContent = user || '-';
       loadAllWithSchema().then(() => {
-        const kwAll = document.getElementById('keyword');
-        kwAll?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearchAll(); });
-        // const kwMat = document.getElementById('keywordMaterial');
-        // kwMat?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearchMaterial(); });
+        const kw = document.getElementById('keyword');
+        kw?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearchAll(); });
       });
     }
     function doSearchAll(){
       const k = (document.getElementById('keyword').value || '').trim();
-      searchAll(k);
-    }
-    function doSearchMaterial(){
-      const k = (document.getElementById('keywordMaterial').value || '').trim();
-      searchByMaterial(k);
+      searchAll(k); // ใช้ฟังก์ชันใน app.js
     }
     function doTransaction(type){
       const user = resolveUser();
