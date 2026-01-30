@@ -1,6 +1,7 @@
 /* ===== Config ===== */
-const API = "https://script.google.com/macros/s/AKfycbyU5Gi6v1zP5yGt0V78A8xFJYMF_J4VS5DWz3g78IAfIPYQotPyXoBMao8ns7IzwVbzEQ/exec"; // your GAS Web App URL
-const PASSWORD = "Service";
+const API = "https://script.google.com/macros/s/AKfycbyU5Gi6v1zP5yGt0V78A8xFJYMF_J4VS5DWz3g78IAfIPYQotPyXoBMao8ns7IzwVbzEQ/exec"; // GAS Web App URL
+const PASSWORD = "Service";           // general password
+const SUP_PASSWORD = "Qiagen";        // Supervisor password (frontend + API)
 
 let rows = [];
 let SCHEMA = {};
@@ -9,25 +10,25 @@ const qs = id => document.getElementById(id);
 function getQS(name){ const u = new URL(location.href); return u.searchParams.get(name); }
 function resolveUser(){ return getQS('user') || sessionStorage.getItem('selectedUser') || ''; }
 
-/* ===== Load Users (H–M headers) ===== */
+/* ===== Users (for user-select) ===== */
 async function loadUsers(){
   const url = `${API}?action=users&password=${encodeURIComponent(PASSWORD)}`;
-  const res = await fetch(url).then(r => r.json());
-  if(!res.success){ alert(res.msg || 'Failed to load users'); return []; }
-  return res.users; // [{header:'Kitti', colIndex:8}, ...]
+  const res = await fetch(url).then(r => r.json()).catch(() => ({success:false}));
+  if(!res?.success){ alert(res?.msg || 'Failed to load users'); return []; }
+  return res.users || []; // [{header:'Kitti', colIndex:8}, ...]
 }
 
-/* ===== Back (global) ===== */
+/* ===== Navigation ===== */
 function goBack(){ if (document.referrer) history.back(); else location.href = 'user-select.html'; }
 
-/* ===== (Optional) Login ===== */
+/* ===== (Optional) Login (index.html) ===== */
 window.login = function (){
   const pass = (qs('password')?.value || '').trim();
   if (pass === PASSWORD) location.href = 'user-select.html';
   else alert('Incorrect password');
 };
 
-/* ===== Load rows + schema ===== */
+/* ===== Load rows + schema (Instrument/Material/Product Name/Type/0243) ===== */
 async function loadAllWithSchema(){
   try{
     const res = await fetch(`${API}?action=list2&password=${encodeURIComponent(PASSWORD)}`).then(r=>r.json());
@@ -44,7 +45,7 @@ async function loadAllWithSchema(){
 /* ===== Renderers ===== */
 function renderTable(list){
   const tb = qs('data');
-  if(!tb) return;
+  if(!tb) return; // some pages might not have table
   tb.innerHTML = list.map(r => `
     <tr>
       <td>${r['Instrument'] ?? ''}</td>
@@ -58,7 +59,7 @@ function renderTable(list){
 
 function renderSelect(list){
   const sel = qs('materialSel');
-  if(!sel) return;
+  if(!sel) return; // ok if page doesn't have select
   sel.innerHTML = list.map(r =>
     `<option value="${r['Material']}">${r['Material']} - ${r['Product Name'] ?? ''}</option>`
   ).join('');
@@ -79,10 +80,10 @@ function searchAll(keyword){
     keys.some(key => String(r[key] ?? '').toLowerCase().includes(k))
   );
   renderTable(filtered);
-  renderSelect(filtered); // harmless if select doesn't exist on this page
+  renderSelect(filtered);
 }
 
-/* ===== Transactions ===== */
+/* ===== Transactions (withdraw / return) ===== */
 async function transactionV2({type, material, qty, user}){
   const btn = qs('btnConfirm');
   if(btn) btn.disabled = true;
@@ -104,7 +105,6 @@ async function transactionV2({type, material, qty, user}){
 }
 
 /* ===== Supervisor Auth (Frontend) ===== */
-const SUP_PASSWORD = "Qiagen"; // per request
 function supAuth(pass){
   if (pass === SUP_PASSWORD) { sessionStorage.setItem('isSupervisor','1'); return true; }
   return false;
@@ -113,31 +113,7 @@ function supIsLoggedIn(){ return sessionStorage.getItem('isSupervisor') === '1';
 function supRequire(){ if (!supIsLoggedIn()) { alert('Supervisor access required'); location.href='user-select.html'; } }
 function supLogout(){ sessionStorage.removeItem('isSupervisor'); }
 
-/* ===== Supervisor – Frontend API calls (send sup_password) ===== */
-async function supAddStock(material, qty){
-  try{
-    const url = `${API}?action=sup_add_stock`
-      + `&password=${encodeURIComponent(PASSWORD)}`
-      + `&sup_password=${encodeURIComponent(SUP_PASSWORD)}`
-      + `&material=${encodeURIComponent(material)}&qty=${encodeURIComponent(qty)}`;
-    const res = await fetch(url).then(r=>r.json());
-    return !!res.success;
-  }catch(e){ return false; }
-}
-async function supGetMaterial(material){
-  try{
-    const url = `${API}?action=sup_get_material`
-      + `&password=${encodeURIComponent(PASSWORD)}`
-      + `&sup_password=${encodeURIComponent(SUP_PASSWORD)}`
-      + `&material=${encodeURIComponent(material)}`;
-    const res = await fetch(url).then(r=>r.json());
-    return res.success ? res.data : null;
-  }catch(e){ return null; }
-}
-
-// BEFORE (returns !!res.success)
-// async function supAddStock(material, qty){ ... return !!res.success; }
-
+/* ===== Supervisor – API calls (return full object for clear error msg) ===== */
 async function supAddStock(material, qty){
   try{
     const url = `${API}?action=sup_add_stock`
@@ -146,8 +122,37 @@ async function supAddStock(material, qty){
       + `&material=${encodeURIComponent(material)}`
       + `&qty=${encodeURIComponent(qty)}`;
     const res = await fetch(url).then(r => r.json());
-    return res; // <— return whole response {success, msg, ...}
+    return res; // {success, msg?}
   }catch(e){
-    return { success:false, msg: String(e) };
+    return { success:false, msg:String(e) };
+  }
+}
+
+async function supGetMaterial(material){
+  try{
+    const url = `${API}?action=sup_get_material`
+      + `&password=${encodeURIComponent(PASSWORD)}`
+      + `&sup_password=${encodeURIComponent(SUP_PASSWORD)}`
+      + `&material=${encodeURIComponent(material)}`;
+    const res = await fetch(url).then(r => r.json());
+    return res; // {success, data?, msg?}
+  }catch(e){
+    return { success:false, msg:String(e) };
+  }
+}
+
+async function supSetUserQty({ material, user, qty, reconcile='false' }){
+  try{
+    const url = `${API}?action=sup_set_user_qty`
+      + `&password=${encodeURIComponent(PASSWORD)}`
+      + `&sup_password=${encodeURIComponent(SUP_PASSWORD)}`
+      + `&material=${encodeURIComponent(material)}`
+      + `&user=${encodeURIComponent(user)}`
+      + `&qty=${encodeURIComponent(qty)}`
+      + `&reconcile=${encodeURIComponent(reconcile)}`;
+    const res = await fetch(url).then(r => r.json());
+    return res; // {success, msg?}
+  }catch(e){
+    return { success:false, msg:String(e) };
   }
 }
