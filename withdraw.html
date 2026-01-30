@@ -1,4 +1,3 @@
-<!-- withdraw.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,9 +9,7 @@
 <body onload="initWithdraw()">
   <div class="header">
     <div class="title">🔧 Withdraw</div>
-    <div class="actions">
-      <button class="btn-ghost" onclick="goBack()">Back</button>
-    </div>
+    <div class="actions"><button class="btn-ghost" onclick="goBack()">Back</button></div>
   </div>
 
   <div class="container">
@@ -21,7 +18,6 @@
         <div>User: <strong id="username">-</strong></div>
       </div>
 
-      <!-- Search ALL columns -->
       <div class="input-wrap">
         <span class="search-icon">🔎</span>
         <input id="keyword" class="search-input" placeholder="Search anything (Instrument / Material / Product Name / Type / 0243)" />
@@ -29,15 +25,9 @@
       </div>
 
       <table>
-        <thead>
-          <tr>
-            <th>Instrument</th>
-            <th>Material</th>
-            <th>Product Name</th>
-            <th>Type</th>
-            <th>0243</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th>Instrument</th><th>Material</th><th>Product Name</th><th>Type</th><th>0243</th>
+        </tr></thead>
         <tbody id="data"></tbody>
       </table>
 
@@ -57,7 +47,7 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=9"></script>
+  <script src="js/app.js?v=14"></script>
   <script>
     function initWithdraw(){
       const user = resolveUser();
@@ -67,10 +57,7 @@
         kw?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearchAll(); });
       });
     }
-    function doSearchAll(){
-      const k = (document.getElementById('keyword').value || '').trim();
-      searchAll(k); // ใช้ฟังก์ชันใน app.js
-    }
+    function doSearchAll(){ const k = (document.getElementById('keyword').value || '').trim(); searchAll(k); }
     function doTransaction(type){
       const user = resolveUser();
       if(!user) return alert("Please select a user first");
