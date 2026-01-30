@@ -81,10 +81,14 @@ async function transactionV2({type, material, qty, user}){
   }
 }
 
-/* ===== Login (ถ้าใช้หน้า index.html) ===== */
+// ทำให้เรียกได้จาก onclick ใน index.html
 window.login = function (){
   const input = document.getElementById('password');
   const pass = (input?.value || '').trim();
-  if (pass === PASSWORD) location.href = 'user-select.html';
-  else { alert('รหัสผ่านไม่ถูกต้อง'); input?.focus(); }
+  if (pass === PASSWORD) {
+    location.href = 'user-select.html'; // ไปหน้าที่ 2
+  } else {
+    alert('รหัสผ่านไม่ถูกต้อง');
+    input?.focus();
+  }
 };
