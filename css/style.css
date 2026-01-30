@@ -1,121 +1,47 @@
-/* ===== Design Tokens ===== */
 :root{
-  --bg:#0f172a;            /* page bg (deep navy) */
-  --paper:#ffffff;         /* card/table bg */
-  --ink:#0b1220;           /* main text */
-  --muted:#6b7280;         /* secondary text */
-  --brand:#111827;         /* brand/dark button */
-  --accent:#2563eb;        /* focus/links */
-  --success:#16a34a;       /* return */
-  --danger:#dc2626;        /* withdraw */
-  --border:#e5e7eb;        /* borders */
-  --shadow:0 10px 25px rgba(2,6,23,.10), 0 3px 8px rgba(2,6,23,.06);
+  --bg:#0f172a; --paper:#ffffff; --ink:#0b1220; --muted:#6b7280;
+  --brand:#111827; --accent:#2563eb; --success:#16a34a; --danger:#dc2626;
+  --border:#e5e7eb; --shadow:0 10px 25px rgba(2,6,23,.10),0 3px 8px rgba(2,6,23,.06);
 }
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif;
+  background:linear-gradient(180deg,#0f172a 0%,#111827 100%); color:var(--ink); -webkit-font-smoothing:antialiased;}
 
-/* ===== Reset (safe) ===== */
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif;
-  background:linear-gradient(180deg,#0f172a 0%,#111827 100%);
-  color:var(--ink);
-  -webkit-font-smoothing:antialiased;
-}
-
-/* ===== App Header (single per page) ===== */
-.header{
-  position:sticky; top:0; z-index:50;
-  background:#0b1220; color:#fff;
-  padding:14px 16px;
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  box-shadow:0 6px 18px rgba(2,6,23,.30);
-}
+.header{position:sticky; top:0; z-index:50; background:#0b1220; color:#fff; padding:14px 16px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 6px 18px rgba(2,6,23,.30);}
 .header .title{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px}
 .header .actions{display:flex; gap:10px;}
 
-/* ===== Layout ===== */
-.container{
-  padding:18px;
-  max-width:1100px; margin:0 auto;
-}
-.card{
-  background:var(--paper);
-  border-radius:16px;
-  box-shadow:var(--shadow);
-  padding:16px;
-}
-
-/* ===== Search (modern) ===== */
-.input-wrap{position:relative; width:100%}
-.search-input{
-  width:100%;
-  padding:12px 44px 12px 44px;
-  border:1px solid var(--border);
-  border-radius:12px;
-  font-size:15px; background:#fff;
-  transition:box-shadow .2s,border-color .2s;
-}
-.search-input:focus{
-  outline:none; border-color:var(--accent);
-  box-shadow:0 0 0 4px rgba(37,99,235,.15);
-}
-.search-icon{
-  position:absolute; left:12px; top:50%; transform:translateY(-50%);
-  font-size:16px; color:var(--muted); pointer-events:none;
-}
-.search-btn{
-  position:absolute; right:8px; top:50%; transform:translateY(-50%);
-  background:var(--brand); color:#fff; border:none; border-radius:10px;
-  padding:8px 12px; cursor:pointer;
-}
-
-/* ===== Controls ===== */
-label{font-size:13px; color:var(--muted)}
-input[type="number"], select{
-  width:100%; padding:10px 12px; border:1px solid var(--border);
-  border-radius:12px; font-size:15px; background:#fff;
-}
+.container{padding:18px; max-width:1100px; margin:0 auto;}
+.card{background:var(--paper); border-radius:16px; box-shadow:var(--shadow); padding:16px;}
+.stack{display:grid; gap:14px}
 .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
 .w-100{width:100%}
 
-/* Buttons */
-button{
-  border:none; padding:10px 14px; min-height:44px; border-radius:12px;
-  font-size:15px; cursor:pointer; transition:transform .02s, opacity .2s;
-}
-button:active{transform:translateY(1px)}
-button:disabled{opacity:.6; cursor:not-allowed}
+.input-wrap{position:relative; width:100%}
+.search-input{width:100%; padding:12px 44px; border:1px solid var(--border); border-radius:12px; font-size:15px;
+  background:#fff; transition:box-shadow .2s,border-color .2s;}
+.search-input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 4px rgba(37,99,235,.15);}
+.search-icon{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted);}
+.search-btn{position:absolute; right:8px; top:50%; transform:translateY(-50%); background:var(--brand); color:#fff;
+  border:none; border-radius:10px; padding:8px 12px; cursor:pointer;}
+
+label{font-size:13px; color:var(--muted)}
+input[type="number"], select, input[type="password"], input[type="text"]{
+  width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:12px; font-size:15px; background:#fff;}
+
+button{border:none; padding:10px 14px; min-height:44px; border-radius:12px; font-size:15px; cursor:pointer;
+  transition:transform .02s, opacity .2s;}
+button:active{transform:translateY(1px)} button:disabled{opacity:.6; cursor:not-allowed}
 .btn-ghost{background:#fff; color:#0b1220; border:1px solid var(--border)}
-.btn-primary{background:var(--brand); color:#fff}
-.btn-success{background:var(--success); color:#fff}
-.btn-danger{background:var(--danger); color:#fff}
+.btn-primary{background:var(--brand); color:#fff} .btn-success{background:var(--success); color:#fff}
+.btn-danger{background:var(--danger); color:#fff} .btn-neutral{background:#374151; color:#fff}
 
-/* ===== Table (mobile-friendly) ===== */
 table{width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden}
-thead th{
-  position:sticky; top:0; background:#f8fafc; color:#0b1220;
-  font-weight:800; text-align:left; padding:12px;
-  border-bottom:1px solid var(--border); z-index:1;
-}
-tbody td{padding:10px 12px; border-bottom:1px solid #f1f5f9}
-tbody tr:hover{background:#f9fafb}
-td.num{text-align:right}
+thead th{position:sticky; top:0; background:#f8fafc; color:#0b1220; font-weight:800; text-align:left; padding:12px; border-bottom:1px solid var(--border); z-index:1}
+tbody td{padding:10px 12px; border-bottom:1px solid #f1f5f9} tbody tr:hover{background:#f9fafb} td.num{text-align:right}
 
-/* ===== Cards / micro layout ===== */
-.stack{display:grid; gap:14px}
-
-/* ===== Responsive ===== */
 @media (max-width: 720px){
-  .header{padding:12px}
-  .container{padding:12px}
-  .card{padding:12px; border-radius:14px}
+  .header{padding:12px} .container{padding:12px} .card{padding:12px; border-radius:14px}
   thead th, tbody td{padding:10px}
-}
-
-/* ===== Optional subtle fade bg under cards ===== */
-body::before{
-  content:""; position:fixed; inset:0; z-index:-1;
-  background:radial-gradient(1200px 500px at 50% -50%, rgba(59,130,246,.25), transparent 60%);
-  filter:saturate(.9);
 }
