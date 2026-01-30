@@ -16,17 +16,17 @@
   </style>
 </head>
 <body>
-  <div class="header">👤 เลือกผู้ใช้งาน</div>
+  <div class="header">👤 Select User</div>
 
   <div class="container" style="grid-template-columns:1fr;">
     <div class="card wrap">
-      <label for="userSel">ผู้ใช้งาน (คอลัมน์ H–M)</label>
+      <label for="userSel">User</label>
       <select id="userSel"></select>
 
       <div class="btn-group" style="margin-top:12px;">
-        <button class="withdraw" onclick="go('withdraw.html')">เบิกอะไหล่</button>
-        <button class="return"   onclick="go('return.html')">คืนอะไหล่</button>
-        <button class="neutral"  onclick="go('all.html')">โชว์อะไหล่ทั้งหมด</button>
+        <button class="withdraw" onclick="go('withdraw.html')">Withdraw</button>
+        <button class="return"   onclick="go('return.html')">Return</button>
+        <button class="neutral"  onclick="go('all.html')">Show All Part</button>
       </div>
     </div>
   </div>
@@ -44,7 +44,7 @@
     function go(path){
       const sel = document.getElementById('userSel');
       const username = decodeURIComponent(sel.value || "");
-      if(!username){ alert("กรุณาเลือกผู้ใช้งาน"); return; }
+      if(!username){ alert("Please select user"); return; }
       sessionStorage.setItem('selectedUser', username);
       location.href = `${path}?user=${encodeURIComponent(username)}`;
     }
