@@ -1,16 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-  <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/style.css" />
+  <title>คืนอะไหล่</title>
 </head>
-<body onload="loadMaterials()">
-<div class="header">🔄 Return</div>
-<div class="container">
-  <input placeholder="Search" onkeyup="searchMaterial(this.value)">
-  <select id="material"></select>
-  <input id="qty" type="number" min="1">
-  <button onclick="transaction('return')">Confirm</button>
-</div>
-<script src="js/app.js"></script>
+<body onload="loadAll()"><!-- เดิม loadMaterials() -->
+  <div class="header">🔄 Return</div>
+
+  <div class="container">
+    <input placeholder="ค้นหาอะไหล่" onkeyup="searchMaterial(this.value)" />
+    <select id="material"></select>
+    <input id="qty" type="number" min="1" placeholder="จำนวน" />
+    <button id="btnConfirm" class="return" onclick="transaction('return')">ยืนยันคืน</button>
+  </div>
+
+  <script src="js/app.js?v=1"></script>
 </body>
 </html>
