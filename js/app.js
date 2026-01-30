@@ -4,21 +4,32 @@ const SUP_PASSWORD = "Qiagen";
 
 let rows = []; 
 
-/* ===== 1. Authentication ===== */
+const qs = id => document.getElementById(id);
+const resolveUser = () => sessionStorage.getItem('selectedUser') || '';
+
+/* ===== 1. Authentication & Supervisor ===== */
 window.login = function() {
-    const passValue = document.getElementById('password')?.value.trim();
+    const passValue = qs('password')?.value.trim();
     if (passValue === PASSWORD) {
         sessionStorage.setItem('isLoggedIn', 'true');
         location.href = 'user-select.html';
     } else { alert('Invalid Password!'); }
 };
 
-/* ===== 2. Data Fetching (ดึงชื่อจากคอลัมน์ที่กำหนด) ===== */
+window.checkSupervisor = function() {
+    const p = prompt("Enter Supervisor Password:");
+    if (p === SUP_PASSWORD) {
+        sessionStorage.setItem('isSupervisor', 'true');
+        alert("Supervisor access granted!");
+        // สามารถเพิ่มการเปลี่ยนหน้าไปยังหน้า Manage ได้ที่นี่
+    } else { alert("Wrong Password!"); }
+};
+
+/* ===== 2. Data Fetching (ดึงชื่อคอลัมน์ I-N) ===== */
 window.loadUsers = async function() {
     try {
         const url = `${API}?action=users&password=${encodeURIComponent(PASSWORD)}`;
         const res = await fetch(url).then(r => r.json());
-        // ตรวจสอบข้อมูลชื่อพนักงาน (I-N)
         return res.success ? res.users : [];
     } catch (e) { return []; }
 };
@@ -32,32 +43,33 @@ window.loadStockData = async function(pageType) {
             if (pageType === 'all') renderNormalTable(rows);
             else renderSmartTable(rows, pageType);
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Load failed", e); }
 };
 
-/* ===== 3. Rendering Table (กู้คืนหน้าตาเดิมและข้อมูลครบ) ===== */
+/* ===== 3. UI Rendering (ข้อมูลครบ: Instrument, Material, Name) ===== */
 function renderSmartTable(dataList, type) {
-    const container = document.getElementById('data');
+    const container = qs('data');
     if (!container) return;
-    const currentUser = sessionStorage.getItem('selectedUser') || '';
+    const currentUser = resolveUser();
 
     container.innerHTML = dataList.map((item, index) => {
-        // ดึง Stock จากคอลัมน์ 0243 (เบิก) หรือชื่อพนักงาน (คืน)
-        const stockQty = type === 'withdraw' ? (item['0243'] || 0) : (item[currentUser] || 0);
+        // ดึงค่า Stock: '0243' สำหรับ Withdraw และชื่อ User สำหรับ Return
+        const currentStock = type === 'withdraw' ? (item['0243'] || 0) : (item[currentUser] || 0);
         return `
             <tr class="item-row">
-                <td>
-                    <div class="inst-tag" style="font-size:10px; color:#2563eb; font-weight:bold;">${item.Instrument || '-'}</div>
-                    <div style="font-weight:800; font-size:15px;">${item.Material}</div>
+                <td style="padding: 10px;">
+                    <div style="font-size:10px; color:#2563eb; font-weight:bold;">${item.Instrument || '-'}</div>
+                    <div style="font-weight:bold; font-size:15px; color:#1e293b;">${item.Material}</div>
                     <div style="font-size:12px; color:#64748b;">${item['Product Name'] || ''}</div>
                 </td>
-                <td style="text-align:center; font-size:18px; font-weight:bold;">${stockQty}</td>
-                <td>
-                    <div style="display:flex; gap:5px; justify-content:flex-end;">
-                        <input type="number" id="qty_${index}" style="width:50px; text-align:center; border-radius:5px; border:1px solid #ddd;" placeholder="0">
-                        <button onclick="handleAction('${type}', '${item.Material}', ${index})" 
-                                style="background:${type==='withdraw'?'#ef4444':'#22c55e'}; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">
-                            ${type==='withdraw'?'เบิก':'คืน'}
+                <td style="text-align:center; font-size:18px; font-weight:bold;">${currentStock}</td>
+                <td style="text-align:right; padding-right:10px;">
+                    <div style="display:flex; gap:5px; justify-content:flex-end; align-items:center;">
+                        <input type="number" id="qty_${index}" style="width:55px; height:38px; text-align:center; border:1px solid #ddd; border-radius:8px;" placeholder="0">
+                        <button class="${type==='withdraw'?'btn-danger':'btn-success'}" 
+                                style="height:38px; border-radius:8px; border:none; color:white; padding:0 12px; font-weight:bold; cursor:pointer;"
+                                onclick="handleAction('${type}', '${item.Material}', ${index})">
+                            ${type==='withdraw'?'WITHDRAW':'RETURN'}
                         </button>
                     </div>
                 </td>
@@ -67,30 +79,44 @@ function renderSmartTable(dataList, type) {
 }
 
 function renderNormalTable(dataList) {
-    const container = document.getElementById('data');
+    const container = qs('data');
     if (!container) return;
     container.innerHTML = dataList.map(item => `
         <tr>
-            <td style="font-size:12px;">${item.Instrument || '-'}</td>
-            <td><b>${item.Material}</b></td>
-            <td style="font-size:12px;">${item['Product Name'] || ''}</td>
-            <td style="text-align:center; font-weight:bold; color:#2563eb;">${item['0243'] || 0}</td>
+            <td style="padding:10px;">
+                <div style="font-size:10px; font-weight:bold; color:#2563eb;">${item.Instrument || '-'}</div>
+                <div style="font-weight:bold;">${item.Material}</div>
+                <div style="font-size:12px;">${item['Product Name'] || ''}</div>
+            </td>
+            <td style="text-align:center; font-weight:bold; color:#1e293b;">${item['0243'] || 0}</td>
         </tr>
     `).join('');
 }
 
 /* ===== 4. Actions & Search ===== */
 window.handleAction = async function(type, material, index) {
-    const input = document.getElementById(`qty_${index}`);
+    const input = qs(`qty_${index}`);
     const qty = Number(input.value);
-    const user = sessionStorage.getItem('selectedUser');
-    if (qty <= 0) return alert("กรุณาระบุจำนวน");
+    const user = resolveUser();
+
+    if (qty <= 0) return alert("Please enter quantity");
     
     input.disabled = true;
     const url = `${API}?action=${type}&password=${PASSWORD}&material=${encodeURIComponent(material)}&qty=${qty}&user=${encodeURIComponent(user)}`;
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) { alert("สำเร็จ!"); window.loadStockData(type); }
-    else { alert("ล้มเหลว: " + res.msg); input.disabled = false; }
+    
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) {
+            alert("Success!");
+            window.loadStockData(type);
+        } else {
+            alert("Error: " + res.msg);
+            input.disabled = false;
+        }
+    } catch (err) {
+        alert("Network Error");
+        input.disabled = false;
+    }
 };
 
 window.searchStock = function(keyword, type) {
@@ -101,13 +127,3 @@ window.searchStock = function(keyword, type) {
 };
 
 window.goBack = () => { location.href = 'user-select.html'; };
-
-/* ===== 5. Supervisor Login ===== */
-window.checkSupervisor = function() {
-    const p = prompt("Enter Supervisor Password:");
-    if (p === SUP_PASSWORD) {
-        sessionStorage.setItem('isSupervisor', 'true');
-        alert("Supervisor access granted!");
-        // สามารถเพิ่มการเปลี่ยนหน้าไปหน้าจัดการสต็อกได้ที่นี่
-    } else { alert("Wrong Password!"); }
-};
