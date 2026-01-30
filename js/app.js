@@ -1,5 +1,5 @@
 /* ===== Config ===== */
-const API = "https://script.google.com/macros/s/AKfycbwQXz9wL6KMxjDywQJ8Z0XhHOcp-hQqzQQoc0HHRIORBvMHZwfiRZlgz3nZjcWbB8eHeQ/exec"; // GAS Web App URL
+const API = "https://script.google.com/macros/s/AKfycbzHoHHFJlIT7fL-W59h2_dDfPE_PuaB6zCBjHHfxFnJjQxqg6yiMN7Xhw3_SvbNNwcsLw/exec"; // GAS Web App URL
 const PASSWORD = "Service";           // general password
 const SUP_PASSWORD = "Qiagen";        // Supervisor password (frontend + API)
 
