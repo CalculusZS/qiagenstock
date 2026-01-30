@@ -5,70 +5,46 @@ const SUP_PASSWORD = "Qiagen";
 let rows = [];
 
 const qs = id => document.getElementById(id);
-function getQS(name){ const u = new URL(location.href); return u.searchParams.get(name); }
 function resolveUser(){ return sessionStorage.getItem('selectedUser') || ''; }
 
-/* ===== 1. Authentication (แก้ Login) ===== */
+/* ===== 1. Fix Login ===== */
 window.login = function() {
-  const passField = qs('password');
-  const passValue = (passField?.value || '').trim();
+  const passValue = qs('password')?.value.trim();
   if (passValue === PASSWORD) {
     location.href = 'user-select.html';
   } else {
-    alert('รหัสผ่านไม่ถูกต้อง (Hint: S ตัวใหญ่)');
+    alert('รหัสผ่านไม่ถูกต้อง');
   }
 };
 
-function supAuth(p){ 
-  if(p === SUP_PASSWORD){ 
-    sessionStorage.setItem('isSupervisor','1'); 
-    return true; 
-  } 
-  return false; 
+/* ===== 2. Data Loading & Search ===== */
+async function loadAllWithSchema(type){
+  const res = await fetch(`${API}?action=list2&password=${PASSWORD}`).then(r => r.json());
+  if(res.success) {
+    rows = res.rows;
+    renderSmartTable(rows, type);
+  }
 }
 
-/* ===== 2. Data Loading ===== */
-async function loadUsers() {
-  try {
-    const url = `${API}?action=users&password=${encodeURIComponent(PASSWORD)}`;
-    const res = await fetch(url).then(r => r.json());
-    return res.success ? res.users : [];
-  } catch (e) { return []; }
-}
-
-async function loadAllWithSchema(pageType){
-  try {
-    const url = `${API}?action=list2&password=${encodeURIComponent(PASSWORD)}`;
-    const res = await fetch(url).then(r => r.json());
-    if(res.success) {
-      rows = res.rows;
-      renderSmartTable(rows, pageType); 
-    }
-  } catch(e) { console.error("Load failed", e); }
-}
-
-/* ===== 3. Smart Renderer (หน้าตาสวย + ทำงานในแถวเดียว) ===== */
 function renderSmartTable(list, type) {
   const tb = qs('data'); if(!tb) return;
   const user = resolveUser();
   
   tb.innerHTML = list.map((r, index) => {
     const stockVal = type === 'withdraw' ? (r['0243'] || 0) : (r[user] || 0);
-    const btnClass = type === 'withdraw' ? 'btn-danger' : 'btn-success';
-
     return `
       <tr class="item-row">
         <td>
-          <div class="inst-tag">${r.Instrument || '-'}</div>
-          <div class="mat-code">${r.Material}</div>
-          <div class="prod-name">${r['Product Name'] || ''}</div>
+          <div style="font-size:10px; color:#2563eb; font-weight:bold;">${r.Instrument || '-'}</div>
+          <div style="font-weight:bold; font-size:15px;">${r.Material}</div>
+          <div style="font-size:12px; color:#64748b;">${r['Product Name'] || ''}</div>
         </td>
-        <td class="stock-cell">${stockVal}</td>
+        <td style="text-align:center; font-size:18px; font-weight:bold; color:#1e293b;">${stockVal}</td>
         <td>
-          <div class="inline-action">
-            <input type="number" id="qty_${index}" class="qty-input-sm" placeholder="0">
-            <button class="${btnClass} btn-action-sm" onclick="handleRowAction('${type}', '${r.Material}', ${index})">
-              ${type === 'withdraw' ? 'เบิก' : 'คืน'}
+          <div style="display:flex; gap:5px; justify-content:flex-end; align-items:center;">
+            <input type="number" id="qty_${index}" style="width:55px; height:38px; text-align:center; border-radius:8px; border:1px solid #ddd;" placeholder="0">
+            <button class="${type==='withdraw'?'btn-danger':'btn-success'}" style="height:38px; border-radius:8px; border:none; color:#fff; padding:0 12px; font-weight:bold;" onclick="handleAction('${type}', '${r.Material}', ${index})">
+              ${type==='withdraw'?'เบิก':'คืน'}
             </button>
           </div>
         </td>
@@ -77,31 +53,26 @@ function renderSmartTable(list, type) {
   }).join('');
 }
 
-/* ===== 4. Action Handler ===== */
-async function handleRowAction(type, material, index) {
+async function handleAction(type, material, index) {
   const qtyInput = qs(`qty_${index}`);
   const qty = Number(qtyInput.value);
   const user = resolveUser();
-
-  if (qty <= 0) return alert("กรุณาระบุจำนวน");
+  if (qty <= 0) return alert("กรุณาใส่จำนวน");
   
   qtyInput.disabled = true;
-  const url = `${API}?action=${type}&password=${encodeURIComponent(PASSWORD)}&material=${encodeURIComponent(material)}&qty=${qty}&user=${encodeURIComponent(user)}`;
+  const res = await fetch(`${API}?action=${type}&password=${PASSWORD}&material=${encodeURIComponent(material)}&qty=${qty}&user=${encodeURIComponent(user)}`).then(r => r.json());
   
-  try {
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) {
-      alert("สำเร็จ!");
-      loadAllWithSchema(type);
-    } else {
-      alert("ล้มเหลว: " + res.msg);
-      qtyInput.disabled = false;
-    }
-  } catch(e) { alert("Error connecting to server"); qtyInput.disabled = false; }
+  if (res.success) {
+    alert("สำเร็จ!");
+    loadAllWithSchema(type);
+  } else {
+    alert("ล้มเหลว: " + res.msg);
+    qtyInput.disabled = false;
+  }
 }
 
 function searchAll(keyword, type){
-  const k = (keyword || '').toLowerCase();
+  const k = keyword.toLowerCase();
   const filtered = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(k)));
   renderSmartTable(filtered, type);
 }
