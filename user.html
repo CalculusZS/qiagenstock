@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Stock ERP</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-
 <header>
   <h1>📦 Stock ERP System</h1>
   <button onclick="logout()">Logout</button>
@@ -14,17 +14,12 @@
 
 <section class="card">
   <h2>ทำรายการ</h2>
-
-  <input type="text" placeholder="🔍 Search Material"
-         onkeyup="searchMaterial(this.value)">
-
+  <input type="text" placeholder="🔍 ค้นหาอะไหล่" onkeyup="searchMaterial(this.value)">
   <select id="material"></select>
-
-  <input type="number" id="qty" placeholder="จำนวน">
-
+  <input type="number" id="qty" placeholder="จำนวน" min="1">
   <div class="btn-group">
     <button class="withdraw" onclick="transaction('withdraw')">เบิก</button>
-    <button class="return" onclick="transaction('return')">คืน</button>
+    <button class="return"   onclick="transaction('return')">คืน</button>
   </div>
 </section>
 
@@ -32,20 +27,13 @@
   <h2>📊 Stock ทั้งหมด</h2>
   <table>
     <thead>
-      <tr>
-        <th>Material</th>
-        <th>Name</th>
-        <th>Stock</th>
-      </tr>
+      <tr><th>Material</th><th>Name</th><th>Stock</th></tr>
     </thead>
     <tbody id="data"></tbody>
   </table>
 </section>
 
-<script src="js/app.js"></script>
-<script>
-  loadMaterials();
-  loadAll();
-</script>
+<script src="js/app.js?v=1"></script>
+<script> loadAll(); </script>
 </body>
 </html>
