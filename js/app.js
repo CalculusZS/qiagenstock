@@ -159,3 +159,43 @@ window.searchStock = (keyword, type) => {
         refreshTable(filtered);
     }
 };
+/* === ส่วนที่ต้องเพิ่ม/แก้ไขใน app.js === */
+
+// 1. ฟังก์ชัน Logout (ล้างค่าทุกอย่างและกลับไปหน้าแรก)
+window.logout = function() {
+    sessionStorage.clear(); // ล้างข้อมูลการ Login และ User ที่เลือกไว้
+    location.href = 'index.html'; // กลับไปหน้าใส่ Password แรกสุด
+};
+
+// 2. ฟังก์ชัน Login Supervisor (ให้เรียกใช้เหมือนหน้าแรก)
+window.checkSupervisor = function() {
+    const p = prompt("Enter Supervisor Password:");
+    if (p === SUP_PASSWORD) {
+        sessionStorage.setItem('isSupervisor', 'true');
+        location.href = 'supervisor.html'; 
+    } else if (p !== null) { 
+        alert("Wrong Password!"); 
+    }
+};
+
+// 3. ฟังก์ชันดึงรายชื่อพนักงาน (สำหรับแสดงผลในหน้า user-select.html)
+window.loadUsers = async function() {
+    try {
+        const res = await fetch(`${API}?action=users&password=${PASSWORD}`).then(r => r.json());
+        if (res.success) {
+            return res.users;
+        } else {
+            console.error("API Error:", res.msg);
+            return [];
+        }
+    } catch (e) { 
+        console.error("Fetch Error:", e);
+        return []; 
+    }
+};
+
+// 4. ฟังก์ชันสำหรับการเลือก User
+window.selectUser = function(name) {
+    sessionStorage.setItem('selectedUser', name);
+    location.href = 'main.html'; // เมื่อเลือกเสร็จให้ไปหน้าหลัก
+};
