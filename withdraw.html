@@ -1,35 +1,39 @@
-<div class="header">
-  🔧 Withdraw
-  <div class="btn-group">
-    <button class="neutral" onclick="goBack()">Back</button>
-  </div>
-</div>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Withdraw Parts</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body onload="initWithdraw()">
   <div class="header">
-    🔧 Withdraw
-    <div class="btn-group">
-      <button class="neutral" onclick="goBack()">Back</button>
+    <div class="title">🔧 <span>Withdraw</span></div>
+    <div class="actions">
+      <button class="btn-ghost" onclick="goBack()">Back</button>
     </div>
   </div>
 
-  <div class="container" style="grid-template-columns:1fr;">
-    <div class="card">
-      <div class="btn-group" style="justify-content:space-between;">
-        <div>User: <strong id="username">-</strong></div>
+  <div class="container">
+    <div class="card stack">
+      <div class="row">
+        <div>User:&nbsp;<strong id="username">-</strong></div>
       </div>
 
-      <div class="btn-group" style="margin-top:8px;">
-        <input id="keyword" placeholder="Search Material (column B)" />
-        <button onclick="doSearch()">Search</button>
+      <!-- Search All -->
+      <div class="input-wrap">
+        <span class="search-icon">🔎</span>
+        <input id="keyword" class="search-input" placeholder="Search anything (Instrument / Material / Product Name / Type / 0243)">
+        <button class="search-btn" onclick="doSearchAll()">Search</button>
       </div>
+
+      <!-- (Optional) Search Material only -->
+      <!--
+      <div class="row">
+        <input id="keywordMaterial" class="search-input w-100" placeholder="Search Material only (column B)">
+        <button class="btn-ghost" onclick="doSearchMaterial()">Search Material</button>
+      </div>
+      -->
 
       <table class="mt-12">
         <thead>
@@ -44,32 +48,40 @@
         <tbody id="data"></tbody>
       </table>
 
-      <div class="btn-group mt-12" style="align-items:center; flex-wrap:wrap;">
-        <label for="materialSel">Material</label>
-        <select id="materialSel" class="w-100"></select>
-
-        <label for="qty" style="margin-left:12px;">Qty</label>
-        <input id="qty" type="number" min="1" style="max-width:140px;" />
-
-        <button id="btnConfirm" class="withdraw" onclick="doTransaction('withdraw')">
-          Confirm Withdraw
-        </button>
+      <div class="row">
+        <div class="w-100">
+          <label for="materialSel">Material</label>
+          <select id="materialSel" class="w-100"></select>
+        </div>
+        <div>
+          <label for="qty">Qty</label>
+          <input id="qty" type="number" min="1" style="width:140px;" />
+        </div>
+        <div>
+          <button id="btnConfirm" class="btn-danger" onclick="doTransaction('withdraw')">Confirm Withdraw</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <script src="js/app.js?v=5"></script>
+  <script src="js/app.js?v=7"></script>
   <script>
     function initWithdraw(){
       const user = resolveUser();
       document.getElementById('username').textContent = user || '-';
       loadAllWithSchema().then(() => {
-        const kw = document.getElementById('keyword');
-        kw?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearch(); });
+        const kwAll = document.getElementById('keyword');
+        kwAll?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearchAll(); });
+        // const kwMat = document.getElementById('keywordMaterial');
+        // kwMat?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearchMaterial(); });
       });
     }
-    function doSearch(){
+    function doSearchAll(){
       const k = (document.getElementById('keyword').value || '').trim();
+      searchAll(k);
+    }
+    function doSearchMaterial(){
+      const k = (document.getElementById('keywordMaterial').value || '').trim();
       searchByMaterial(k);
     }
     function doTransaction(type){
