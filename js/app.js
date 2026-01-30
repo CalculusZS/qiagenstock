@@ -55,11 +55,15 @@ function renderSelect(list){
   ).join('');
 }
 
-/* ===== Search by Material (column B) ===== */
-function searchByMaterial(keyword){
+/* ===== Search across all visible columns ===== */
+function searchAll(keyword){
   const k = (keyword || '').toLowerCase();
-  const filtered = !k ? rows :
-    rows.filter(r => (r['Material'] || '').toLowerCase().includes(k));
+
+  const keys = ['Instrument','Material','Product Name','Type','0243'];
+  const filtered = !k ? rows : rows.filter(r => {
+    return keys.some(key => String(r[key] ?? '').toLowerCase().includes(k));
+  });
+
   renderTable(filtered);
   renderSelect(filtered);
 }
