@@ -5,37 +5,40 @@
   <link rel="stylesheet" href="css/style.css">
   <style>
     :root { --primary: #1e293b; --accent: #2563eb; --success: #10b981; }
-    body { background: #f1f5f9; font-family: 'Inter', sans-serif; }
+    body { background: #f8fafc; font-family: 'Inter', sans-serif; margin: 0; }
+    .header-panel { background: var(--primary); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .container { max-width: 1100px; margin: 20px auto; padding: 0 20px; }
-    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 24px; margin-bottom: 24px; }
-    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-    .btn-action { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-    .modern-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .modern-table th { background: #f8fafc; padding: 12px; text-align: left; color: #64748b; border-bottom: 2px solid #e2e8f0; }
-    .modern-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+    .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 24px; margin-bottom: 24px; border: 1px solid #e2e8f0; }
+    .card h3 { margin-top: 0; display: flex; align-items: center; gap: 8px; color: #1e293b; }
+    .modern-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    .modern-table th { background: #f8fafc; padding: 12px; text-align: left; color: #64748b; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; font-size: 12px; }
+    .modern-table td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; }
     .user-pill { background: #eff6ff; color: #1d4ed8; padding: 4px 12px; border-radius: 99px; font-weight: 600; font-size: 13px; }
-    .input-small { width: 70px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; }
-    .btn-deduct { background: var(--success); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+    .qty-input { width: 80px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-weight: bold; }
+    .btn-deduct { background: var(--success); color: white; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn-deduct:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-add { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .input-text { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; }
   </style>
 </head>
 <body onload="onSupLoad()">
-  <div class="header" style="background:var(--primary); color:white; padding:15px 30px; display:flex; justify-content:space-between; align-items:center;">
-    <div style="font-size:1.5rem; font-weight:bold;">🛠️ Supervisor Panel</div>
-    <button onclick="goBack()" style="background:rgba(255,255,255,0.2); border:none; color:white; padding:8px 15px; border-radius:6px; cursor:pointer;">Back</button>
+  <div class="header-panel">
+    <div style="font-size: 1.25rem; font-weight: 700;">🚀 Supervisor Control Panel</div>
+    <button onclick="goBack()" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Back to App</button>
   </div>
 
   <div class="container">
     <div class="card">
-      <div class="card-header"><h3 style="margin:0;">📥 Add Stock to 0243</h3></div>
+      <h3>📥 Add Stock to 0243</h3>
       <div style="display:flex; gap:12px; align-items:center;">
-        <input id="sup_mat_add" class="input-small" style="flex:1; text-align:left;" placeholder="Material Number (e.g. 9025186)">
-        <input id="sup_qty_add" type="number" class="input-small" placeholder="Qty">
-        <button class="btn-action" onclick="supAddTo0243()">Add to Stock</button>
+        <input id="sup_mat_add" class="input-text" placeholder="Scan or Type Material Number...">
+        <input id="sup_qty_add" type="number" class="qty-input" placeholder="Qty">
+        <button class="btn-add" onclick="supAddTo0243()">Add to Stock</button>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-header"><h3 style="margin:0;">🔍 Person Stock Inspector</h3></div>
+      <h3>🔍 Person Stock Inspector</h3>
       <div style="overflow-x:auto;">
         <table class="modern-table">
           <thead>
@@ -48,7 +51,7 @@
             </tr>
           </thead>
           <tbody id="sup_users_table_body">
-            <tr><td colspan="5" style="text-align:center; padding:30px;">Loading...</td></tr>
+            <tr><td colspan="5" style="text-align:center; padding:40px; color:#94a3b8;">Scanning personal stocks...</td></tr>
           </tbody>
         </table>
       </div>
@@ -59,10 +62,10 @@
   <script>
     const USERS = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
 
-    async function onSupLoad() { await refreshAll(); }
+    async function onSupLoad() { await refreshTable(); }
 
-    async function refreshAll() {
-      await loadAllWithSchema(); // โหลด rows จาก app.js
+    async function refreshTable() {
+      await loadAllWithSchema(); 
       const tbody = document.getElementById('sup_users_table_body');
       let html = '';
       rows.forEach(row => {
@@ -72,33 +75,48 @@
             const uid = `id_${row['Material']}_${user}`;
             html += `<tr>
               <td><span class="user-pill">${user}</span></td>
-              <td><b>${row['Material']}</b></td>
-              <td style="color:#64748b; font-size:14px;">${row['Product Name'] || ''}</td>
-              <td><input type="number" class="input-small" id="${uid}" value="${val}"></td>
+              <td style="font-weight:700;">${row['Material']}</td>
+              <td style="color:#475569; font-size:14px;">${row['Product Name'] || ''}</td>
+              <td><input type="number" class="qty-input" id="${uid}" value="${val}"></td>
               <td><button class="btn-deduct" onclick="handleDeduct('${row['Material']}','${user}')">Deduct Used</button></td>
             </tr>`;
           }
         });
       });
-      tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">No pending items found.</td></tr>';
+      tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:30px;">No one is currently holding stock.</td></tr>';
     }
 
     async function handleDeduct(mat, user) {
       const qtyInput = document.getElementById(`id_${mat}_${user}`);
       const qtyValue = Number(qtyInput.value);
-      if (!confirm(`ยืนยันการหักยอด Used จำนวน ${qtyValue} จาก ${user}?`)) return;
+      if (!confirm(`Confirm deduction of ${qtyValue} unit(s) from ${user}?`)) return;
 
-      const res = await supSetUserQty({ material: mat, user: user, qty: qtyValue, status: 'USED' });
-      if(res.success) { alert('ตัดยอดสำเร็จ!'); await refreshAll(); }
-      else { alert('Error: ' + res.msg); }
+      const res = await supSetUserQty({ 
+        material: mat, 
+        user: user, 
+        qty: qtyValue, 
+        status: 'USED' // ส่งคำสั่งลดยอด
+      });
+
+      if(res.success) {
+        alert('ตัดยอดสำเร็จ!');
+        await refreshTable(); 
+      } else {
+        alert('Error: ' + res.msg);
+      }
     }
 
     async function supAddTo0243() {
       const mat = document.getElementById('sup_mat_add').value;
       const qty = document.getElementById('sup_qty_add').value;
-      if(!mat || !qty) return alert('กรุณาระบุข้อมูล');
+      if(!mat || !qty) return alert('Please enter both Material and Quantity');
       const res = await supAddStock(mat, qty);
-      if(res.success) { alert('เพิ่มสต็อกสำเร็จ'); await refreshAll(); }
+      if(res.success) { 
+        alert('Stock updated successfully'); 
+        document.getElementById('sup_mat_add').value = '';
+        document.getElementById('sup_qty_add').value = '';
+        await refreshTable(); 
+      }
     }
   </script>
 </body>
