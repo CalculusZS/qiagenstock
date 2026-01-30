@@ -4,14 +4,32 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Stock Management</title>
+
+  <!-- ถ้ามี css/style.css อยู่แล้ว ให้คงบรรทัดนี้ -->
   <link rel="stylesheet" href="css/style.css" />
+
   <style>
-    body.login-page { display:grid; place-items:center; min-height:100vh; background:#f4f6f8; }
-    .login-box { width:min(92vw,380px); background:#fff; border-radius:12px; padding:20px; box-shadow:0 8px 24px rgba(0,0,0,.08); }
-    .login-box h1 { margin:0 0 14px; font-size:20px; display:flex; align-items:center; gap:8px; }
-    .login-actions { display:flex; gap:10px; justify-content:flex-end; }
-    .muted { color:#6b7280; font-size:12px; margin-top:6px; }
-    .btn-primary { background:#1f2937; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; min-height:44px; }
+    /* เสริมสไตล์เบา ๆ สำหรับหน้า Login (ย้ายไป style.css ได้ภายหลัง) */
+    body.login-page {
+      display: grid; place-items: center; min-height: 100vh;
+      background: #f4f6f8;
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif;
+    }
+    .login-box {
+      width: min(92vw, 380px);
+      background: #fff; border-radius: 12px; padding: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.08);
+    }
+    .login-box h1 {
+      margin: 0 0 14px; font-size: 20px; display: flex; align-items: center; gap: 8px;
+    }
+    .login-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .muted { color: #6b7280; font-size: 12px; margin-top: 6px; }
+    .btn-primary {
+      background:#1f2937; color:#fff; border:none; padding:10px 14px;
+      border-radius:8px; cursor:pointer; min-height:44px;
+    }
     .btn-primary:active { transform: translateY(1px); }
   </style>
 </head>
@@ -20,12 +38,13 @@
     <h1>🔒 Stock Management</h1>
     <label for="password">รหัสผ่าน</label>
     <input id="password" type="password" placeholder="กรอกรหัสผ่าน" />
-    <div class="muted">* ใช้สำหรับเข้าสู่เมนูหลักของระบบ</div>
+    <div class="muted">* ใส่รหัสผ่านเพื่อเข้าสู่เมนูหลัก</div>
     <div class="login-actions" style="margin-top:12px;">
-      <button id="btnLogin" class="btn-primary" type="button">LOGIN</button>
+      <button class="btn-primary" type="button" onclick="login()">LOGIN</button>
     </div>
   </div>
 
-  <script src="js/app.js" defer></script>
+  <!-- สำคัญ: ต้องมีไฟล์ js/app.js อยู่จริงในรีโป -->
+  <script src="js/app.js"></script>
 </body>
 </html>
