@@ -13,7 +13,24 @@ window.login = function() {
     alert('รหัสผ่านไม่ถูกต้อง');
   }
 };
+// เพิ่ม/ตรวจสอบส่วนนี้ใน Code.gs
+function handleUsers() {
+  var ss = SpreadsheetApp.getActive();
+  var sh = ss.getSheetByName(SHEET_NAME);
+  var h = getHeaderMap_(sh);
+  
+  // รายชื่อต้องสะกดให้ตรงกับหัวคอลัมน์ใน Excel ของคุณ
+  var USER_WHITELIST = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
+  
+  var activeUsers = USER_WHITELIST.map(function(name) {
+    return {
+      header: name,
+      colIndex: h[name] || -1
+    };
+  }).filter(function(u) { return u.colIndex > 0; }); // จะส่งไปเฉพาะชื่อที่มีหัวคอลัมน์อยู่จริงใน Sheet
 
+  return json({success: true, users: activeUsers});
+}
 // --- DATA LOADING ---
 async function loadAllWithSchema(){
   try {
