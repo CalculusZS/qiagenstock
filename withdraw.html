@@ -1,24 +1,28 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>เบิกอะไหล่</title>
+  <title>Withdraw Parts</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body onload="initPage()">
-  <div class="header">🔧 เบิกอะไหล่</div>
+<body onload="initWithdraw()">
+  <div class="header">
+    🔧 Withdraw
+    <div class="btn-group">
+      <button class="neutral" onclick="goBack()">Back</button>
+    </div>
+  </div>
 
   <div class="container" style="grid-template-columns:1fr;">
     <div class="card">
       <div class="btn-group" style="justify-content:space-between;">
-        <div>ผู้ใช้งาน: <strong id="username">-</strong></div>
-        user-select.htmlกลับหน้าเลือกผู้ใช้งาน</button>
+        <div>User: <strong id="username">-</strong></div>
       </div>
 
       <div class="btn-group" style="margin-top:8px;">
-        <input id="keyword" placeholder="ค้นหา Material (คอลัมน์ B)" onkeyup="if(event.key==='Enter') doSearch()" />
-        <button onclick="doSearch()">ค้นหา</button>
+        <input id="keyword" placeholder="Search Material (column B)" />
+        <button onclick="doSearch()">Search</button>
       </div>
 
       <table class="mt-12">
@@ -34,45 +38,47 @@
         <tbody id="data"></tbody>
       </table>
 
-      <div class="btn-group mt-12" style="align-items:center;">
-        <label for="materialSel">เลือก Material</label>
+      <div class="btn-group mt-12" style="align-items:center; flex-wrap:wrap;">
+        <label for="materialSel">Material</label>
         <select id="materialSel" class="w-100"></select>
 
-        <label for="qty" style="margin-left:12px;">จำนวน</label>
+        <label for="qty" style="margin-left:12px;">Qty</label>
         <input id="qty" type="number" min="1" style="max-width:140px;" />
 
-        <button id="btnConfirm" class="withdraw" onclick="doTransaction('withdraw')">ยืนยันเบิก</button>
+        <button id="btnConfirm" class="withdraw" onclick="doTransaction('withdraw')">
+          Confirm Withdraw
+        </button>
       </div>
     </div>
   </div>
 
-  <script src="js/app.js"></script>
+  <script src="js/app.js?v=5"></script>
   <script>
-    async function initPage(){
+    function initWithdraw(){
       const user = resolveUser();
       document.getElementById('username').textContent = user || '-';
-      await loadAllWithSchema(); // โหลดข้อมูล + สร้างตาราง/option จาก schema header
+      loadAllWithSchema().then(() => {
+        const kw = document.getElementById('keyword');
+        kw?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearch(); });
+      });
     }
     function doSearch(){
       const k = (document.getElementById('keyword').value || '').trim();
-      searchByMaterial(k); // ค้นหาเฉพาะคอลัมน์ B (Material)
+      searchByMaterial(k);
     }
     function doTransaction(type){
       const user = resolveUser();
-      if(!user) return alert("กรุณาเลือกผู้ใช้งานจากหน้าก่อนหน้า");
-
-      const code = document.getElementById('materialSel').value;
+      if(!user) return alert("Please select a user first");
+      const material = document.getElementById('materialSel').value;
       const qty = Number(document.getElementById('qty').value || 0);
-      if(!code) return alert("กรุณาเลือก Material");
-      if(!(qty > 0)) return alert("กรุณาใส่จำนวน > 0");
-
-      transactionV2({ type, material: code, qty, user })
-        .then(ok => {
-          alert(ok ? "สำเร็จ" : "ไม่สำเร็จ");
-          loadAllWithSchema();
-          document.getElementById('qty').value = "";
-          document.getElementById('materialSel').selectedIndex = 0;
-        });
+      if(!material) return alert("Please select a material");
+      if(!(qty > 0)) return alert("Please enter qty > 0");
+      transactionV2({ type, material, qty, user }).then(ok => {
+        alert(ok ? "Success" : "Failed");
+        loadAllWithSchema();
+        document.getElementById('qty').value = "";
+        document.getElementById('materialSel').selectedIndex = 0;
+      });
     }
   </script>
 </body>
