@@ -1,99 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select User</title>
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        /* สไตล์เพื่อให้หน้าตาเหมือนเดิมตามรูปภาพของคุณ */
-        body { background: #f8fafc; font-family: sans-serif; margin: 0; }
-        .header { background: #1e293b; color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 1.2rem; }
-        .container { max-width: 500px; margin: 20px auto; padding: 20px; background: white; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        #userGrid { display: grid; gap: 12px; margin-bottom: 25px; }
-        .user-btn { 
-            padding: 15px; background: white; border: 2px solid #e2e8f0; border-radius: 12px; 
-            text-align: center; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s;
-        }
-        .user-btn:hover { border-color: #2563eb; background: #f1f5f9; }
-        .active { border-color: #2563eb; background: #eff6ff; color: #2563eb; }
-        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn-main { padding: 15px; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Select User</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; float: right; margin: 10px; }
+    .sup-login-btn { background: #1e293b; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 20px; font-weight: bold; }
+    .user-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 10px; cursor: pointer; text-align: center; background: white; transition: 0.3s; }
+    .user-card:hover { background: #f0f7ff; border-color: #2563eb; }
+  </style>
 </head>
-<body onload="initUserPage()">
-    <div class="header">👤 SELECT USER</div>
+<body onload="onLoadSelectUser()">
+  <button class="logout-btn" onclick="logout()">Logout</button>
+
+  <div class="container" style="max-width: 400px; margin: 50px auto; padding: 20px;">
+    <h2 style="text-align: center;">👤 Select Your Name</h2>
     
-    <div class="container">
-        <p style="text-align:center; color:#64748b; margin-top:0;">Please select your name before proceeding:</p>
+    <div id="user_list">
+      </div>
+
+    <hr style="margin: 30px 0;">
+    
+    <button class="sup-login-btn" onclick="checkSupervisor()">🛡️ Supervisor Login</button>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    async function onLoadSelectUser() {
+        // บังคับให้เลือก User ใหม่ทุกครั้ง โดยการล้างค่าเก่าทิ้งทันทีที่เข้าหน้านี้
+        sessionStorage.removeItem('selectedUser');
         
-        <div id="userGrid">
-            <p style="text-align:center; padding:20px;">Loading names...</p>
-        </div>
+        const users = await window.loadUsers();
+        const container = document.getElementById('user_list');
+        container.innerHTML = users.map(u => `
+            <div class="user-card" onclick="selectUser('${u.header}')">
+                <strong>${u.header}</strong>
+            </div>
+        `).join('');
+    }
 
-        <div class="action-grid">
-            <button onclick="navigate('withdraw.html')" class="btn-main" style="background:#ef4444;">WITHDRAW</button>
-            <button onclick="navigate('return.html')" class="btn-main" style="background:#22c55e;">RETURN</button>
-            <button onclick="location.href='show-all.html'" class="btn-main" style="background:#94a3b8;">SHOW ALL</button>
-            <button onclick="checkSupervisor()" class="btn-main" style="background:#2563eb;">SUPERVISOR</button>
-        </div>
-    </div>
+    function selectUser(name) {
+        sessionStorage.setItem('selectedUser', name);
+        location.href = 'main.html'; // ไปหน้าเบิก-คืน
+    }
 
-    <script src="js/app.js"></script>
-    <script>
-        async function initUserPage() {
-            const grid = document.getElementById('userGrid');
-            try {
-                // เรียกใช้ฟังก์ชันจาก app.js
-                const users = await window.loadUsers();
-                
-                if (!users || users.length === 0) {
-                    grid.innerHTML = '<p style="color:red; text-align:center;">ไม่พบรายชื่อพนักงาน</p>';
-                    return;
-                }
-
-                grid.innerHTML = users.map(u => {
-                    // แก้ปัญหา [object Object] หรือ undefined
-                    // ตรวจสอบว่า u เป็น Object หรือไม่ ถ้าใช่ให้ดึงค่า name หรือค่าแรกออกมา
-                    let userName = "";
-                    if (typeof u === 'object' && u !== null) {
-                        userName = u.name || Object.values(u)[0];
-                    } else {
-                        userName = u;
-                    }
-
-                    if (!userName) return ""; // ข้ามถ้าไม่มีชื่อ
-
-                    return `
-                        <button class="user-btn" onclick="selectUser(this, '${userName}')">
-                            ${userName}
-                        </button>
-                    `;
-                }).join('');
-
-            } catch (err) {
-                grid.innerHTML = '<p style="color:red; text-align:center;">Error loading data</p>';
-                console.error(err);
-            }
-        }
-
-        function selectUser(btn, name) {
-            // ลบ class active จากปุ่มอื่น
-            document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('active'));
-            // เพิ่ม class active ให้ปุ่มที่กด
-            btn.classList.add('active');
-            // บันทึกชื่อลง Session
-            sessionStorage.setItem('selectedUser', name);
-        }
-
-        function navigate(path) {
-            const selected = sessionStorage.getItem('selectedUser');
-            if (!selected) {
-                alert("กรุณาเลือกชื่อผู้ใช้งานก่อน!");
-                return;
-            }
-            location.href = path;
-        }
-    </script>
+    function logout() {
+        sessionStorage.clear(); // ล้างข้อมูลทั้งหมด
+        location.href = 'index.html'; // กลับหน้า Login แรก
+    }
+  </script>
 </body>
 </html>
