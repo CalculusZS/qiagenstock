@@ -1,16 +1,15 @@
+<!-- all.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>All Stock</title>
-  <!-- your CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body onload="initAllStock()">
-  <!-- ===== Single Header (only one per page) ===== -->
   <div class="header">
-    <div class="title">📦 <span>All Stock</span></div>
+    <div class="title">📦 All Stock</div>
     <div class="actions">
       <button class="btn-ghost" onclick="goBack()">Back</button>
     </div>
@@ -18,16 +17,13 @@
 
   <div class="container">
     <div class="card stack">
-      <!-- Search ALL columns -->
       <div class="input-wrap">
         <span class="search-icon">🔎</span>
-        <input id="keywordAll" class="search-input"
-               placeholder="Search anything">
+        <input id="keywordAll" class="search-input" placeholder="Search anything (Instrument / Material / Product Name / Type / 0243)" />
         <button class="search-btn" onclick="doSearchAll()">Search</button>
       </div>
 
-      <!-- Table -->
-      <table class="mt-12">
+      <table>
         <thead>
           <tr>
             <th>Instrument</th>
@@ -42,8 +38,7 @@
     </div>
   </div>
 
-  <!-- your JS -->
-  <script src="js/app.js?v=8"></script>
+  <script src="js/app.js?v=9"></script>
   <script>
     function initAllStock(){
       loadAllWithSchema().then(() => {
