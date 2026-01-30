@@ -6,59 +6,53 @@
   <title>Return Parts</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    .search-box { position: sticky; top: 60px; z-index: 100; background: #0b1220; padding: 15px; margin: -15px -15px 15px -15px; }
-    .qty-inline { width: 65px !important; height: 40px; text-align: center; border: 2px solid #e5e7eb; border-radius: 8px; font-weight: bold; }
-    .btn-action { height: 40px; padding: 0 15px; font-weight: bold; border-radius: 8px; }
-    .stock-badge { display: block; font-size: 18px; font-weight: bold; color: #16a34a; text-align: center; }
-    .item-info { display: flex; flex-direction: column; gap: 2px; }
-    .item-info .mat { font-weight: 800; font-size: 15px; color: #1e293b; }
-    .item-info .prod { font-size: 12px; color: #64748b; line-height: 1.2; }
-    .item-info .inst { font-size: 10px; color: #16a34a; font-weight: bold; text-transform: uppercase; }
+    .search-box-sticky { position: sticky; top: 60px; z-index: 100; background: #0b1220; padding: 15px; margin: -15px -15px 15px -15px; }
+    .item-row td { vertical-align: middle; border-bottom: 1px solid #f1f5f9; padding: 12px 8px; background: #fff; }
+    .qty-input-inline { width: 65px !important; height: 40px; text-align: center; border: 2px solid #e2e8f0; border-radius: 8px; font-weight: bold; font-size: 16px; }
+    .btn-action-inline { height: 40px; padding: 0 15px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; }
+    .stock-val { font-size: 18px; font-weight: 800; color: #16a34a; text-align: center; }
+    .info-container { display: flex; flex-direction: column; }
+    .info-mat { font-weight: 800; font-size: 15px; color: #1e293b; }
+    .info-prod { font-size: 12px; color: #64748b; line-height: 1.2; }
+    .info-tag { font-size: 10px; color: #16a34a; font-weight: bold; text-transform: uppercase; }
   </style>
 </head>
 <body onload="initReturn()">
   <div class="header">
-    <div class="title">🔄 Return (คืนอะไหล่)</div>
+    <div class="title">🔄 Return (คืน)</div>
     <div class="actions"><button class="btn-ghost" onclick="goBack()">Back</button></div>
   </div>
 
   <div class="container">
-    <div class="card">
-      <div style="margin-bottom: 12px; font-size: 16px;">
-        ผู้คืน: <strong id="username" style="color:#16a34a;">-</strong>
-      </div>
-
-      <div class="search-box">
-        <input type="text" id="keyword" class="search-input" 
-               placeholder="🔍 ค้นหาอะไหล่ที่จะคืน..." oninput="doSearch()">
-      </div>
-
-      <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr style="font-size: 11px; color: #94a3b8; text-align: left;">
-            <th width="55%">รายละเอียดอะไหล่</th>
-            <th width="15%" style="text-align:center;">ในมือ</th>
-            <th width="30%" style="text-align:right;">คืนจำนวน</th>
-          </tr>
-        </thead>
-        <tbody id="data"></tbody>
-      </table>
+    <div style="padding: 10px; font-size: 14px; color: #fff;">
+      User: <strong id="username" style="color:#4ade80;">-</strong>
     </div>
+
+    <div class="search-box-sticky">
+      <input type="text" id="keyword" class="search-input" 
+             placeholder="🔍 ค้นหาอะไหล่ที่จะคืน..." oninput="doSearch()">
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; margin-top: 5px;">
+      <thead>
+        <tr style="font-size: 11px; color: #94a3b8; text-align: left;">
+          <th width="55%" style="padding: 8px;">DETAILS</th>
+          <th width="15%" style="text-align:center;">ON HAND</th>
+          <th width="30%" style="text-align:right; padding-right: 10px;">ACTION</th>
+        </tr>
+      </thead>
+      <tbody id="data"></tbody>
+    </table>
   </div>
 
   <script src="js/app.js"></script>
   <script>
     function initReturn(){
       const user = resolveUser();
-      if(!user) {
-        alert("กรุณาเลือกชื่อผู้ใช้งานก่อน");
-        location.href = 'user-select.html';
-        return;
-      }
+      if(!user) { alert("กรุณาเลือก User ก่อน"); location.href='user-select.html'; return; }
       document.getElementById('username').textContent = user;
       loadAllWithSchema('return'); 
     }
-
     function doSearch(){
       const k = document.getElementById('keyword').value;
       searchAll(k, 'return');
