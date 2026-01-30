@@ -1,30 +1,54 @@
-<script src="js/app.js"></script>
-<script>
-  (async function init() {
-    const grid = document.getElementById('userGrid');
-    grid.innerHTML = '<p>กำลังโหลดรายชื่อ...</p>';
-    
-    // เรียกฟังก์ชันจาก app.js
-    const users = await loadUsers(); 
-    
-    if (!users || users.length === 0) {
-      grid.innerHTML = '<p style="color:red;">ไม่พบรายชื่อ! ตรวจสอบหัวคอลัมน์ใน Excel</p>';
-      return;
-    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select User</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body onload="initUserPage()">
+    <div class="header">👤 Select User</div>
+    <div class="container">
+        <div id="userGrid" class="user-grid" style="display: grid; gap: 10px; margin: 20px 0;">
+            Loading users...
+        </div>
+        
+        <div class="cta-row" style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="navigate('withdraw.html')">Withdraw</button>
+            <button class="btn-success" onclick="navigate('return.html')">Return</button>
+        </div>
+    </div>
 
-    grid.innerHTML = users.map(name => {
-      // ตรวจสอบว่ามี user เดิมที่เลือกไว้หรือไม่
-      const isActive = (sessionStorage.getItem('selectedUser') === name) ? ' is-active' : '';
-      return `<button class="user-btn${isActive}" data-user="${name}">${name}</button>`;
-    }).join('');
+    <script src="js/app.js"></script>
+    <script>
+        async function initUserPage() {
+            const grid = document.getElementById('userGrid');
+            if (!grid) return; // ป้องกัน Error innerHTML ของ null
 
-    // ใส่ Event ให้ปุ่ม
-    grid.addEventListener('click', (e) => {
-      const btn = e.target.closest('.user-btn');
-      if (!btn) return;
-      document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      sessionStorage.setItem('selectedUser', btn.getAttribute('data-user'));
-    });
-  })();
-</script>
+            const users = await window.loadUsers();
+            if (users.length === 0) {
+                grid.innerHTML = "Error: Cannot load users. Check API URL.";
+                return;
+            }
+            
+            grid.innerHTML = users.map(name => 
+                `<button class="user-btn" onclick="select(this, '${name}')">${name}</button>`
+            ).join('');
+        }
+
+        function select(btn, name) {
+            document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            sessionStorage.setItem('selectedUser', name);
+        }
+
+        function navigate(path) {
+            if (!sessionStorage.getItem('selectedUser')) {
+                alert("Please select a user first!");
+                return;
+            }
+            location.href = path;
+        }
+    </script>
+</body>
+</html>
