@@ -9,11 +9,11 @@
     .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
     @media (max-width: 720px){ .grid-2{ grid-template-columns: 1fr; } }
     .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#f8fafc; border:1px solid #e5e7eb; }
-    /* Inspector Table Styles */
+    /* สไตล์ตารางใหม่ */
     .inspector-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; }
-    .inspector-table th, .inspector-table td { padding: 12px; border: 1px solid #e5e7eb; text-align: left; }
+    .inspector-table th, .inspector-table td { padding: 10px; border: 1px solid #e5e7eb; text-align: left; font-size: 14px; }
     .inspector-table th { background: #f1f5f9; font-weight: 600; }
-    .muted { color:#6b7280; font-size:12px; }
+    .muted { color:#6b7280; font-size:12px; margin-top: 8px; }
   </style>
 </head>
 <body onload="onSupLoad()">
@@ -30,19 +30,18 @@
       <h3 style="margin:0;">Add Stock to <span class="pill">0243 (Central)</span></h3>
       <div class="grid-2">
         <div>
-          <label for="sup_mat_add">Material (Column B)</label>
+          <label>Material (Column B)</label>
           <input id="sup_mat_add" list="materialList" placeholder="e.g., 9025180" />
           <datalist id="materialList"></datalist>
         </div>
         <div>
-          <label for="sup_qty_add">Qty</label>
+          <label>Qty</label>
           <input id="sup_qty_add" type="number" min="1" placeholder="e.g., 5" />
         </div>
       </div>
       <div class="row">
         <button class="btn-primary" onclick="supAddTo0243()">Add to 0243</button>
       </div>
-      <div class="muted">This increases the “0243” quantity for the specified Material.</div>
     </div>
 
     <div class="card stack">
@@ -54,19 +53,21 @@
           <button class="search-btn" onclick="supLoadMaterial()">Load</button>
         </div>
         <div class="row" style="align-items:center;">
-          <label class="pill"><input type="checkbox" id="sup_reconcile" style="transform:scale(1.1);" />
-            Auto-reconcile delta with 0243</label>
+          <label class="pill">
+            <input type="checkbox" id="sup_reconcile" style="transform:scale(1.1);" />
+            Auto-reconcile delta with 0243
+          </label>
         </div>
       </div>
 
-      <div id="inspector_table_wrapper" style="display:none; overflow-x:auto;">
+      <div id="sup_table_wrapper" style="display:none; overflow-x:auto;">
         <table class="inspector-table">
           <thead>
             <tr>
-              <th>Requester</th>
+              <th>User Name</th>
               <th>Material</th>
               <th>Product Name</th>
-              <th style="width:100px;">Qty</th>
+              <th style="width:80px;">Qty</th>
               <th style="text-align:center;">Action</th>
             </tr>
           </thead>
@@ -74,15 +75,14 @@
         </table>
       </div>
 
-      <div class="muted">Adjust each user's on-hand. Clicking "Used" updates columns I-N in the user's sheet.</div>
+      <div class="muted">* Clicking "Used" will update columns I-N and record the usage.</div>
     </div>
   </div>
 
-  <script src="js/app.js?v=14"></script>
+  <script src="js/app.js?v=15"></script>
   <script>
-    // ฟังก์ชันเดิมที่ใช้โหลดข้อมูลหน้า Supervisor
     async function onSupLoad(){
-      try{
+      try {
         if (typeof supRequire === 'function') supRequire();
         if (typeof loadAllWithSchema === 'function') {
           await loadAllWithSchema();
@@ -90,38 +90,32 @@
           dl.innerHTML = (Array.isArray(rows) ? rows : [])
             .map(r => `<option value="${r['Material']}">${r['Material']} - ${r['Product Name'] ?? ''}</option>`).join('');
         }
-      }catch(err){
-        console.error(err); alert('Failed to initialize supervisor page.');
-      }
+      } catch(e) { console.error(e); }
     }
 
-    // ฟังก์ชัน Add Stock (คงเดิม)
+    // ฟังก์ชัน Add Stock เดิม
     async function supAddTo0243(){
       const material = (document.getElementById('sup_mat_add').value || '').trim();
       const qty = Number(document.getElementById('sup_qty_add').value || 0);
-      if(!material) return alert('Please enter Material');
-      if(!(qty > 0)) return alert('Please enter Qty > 0');
-
-      const res = await supAddStock(material, qty); 
-      alert(res.success ? 'Added successfully' : `Failed: ${res.msg || 'Unknown error'}`);
-
-      if(res.success){
+      if(!material || qty <= 0) return alert('Please enter Material and Qty');
+      const res = await supAddStock(material, qty);
+      alert(res.success ? 'Added successfully' : 'Failed: ' + res.msg);
+      if(res.success) {
         document.getElementById('sup_qty_add').value = '';
-        const current = (document.getElementById('sup_mat_check').value || '').trim();
-        if(current && current === material) supLoadMaterial();
+        if(document.getElementById('sup_mat_check').value === material) supLoadMaterial();
       }
     }
 
-    // ฟังก์ชันโหลดข้อมูลเข้าตาราง (ปรับปรุงใหม่)
+    // ฟังก์ชัน Load ข้อมูล (ปรับใหม่ให้โชว์เป็นตาราง)
     async function supLoadMaterial(){
       const material = (document.getElementById('sup_mat_check').value || '').trim();
       if(!material) return alert('Please enter Material');
 
       const res = await supGetMaterial(material); 
-      if(!res.success){ alert(res.msg || 'Material not found'); return; }
+      if(!res.success) return alert(res.msg || 'Not found');
+      
       const data = res.data || {};
-
-      document.getElementById('inspector_table_wrapper').style.display = 'block';
+      document.getElementById('sup_table_wrapper').style.display = 'block';
       const tbody = document.getElementById('sup_users_table_body');
       
       tbody.innerHTML = (data.users || []).map(u => `
@@ -130,29 +124,27 @@
           <td>${material}</td>
           <td>${data.productName || ''}</td>
           <td>
-            <input type="number" min="0" id="sup_user_${u.name}" value="${Number(u.qty || 0)}" style="width:70px;" />
+            <input type="number" id="sup_user_${u.name}" value="${Number(u.qty || 0)}" style="width:60px;padding:4px;" />
           </td>
           <td style="text-align:center;">
-            <button class="btn-primary" style="background-color: #10b981; border-color: #10b981;" 
-                    onclick="supMarkAsUsed('${material}','${u.name}')">
-              Used
-            </button>
+            <button class="btn-primary" style="background-color:#10b981; border-color:#10b981;" 
+                    onclick="supMarkAsUsed('${material}','${u.name}')">Used</button>
           </td>
         </tr>
       `).join('');
     }
 
-    // ฟังก์ชันบันทึกข้อมูลและส่งค่าไปอัปเดต Column I-N (ใหม่)
+    // ฟังก์ชันกดปุ่ม Used (อัปเดต I-N)
     async function supMarkAsUsed(material, user){
       const input = document.getElementById(`sup_user_${user}`);
       const qty = Number(input?.value || 0);
       const reconcile = document.getElementById('sup_reconcile')?.checked ? 'true' : 'false';
 
-      if(!confirm(`Confirm update for ${user}?`)) return;
+      if(!confirm(`Confirm usage update for ${user}?`)) return;
 
-      const res = await supSetUserQty({ material, user, qty, reconcile, action: 'MARK_USED' }); 
-      alert(res.success ? 'Updated and recorded to Columns I-N' : `Error: ${res.msg}`);
-      
+      // ส่ง status: 'USED' ไปเพื่อให้ GAS รู้ว่าต้องลง Log แบบไหน
+      const res = await supSetUserQty({ material, user, qty, reconcile, status: 'USED' }); 
+      alert(res.success ? 'Updated Columns I-N successfully' : 'Error: ' + res.msg);
       if(res.success) supLoadMaterial();
     }
   </script>
