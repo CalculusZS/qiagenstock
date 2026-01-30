@@ -3,25 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>สต็อกทั้งหมด</title>
   <link rel="stylesheet" href="css/style.css" />
-  <title>ดูสต็อกทั้งหมด</title>
 </head>
-<body onload="loadAll()">
+<body onload="loadAllWithSchema()">
   <div class="header">📦 All Stock</div>
 
-  <div class="container">
-    <table>
-      <thead>
-        <tr>
-          <th>Material</th>
-          <th>Name</th>
-          <th>Stock</th>
-        </tr>
-      </thead>
-      <tbody id="data"></tbody>
-    </table>
+  <div class="container" style="grid-template-columns:1fr;">
+    <div class="card">
+      <div class="btn-group" style="justify-content:flex-end;">
+        user-select.htmlย้อนกลับ</button>
+      </div>
+
+      <table class="mt-12">
+        <thead>
+          <tr>
+            <th>Instrument</th>
+            <th>Material</th>
+            <th>Product Name</th>
+            <th>Type</th>
+            <th>0243</th>
+          </tr>
+        </thead>
+        <tbody id="data"></tbody>
+      </table>
+    </div>
   </div>
 
-  <script src="js/app.js?v=1"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
