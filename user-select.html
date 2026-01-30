@@ -1,52 +1,84 @@
-<div class="header">
-  👤 Select User
-  <div class="btn-group">
-    <button class="neutral" onclick="goBack()">Back</button>
-  </div>
-</div>
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>เลือกผู้ใช้งาน</title>
+  <title>Select User</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    .wrap { max-width: 640px; margin: 24px auto; }
+    /* --- Quick styles for user buttons grid (can move to style.css) --- */
+    .user-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .user-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 14px 12px; border-radius: 12px; border: 1px solid #e5e7eb;
+      background: #fff; color: #111827; font-weight: 600;
+      cursor: pointer; min-height: 48px; transition: box-shadow .2s, transform .02s;
+    }
+    .user-btn:hover { box-shadow: 0 4px 12px rgba(0,0,0,.10); }
+    .user-btn:active { transform: translateY(1px); }
+    .user-btn.is-active {
+      border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+    }
+    .cta-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
   </style>
 </head>
 <body>
-  <div class="header">👤 Select User</div>
-
-  <div class="container" style="grid-template-columns:1fr;">
-    <div class="card wrap">
-      <label for="userSel">User</label>
-      <select id="userSel"></select>
-
-      <div class="btn-group" style="margin-top:12px;">
-        <button class="withdraw" onclick="go('withdraw.html')">Withdraw</button>
-        <button class="return"   onclick="go('return.html')">Return</button>
-        <button class="neutral"  onclick="go('all.html')">Show All Part</button>
-      </div>
+  <div class="header">
+    <div class="title">👤 <span>Select User</span></div>
+    <div class="actions">
+      <button class="btn-ghost" onclick="goBack()">Back</button>
     </div>
   </div>
 
-  <script src="js/app.js?v=1"></script>
-  <script>
-    // โหลดรายชื่อผู้ใช้จากคอลัมน์ H–M (Apps Script -> action=users)
-    loadUsers().then(users => {
-      const sel = document.getElementById('userSel');
-      sel.innerHTML = users.map(u => `<option value="${encodeURIComponent(u.header)}">${u.header}</option>`).join("");
-      const saved = sessionStorage.getItem('selectedUser');
-      if (saved) sel.value = encodeURIComponent(saved);
-    });
+  <div class="container">
+    <div class="card">
+      <p style="margin:0 0 6px;">Please choose a user before proceeding:</p>
+      <div id="userGrid" class="user-grid"></div>
 
-    function go(path){
-      const sel = document.getElementById('userSel');
-      const username = decodeURIComponent(sel.value || "");
-      if(!username){ alert("Please select user"); return; }
-      sessionStorage.setItem('selectedUser', username);
-      location.href = `${path}?user=${encodeURIComponent(username)}`;
+      <div class="cta-row">
+        <button class="btn-danger"  onclick="goNext('withdraw.html')">Withdraw</button>
+        <button class="btn-success" onclick="goNext('return.html')">Return</button>
+        <button class="btn-neutral" onclick="goNext('all.html')">Show All</button>
+      </div>
+      <p style="color:#6b7280; margin:8px 0 0;">Tip: you can change the user anytime by coming back to this page.</p>
+    </div>
+  </div>
+
+  <script src="js/app.js?v=8"></script>
+  <script>
+    // 1) Load users and render as buttons
+    (async function init(){
+      const users = await loadUsers(); // expects [{header:'Kitti'},{header:'Tatchai'}, ...]
+      const grid  = document.getElementById('userGrid');
+      const saved = sessionStorage.getItem('selectedUser') || '';
+
+      grid.innerHTML = users.map(u => {
+        const name = u.header;
+        const isActive = (name === saved) ? ' is-active' : '';
+        return `<button class="user-btn${isActive}" data-user="${name}">${name}</button>`;
+      }).join('');
+
+      grid.addEventListener('click', (e) => {
+        const btn = e.target.closest('.user-btn');
+        if(!btn) return;
+        // toggle active
+        [...grid.querySelectorAll('.user-btn')].forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        const username = btn.getAttribute('data-user');
+        sessionStorage.setItem('selectedUser', username);
+      });
+    })();
+
+    // 2) Navigate with selected user
+    function goNext(path){
+      const user = sessionStorage.getItem('selectedUser') || '';
+      if(!user){ alert('Please select a user first'); return; }
+      location.href = `${path}?user=${encodeURIComponent(user)}`;
     }
   </script>
 </body>
