@@ -1,4 +1,3 @@
-<!-- return.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,9 +9,7 @@
 <body onload="initReturn()">
   <div class="header">
     <div class="title">🔄 Return</div>
-    <div class="actions">
-      <button class="btn-ghost" onclick="goBack()">Back</button>
-    </div>
+    <div class="actions"><button class="btn-ghost" onclick="goBack()">Back</button></div>
   </div>
 
   <div class="container">
@@ -28,15 +25,9 @@
       </div>
 
       <table>
-        <thead>
-          <tr>
-            <th>Instrument</th>
-            <th>Material</th>
-            <th>Product Name</th>
-            <th>Type</th>
-            <th>0243</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th>Instrument</th><th>Material</th><th>Product Name</th><th>Type</th><th>0243</th>
+        </tr></thead>
         <tbody id="data"></tbody>
       </table>
 
@@ -56,7 +47,7 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=9"></script>
+  <script src="js/app.js?v=14"></script>
   <script>
     function initReturn(){
       const user = resolveUser();
@@ -66,10 +57,7 @@
         kw?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearchAll(); });
       });
     }
-    function doSearchAll(){
-      const k = (document.getElementById('keyword').value || '').trim();
-      searchAll(k);
-    }
+    function doSearchAll(){ const k = (document.getElementById('keyword').value || '').trim(); searchAll(k); }
     function doTransaction(type){
       const user = resolveUser();
       if(!user) return alert("Please select a user first");
