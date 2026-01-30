@@ -9,10 +9,19 @@
     .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
     @media (max-width: 720px){ .grid-2{ grid-template-columns: 1fr; } }
     .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#f8fafc; border:1px solid #e5e7eb; }
-    .inspector-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #fff; }
-    .inspector-table th, .inspector-table td { padding: 10px; border: 1px solid #e5e7eb; text-align: left; font-size: 14px; }
-    .inspector-table th { background: #f1f5f9; font-weight: 600; }
-    .muted { color:#6b7280; font-size:12px; margin-top: 8px; }
+    
+    /* สไตล์ตารางใหม่แบบ Responsive */
+    .table-container { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid #e5e7eb; }
+    .inspector-table { width: 100%; border-collapse: collapse; background: #fff; min-width: 600px; }
+    .inspector-table th { background: #f8fafc; padding: 12px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; color: #475569; }
+    .inspector-table td { padding: 12px 15px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; color: #1e293b; }
+    .inspector-table tr:last-child td { border-bottom: none; }
+    
+    .input-qty { width: 70px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; }
+    .btn-used { background-color: #10b981; border: none; color: white; padding: 7px 15px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: 0.2s; }
+    .btn-used:hover { background-color: #059669; }
+    
+    .muted { color:#6b7280; font-size:12px; margin-top: 10px; }
   </style>
 </head>
 <body onload="onSupLoad()">
@@ -59,25 +68,28 @@
         </div>
       </div>
 
-      <div id="sup_table_wrapper" style="display:none; overflow-x:auto;">
-        <table class="inspector-table">
-          <thead>
-            <tr>
-              <th>User Name</th>
-              <th>Material</th>
-              <th>Product Name</th>
-              <th style="width:80px;">Qty</th>
-              <th style="text-align:center;">Action</th>
-            </tr>
-          </thead>
-          <tbody id="sup_users_table_body"></tbody>
-        </table>
+      <div id="sup_table_wrapper" style="display:none;">
+        <div class="table-container">
+          <table class="inspector-table">
+            <thead>
+              <tr>
+                <th>User Name</th>
+                <th>Material</th>
+                <th>Product Name</th>
+                <th>Qty</th>
+                <th style="text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="sup_users_table_body">
+              </tbody>
+          </table>
+        </div>
+        <div class="muted">* Clicking "Used" will update columns I-N and record usage log.</div>
       </div>
-      <div class="muted">* Clicking "Used" will update columns I-N and record usage log.</div>
     </div>
   </div>
 
-  <script src="js/app.js?v=16"></script>
+  <script src="js/app.js?v=17"></script> 
   <script>
     async function onSupLoad(){
       try {
@@ -103,27 +115,30 @@
       }
     }
 
+    // ฟังก์ชัน Load ข้อมูลและสร้างตาราง
     async function supLoadMaterial(){
       const material = (document.getElementById('sup_mat_check').value || '').trim();
       if(!material) return alert('Please enter Material');
+
       const res = await supGetMaterial(material); 
       if(!res.success) return alert(res.msg || 'Not found');
       
       const data = res.data || {};
-      document.getElementById('sup_table_wrapper').style.display = 'block';
+      const wrapper = document.getElementById('sup_table_wrapper');
       const tbody = document.getElementById('sup_users_table_body');
+
+      wrapper.style.display = 'block'; // แสดงตาราง
       
       tbody.innerHTML = (data.users || []).map(u => `
         <tr>
           <td style="font-weight:600;">${u.name}</td>
           <td>${material}</td>
-          <td>${data.productName || ''}</td>
+          <td>${data.productName || 'N/A'}</td>
           <td>
-            <input type="number" id="sup_user_${u.name}" value="${Number(u.qty || 0)}" style="width:65px;padding:4px;" />
+            <input type="number" class="input-qty" id="sup_user_${u.name}" value="${Number(u.qty || 0)}" />
           </td>
           <td style="text-align:center;">
-            <button class="btn-primary" style="background-color:#10b981; border-color:#10b981;" 
-                    onclick="supMarkAsUsed('${material}','${u.name}')">Used</button>
+            <button class="btn-used" onclick="supMarkAsUsed('${material}','${u.name}')">Used</button>
           </td>
         </tr>
       `).join('');
@@ -133,12 +148,24 @@
       const input = document.getElementById(`sup_user_${user}`);
       const qty = Number(input?.value || 0);
       const reconcile = document.getElementById('sup_reconcile')?.checked ? 'true' : 'false';
+
       if(!confirm(`Confirm update for ${user}?`)) return;
 
-      // ส่ง status: 'USED' ไปที่ GAS
-      const res = await supSetUserQty({ material, user, qty, reconcile, status: 'USED' }); 
-      alert(res.success ? 'Success: Columns I-N updated' : 'Error: ' + res.msg);
-      if(res.success) supLoadMaterial();
+      // ส่งค่าไปยัง Google Apps Script
+      const res = await supSetUserQty({ 
+        material, 
+        user, 
+        qty, 
+        reconcile, 
+        status: 'USED' 
+      }); 
+
+      if(res.success) {
+        alert('Successfully updated Columns I-N');
+        supLoadMaterial(); // Refresh ข้อมูลในตาราง
+      } else {
+        alert('Error: ' + res.msg);
+      }
     }
   </script>
 </body>
