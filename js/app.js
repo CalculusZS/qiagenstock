@@ -1,99 +1,88 @@
-// ====== CONFIG ======
-const API = "https://script.google.com/macros/s/AKfycbwG6Hm-9nLBTV_OC5iq_9KC_zl0cV9DHcddz39qN1dAuDl_cEmd0OX9UU6WNimAoPsAjQ/exec";
-const PASSWORD = "Service"; // เดโมเท่านั้น โปรดอย่า hard-code ในโปรดักชัน
-let materials = [];
+// ===== CONFIG =====
+const API = "https://script.google.com/macros/s/AKfycby8cW6GDzhBZ7_4d33vr2ZtzElt8KPQC_dGd26nZTwch2__IAzg1QYJHGcmPjVanMtsFQ/exec";   // <<== ใส่ URL Web App จริง
+const PASSWORD = "Service";
 
-// ====== HELPERS ======
-function qs(id){ return document.getElementById(id); }
-function numberOr0(x){ const n = Number(x); return Number.isFinite(n) ? n : 0; }
+let SCHEMA = {};     // จะ map index ของ header ตามชื่อ
+let rows = [];       // เก็บข้อมูลดิบจาก API (array of objects)
 
-// ====== LOGIN (จำเป็นสำหรับ index.html) ======
-function login(){
-  const input = document.getElementById('password');
-  const pass = (input?.value || '').trim();
-  if(pass === PASSWORD){
-    location.href = 'menu.html'; // ปรับปลายทางตามที่ต้องการ
-  }else{
-    alert('รหัสผ่านไม่ถูกต้อง');
-    input?.focus();
-  }
+// ===== UTIL =====
+const qs = id => document.getElementById(id);
+function getQS(name){
+  const u = new URL(location.href);
+  return u.searchParams.get(name);
+}
+function resolveUser(){
+  return getQS('user') || sessionStorage.getItem('selectedUser') || '';
 }
 
-// ====== RENDER ตาราง ======
-function render(list){
-  const tb = qs("data");
-  if(!tb) return; // หน้า login/เมนูที่ไม่มีตาราง ให้ข้าม
-  tb.innerHTML = list.map(m => `
+// ===== UI BUILDERS =====
+function renderTable(list){
+  const tb = qs('data');
+  if(!tb) return;
+  tb.innerHTML = list.map(r => `
     <tr>
-      <td>${m.code ?? ""}</td>
-      <td>${m.name ?? ""}</td>
-      <td class="num">${m.qty ?? 0}</td>
+      <td>${r.Instrument ?? ''}</td>
+      <td>${r.Material ?? ''}</td>
+      <td>${r['Product Name'] ?? ''}</td>
+      <td>${r.Type ?? ''}</td>
+      <td class="num">${r['0243'] ?? 0}</td>
     </tr>
-  `).join("");
+  `).join('');
 }
 
-// ====== เติมรายการใน <select> ======
-function loadSelect(list){
-  const sel = qs("material");
+function renderSelect(list){
+  const sel = qs('materialSel');
   if(!sel) return;
-  sel.innerHTML = list.map(m =>
-    `<option value="${m.code}">${m.code} - ${m.name}</option>`
-  ).join("");
+  sel.innerHTML = list.map(r => `
+    <option value="${r.Material}">${r.Material} - ${r['Product Name'] ?? ''}</option>
+  `).join('');
 }
 
-// ====== ดึงข้อมูลทั้งหมด ======
-function loadAll(){
-  fetch(`${API}?action=list&password=${PASSWORD}`)
-    .then(r => r.json())
-    .then(res => {
-      if(!res.success) return alert("โหลดข้อมูลไม่สำเร็จ");
-      materials = Array.isArray(res.data) ? res.data : [];
-      render(materials);
-      loadSelect(materials);
-    })
-    .catch(() => alert("เครือข่ายขัดข้อง กรุณาลองใหม่"));
+// ===== API CALLS =====
+async function loadUsers(){
+  const url = `${API}?action=users&password=${encodeURIComponent(PASSWORD)}`;
+  const res = await fetch(url).then(r => r.json());
+  if(!res.success) { alert(res.msg || 'โหลดผู้ใช้ไม่สำเร็จ'); return []; }
+  // res.users = [{header:"ชื่อผู้ใช้", colIndex:12}, ...]
+  return res.users;
 }
 
-// ====== ค้นหา ======
-function searchMaterial(k){
-  k = (k || "").toLowerCase();
-  const filtered = !k ? materials : materials.filter(m =>
-    (m.code || "").toLowerCase().includes(k) ||
-    (m.name || "").toLowerCase().includes(k)
+// โหลดข้อมูลทั้งหมด + schema จาก header
+async function loadAllWithSchema(){
+  const url = `${API}?action=list2&password=${encodeURIComponent(PASSWORD)}`;
+  const res = await fetch(url).then(r => r.json()).catch(() => ({success:false}));
+  if(!res?.success){ alert(res.msg || 'โหลดข้อมูลไม่สำเร็จ'); return; }
+  SCHEMA = res.schema;      // { Instrument:0, Material:1, ... }
+  rows   = res.rows || [];  // array of objects keyed by header
+
+  renderTable(rows);
+  renderSelect(rows);
+}
+
+// ค้นหาเฉพาะคอลัมน์ B (Material)
+function searchByMaterial(keyword){
+  const k = (keyword || '').toLowerCase();
+  const filtered = !k ? rows : rows.filter(r =>
+    (r.Material || '').toLowerCase().includes(k)
   );
-  render(filtered);
-  loadSelect(filtered);
+  renderTable(filtered);
+  renderSelect(filtered);
 }
 
-// ====== ทำรายการเบิก/คืน ======
-function transaction(type){
-  const btn = document.getElementById('btnConfirm') || this;
-  if(btn && btn.disabled) return;
-
-  const sel = qs("material");
-  const code = sel ? sel.value : "";
-  const qty  = numberOr0(qs("qty")?.value);
-
-  if(!code){ alert("กรุณาเลือกอะไหล่"); return; }
-  if(!(qty > 0)){ alert("กรุณาใส่จำนวนมากกว่า 0"); return; }
-
+// ทำธุรกรรม (withdraw/return) พร้อมผู้ใช้
+async function transactionV2({type, material, qty, user}){
+  const btn = qs('btnConfirm');
   if(btn) btn.disabled = true;
 
-  fetch(`${API}?action=${type}&code=${encodeURIComponent(code)}&qty=${qty}&password=${PASSWORD}`)
-    .then(r => r.json())
-    .then(res => {
-      if(!res.success) return alert(res.msg || "ทำรายการไม่สำเร็จ");
-      alert("สำเร็จ");
-      loadAll();
-      if(qs("qty")) qs("qty").value = "";
-      if(sel) sel.selectedIndex = 0;
-    })
-    .catch(() => alert("เครือข่ายขัดข้อง กรุณาลองใหม่"))
-    .finally(() => { if(btn) btn.disabled = false; });
+  const url = `${API}?action=${encodeURIComponent(type)}&password=${encodeURIComponent(PASSWORD)}&material=${encodeURIComponent(material)}&qty=${encodeURIComponent(qty)}&user=${encodeURIComponent(user)}`;
+  try{
+    const res = await fetch(url).then(r => r.json());
+    if(!res.success){ alert(res.msg || 'ทำรายการไม่สำเร็จ'); return false; }
+    return true;
+  }catch(e){
+    alert('เครือข่ายขัดข้อง กรุณาลองใหม่');
+    return false;
+  }finally{
+    if(btn) btn.disabled = false;
+  }
 }
-
-// ====== NAV ======
-function logout(){ location.href = "index.html"; }
-
-// ====== COMPAT (กัน error หน้าเก่า) ======
-function loadMaterials(){ loadAll(); }
