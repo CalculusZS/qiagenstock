@@ -1,19 +1,31 @@
-:root { --brand: #1e293b; --accent: #2563eb; --success: #16a34a; --danger: #dc2626; }
+:root {
+  --bg: #f8fafc; --card: #ffffff; --brand: #0f172a;
+  --accent: #2563eb; --success: #22c55e; --danger: #ef4444;
+}
 
-body { font-family: sans-serif; margin: 0; background: #f1f5f9; }
+body { background: var(--bg); color: #1e293b; margin: 0; padding-bottom: 50px; }
 
-/* ปรับ Header ให้อ่านง่าย */
-.header { background: var(--brand); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+/* Table Style */
+table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+th { color: #64748b; font-size: 12px; text-transform: uppercase; padding: 10px; }
+td { background: var(--card); padding: 12px; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; }
+td:first-child { border-left: 1px solid #f1f5f9; border-radius: 12px 0 0 12px; }
+td:last-child { border-right: 1px solid #f1f5f9; border-radius: 0 12px 12px 0; }
 
-/* ปรับตารางให้เลื่อนซ้ายขวาได้ในมือถือ */
-.table-container { width: 100%; overflow-x: auto; background: white; border-radius: 8px; }
-table { width: 100%; border-collapse: collapse; min-width: 600px; }
-th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+/* Inline Action */
+.action-cell { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+.qty-inline {
+  width: 60px; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;
+  text-align: center; font-size: 16px; font-weight: bold;
+}
+.btn-sm { padding: 8px 16px; border-radius: 8px; font-weight: bold; min-height: 40px; }
 
-/* ขยายขนาดปุ่มให้กดง่าย (Mobile Friendly) */
-button { min-height: 48px; padding: 10px 20px; border-radius: 8px; cursor: pointer; border: none; font-size: 16px; }
-.btn-primary { background: var(--accent); color: white; }
-.btn-danger { background: var(--danger); color: white; }
-
-/* การแสดงผล Card */
-.card { background: white; margin: 10px; padding: 16px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+/* Search Bar */
+.search-container {
+  position: sticky; top: 60px; z-index: 40; background: var(--bg);
+  padding: 10px 0; margin-bottom: 10px;
+}
+.search-input {
+  width: 100%; padding: 12px 40px; border-radius: 15px; border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-size: 16px;
+}
