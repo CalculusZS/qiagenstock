@@ -1,202 +1,92 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Supervisor – Update Stock</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="css/style.css">
   <style>
-    /* การตกแต่งเพิ่มเติมสำหรับหน้า Supervisor */
-    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-    @media (max-width: 720px){ .grid-2{ grid-template-columns: 1fr; } }
-    
-    .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#f8fafc; border:1px solid #e5e7eb; font-size: 14px; }
-    
-    /* สไตล์ตาราง Inspector */
-    .table-container { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .inspector-table { width: 100%; border-collapse: collapse; background: #fff; min-width: 650px; }
-    .inspector-table th { background: #f1f5f9; padding: 12px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; color: #475569; }
-    .inspector-table td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #1e293b; }
-    .inspector-table tr:hover { background-color: #f8fafc; }
-    
-    .input-qty { width: 80px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-weight: bold; color: #0f172a; }
-    .btn-used { background-color: #10b981; border: none; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
-    .btn-used:hover { background-color: #059669; transform: translateY(-1px); }
-    .btn-used:active { transform: translateY(0); }
-    
-    .muted { color:#64748b; font-size:12px; margin-top: 12px; font-style: italic; }
+    .inspector-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    .inspector-table th, .inspector-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    .inspector-table th { background-color: #f4f4f4; }
+    .input-qty { width: 60px; padding: 5px; text-align: center; }
+    .btn-used { background: #28a745; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; }
   </style>
 </head>
 <body onload="onSupLoad()">
   <div class="header">
-    <div class="title">🛠️ <span>Supervisor Panel</span></div>
-    <div class="actions">
-      <button class="btn-ghost" onclick="supLogout(); goBack();">Sign out</button>
-      <button class="btn-ghost" onclick="goBack()">Back</button>
-    </div>
+    <div class="title">Supervisor Panel</div>
+    <button onclick="goBack()">Back</button>
   </div>
 
   <div class="container">
-    <div class="card stack">
-      <h3 style="margin:0;">Add Stock to <span class="pill">Warehouse 0243</span></h3>
-      <div class="grid-2">
-        <div>
-          <label>Material Number</label>
-          <input id="sup_mat_add" list="materialList" placeholder="ค้นหาหรือพิมพ์รหัส..." />
-          <datalist id="materialList"></datalist>
-        </div>
-        <div>
-          <label>Quantity to Add</label>
-          <input id="sup_qty_add" type="number" min="1" placeholder="จำนวน..." />
-        </div>
-      </div>
-      <div class="row">
-        <button class="btn-primary" onclick="supAddTo0243()">Add to Stock</button>
-      </div>
-    </div>
-
-    <div class="card stack">
-      <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <h3 style="margin:0;">Material Inspector <span style="font-size: 14px; font-weight: normal; color: #64748b;">(Auto-load items > 0)</span></h3>
-        <label class="pill" style="cursor: pointer; background: #fff;">
-          <input type="checkbox" id="sup_reconcile" style="width: 16px; height: 16px;" />
-          <span>Auto-reconcile with 0243</span>
-        </label>
-      </div>
-
-      <div id="sup_table_wrapper">
-        <div class="table-container">
-          <table class="inspector-table">
-            <thead>
-              <tr>
-                <th>User Name</th>
-                <th>Material</th>
-                <th>Product Description</th>
-                <th>Used Qty</th>
-                <th style="text-align: center;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="sup_users_table_body">
-              <tr><td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">Loading data...</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <p class="muted">* ระบุจำนวนที่ **"ใช้ไป"** ในช่อง Used Qty แล้วกดปุ่ม Used เพื่อตัดยอดออกจากชื่อคนนั้นๆ ใน Google Sheet</p>
-      </div>
+    <div class="card">
+      <h3>Material Inspector (Qty > 0)</h3>
+      <label><input type="checkbox" id="sup_reconcile"> Auto-reconcile with 0243</label>
+      <table class="inspector-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Material</th>
+            <th>Product Name</th>
+            <th>Qty to Subtract</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="sup_users_table_body"></tbody>
+      </table>
     </div>
   </div>
 
-  <script src="js/app.js?v=42"></script>
-  
+  <script src="js/app.js"></script>
   <script>
-    // รายชื่อผู้ใช้ต้องตรงกับหัวตารางใน Sheet (I-N)
-    const USER_WHITELIST = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
+    const USERS = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
 
-    async function onSupLoad(){
-      // ตรวจสอบสิทธิ์
-      if (typeof supRequire === 'function') supRequire();
-      await refreshSupervisorData();
+    async function onSupLoad() {
+      await refreshTable();
     }
 
-    // ฟังก์ชันรีเฟรชข้อมูลทั้งหมด
-    async function refreshSupervisorData() {
-      if (typeof loadAllWithSchema === 'function') {
-        await loadAllWithSchema(); // โหลด rows ล่าสุด
-        renderInspectorTable();
-        updateMaterialDatalist();
-      }
-    }
-
-    // อัปเดตรายการค้นหา Material
-    function updateMaterialDatalist() {
-      const dl = document.getElementById('materialList');
-      if (!dl || !rows) return;
-      dl.innerHTML = rows.map(r => 
-        `<option value="${r['Material']}">${r['Material']} - ${r['Product Name'] || ''}</option>`
-      ).join('');
-    }
-
-    // สร้างตารางจากข้อมูลที่มี Qty > 0
-    function renderInspectorTable() {
+    async function refreshTable() {
+      await loadAllWithSchema(); // โหลดข้อมูลจาก rows ใน app.js
       const tbody = document.getElementById('sup_users_table_body');
       let html = '';
-
+      
       rows.forEach(row => {
-        USER_WHITELIST.forEach(user => {
-          const currentQty = Number(row[user] || 0);
-          if (currentQty > 0) {
-            // สร้าง Unique ID สำหรับ input ของแต่ละแถว
-            const inputId = `input_${row['Material']}_${user}`;
-            html += `
-              <tr>
-                <td><strong>${user}</strong></td>
-                <td>${row['Material']}</td>
-                <td style="font-size: 0.9em; color: #475569;">${row['Product Name'] || '-'}</td>
-                <td>
-                  <input type="number" class="input-qty" id="${inputId}" value="${currentQty}" min="1" max="${currentQty}" />
-                  <span style="font-size: 11px; color: #94a3b8; display: block;">Available: ${currentQty}</span>
-                </td>
-                <td style="text-align:center;">
-                  <button class="btn-used" onclick="handleUsedAction('${row['Material']}', '${user}')">Used</button>
-                </td>
-              </tr>
-            `;
+        USERS.forEach(user => {
+          const val = Number(row[user] || 0);
+          if (val > 0) {
+            const uid = `id_${row['Material']}_${user}`;
+            html += `<tr>
+              <td>${user}</td>
+              <td>${row['Material']}</td>
+              <td>${row['Product Name'] || ''}</td>
+              <td><input type="number" class="input-qty" id="${uid}" value="${val}"></td>
+              <td><button class="btn-used" onclick="doUsed('${row['Material']}','${user}')">Used</button></td>
+            </tr>`;
           }
         });
       });
-
-      tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:30px;">ไม่มีรายการอะไหล่ค้างในระบบ (ยอดเป็น 0 ทั้งหมด)</td></tr>';
+      tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">No data</td></tr>';
     }
 
-    // ฟังก์ชันเมื่อกดปุ่ม Used
-    async function handleUsedAction(material, user) {
-      const inputId = `input_${material}_${user}`;
-      const qtyInput = document.getElementById(inputId);
-      const qtyToSubtract = Number(qtyInput.value);
-      const isReconcile = document.getElementById('sup_reconcile').checked ? 'true' : 'false';
+    async function doUsed(mat, user) {
+      const qty = Number(document.getElementById(`id_${mat}_${user}`).value);
+      const rec = document.getElementById('sup_reconcile').checked ? 'true' : 'false';
+      
+      if(!confirm(`ตัดยอด ${qty} หน่วย จาก ${user}?`)) return;
 
-      if (qtyToSubtract <= 0) {
-        alert('กรุณาระบุจำนวนที่ใช้ไปอย่างน้อย 1');
-        return;
-      }
-
-      if (!confirm(`ยืนยันการใช้ ${qtyToSubtract} หน่วย สำหรับ ${user}?\nยอดใน Google Sheet จะถูกหักลบออก`)) return;
-
-      // ส่งคำสั่งไปยัง supSetUserQty ใน app.js
-      // สำคัญมาก: ต้องส่ง status: 'USED' เพื่อให้ Code.gs รู้ว่าต้องเอาไป "ลบ" ยอดเดิม
-      const res = await supSetUserQty({
-        material: material,
-        user: user,
-        qty: qtyToSubtract,
-        reconcile: isReconcile,
+      // ส่งสถานะ status: 'USED' ไปด้วยเสมอ
+      const res = await supSetUserQty({ 
+        material: mat, 
+        user: user, 
+        qty: qty, 
+        reconcile: rec, 
         status: 'USED' 
       });
 
-      if (res.success) {
-        alert('ตัดยอดสำเร็จ!');
-        await refreshSupervisorData(); // โหลดตารางใหม่ ยอดจะลดลงทันที
+      if(res.success) {
+        alert('อัปเดตเรียบร้อย');
+        await refreshTable();
       } else {
-        alert('เกิดข้อผิดพลาด: ' + res.msg);
-      }
-    }
-
-    // ฟังก์ชันเพิ่มสต็อกกลาง
-    async function supAddTo0243() {
-      const mat = document.getElementById('sup_mat_add').value.trim();
-      const qty = Number(document.getElementById('sup_qty_add').value);
-
-      if (!mat || qty <= 0) {
-        alert('กรุณาระบุรหัส Material และจำนวนให้ถูกต้อง');
-        return;
-      }
-
-      const res = await supAddStock(mat, qty);
-      if (res.success) {
-        alert('เพิ่มสต็อกเข้า 0243 เรียบร้อย');
-        document.getElementById('sup_qty_add').value = '';
-        await refreshSupervisorData();
-      } else {
-        alert('ล้มเหลว: ' + res.msg);
+        alert('ผิดพลาด: ' + res.msg);
       }
     }
   </script>
