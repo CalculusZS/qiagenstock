@@ -72,13 +72,11 @@ function searchByMaterial(keyword){
 function searchAll(keyword){
   const k = (keyword || '').toLowerCase();
   const keys = ['Instrument','Material','Product Name','Type','0243'];
-
   const filtered = !k ? rows : rows.filter(r =>
     keys.some(key => String(r[key] ?? '').toLowerCase().includes(k))
   );
-
   renderTable(filtered);
-  renderSelect(filtered);
+  renderSelect(filtered); // ไม่มี select ในบางหน้า ก็ไม่เป็นไร
 }
 
 async function transactionV2({type, material, qty, user}){
