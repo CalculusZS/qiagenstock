@@ -163,3 +163,46 @@ window.searchStock = (keyword, type) => {
     if (document.getElementById('data')) renderTable(filtered, type);
     if (typeof refreshTable === 'function') refreshTable(filtered); 
 };
+/* ===== ปรับปรุงส่วนที่ 5. UI Rendering ใน app.js ===== */
+function renderTable(dataList, type) {
+    const container = document.getElementById('data');
+    if (!container) return;
+    const currentUser = sessionStorage.getItem('selectedUser') || '';
+
+    // กรองข้อมูล: ถ้าเป็นโหมด Return ให้โชว์เฉพาะรายการที่พนักงานคนนั้นมีของ > 0 [โจทย์: โชว์เฉพาะอะไหล่ที่ตัวเองมี]
+    let displayList = dataList;
+    if (type === 'return') {
+        displayList = dataList.filter(item => (item[currentUser] || 0) > 0);
+    }
+
+    container.innerHTML = displayList.map((item, index) => {
+        // ดึงจำนวนสต็อกตามโหมด
+        const stockQty = type === 'withdraw' ? (item['0243'] || 0) : (item[currentUser] || 0);
+        
+        // กำหนดสี: ถ้าจำนวนเป็น 0 ให้เป็นสีแดง [โจทย์: ถ้าจำนวนเป็น 0 ให้ตัวหนังสือเป็นสีแดง]
+        const qtyStyle = stockQty === 0 ? 'color: #ef4444; font-weight: bold;' : 'font-weight: bold;';
+
+        return `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 12px; font-size: 13px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #2563eb; font-weight: bold; min-width: 80px;">${item.Material}</span>
+                        <span style="color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;">${item['Product Name'] || ''}</span>
+                        <span style="font-size: 10px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${item.Instrument || '-'}</span>
+                    </div>
+                </td>
+                <td style="text-align: center; width: 60px; ${qtyStyle}">${stockQty}</td>
+                <td style="text-align: right; width: 150px;">
+                    <div style="display: flex; gap: 5px; justify-content: flex-end;">
+                        <input type="number" id="qty_${index}" style="width: 50px; text-align: center; border: 1px solid #cbd5e1; border-radius: 4px;" placeholder="0">
+                        <button onclick="handleAction('${type}', '${item.Material}', ${index})" 
+                                style="background: ${type === 'withdraw' ? '#ef4444' : '#22c55e'}; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">
+                            ${type.toUpperCase()}
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+/* ส่วนอื่นๆ ของ app.js ให้คงเดิมตาม Full Version ที่ส่งให้ก่อนหน้า */
