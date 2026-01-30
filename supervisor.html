@@ -71,7 +71,7 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=13"></script>
+  <script src="js/app.js?v=14"></script>
   <script>
     async function onSupLoad(){
       try{
@@ -80,8 +80,7 @@
           await loadAllWithSchema();
           const dl = document.getElementById('materialList');
           dl.innerHTML = (Array.isArray(rows) ? rows : [])
-            .map(r => `<option value="${r['Material']}">${r['Material']} - ${r['Product Name'] ?? ''}</option>`)
-            .join('');
+            .map(r => `<option value="${r['Material']}">${r['Material']} - ${r['Product Name'] ?? ''}</option>`).join('');
         }
       }catch(err){
         console.error(err); alert('Failed to initialize supervisor page.');
@@ -94,7 +93,7 @@
       if(!material) return alert('Please enter Material');
       if(!(qty > 0)) return alert('Please enter Qty > 0');
 
-      const res = await supAddStock(material, qty);          // {success,msg?}
+      const res = await supAddStock(material, qty); // {success,msg?}
       alert(res.success ? 'Added successfully' : `Failed: ${res.msg || 'Unknown error'}`);
 
       if(res.success){
@@ -108,7 +107,7 @@
       const material = (document.getElementById('sup_mat_check').value || '').trim();
       if(!material) return alert('Please enter Material');
 
-      const res = await supGetMaterial(material);            // {success,data?,msg?}
+      const res = await supGetMaterial(material); // {success,data?,msg?}
       if(!res.success){ alert(res.msg || 'Material not found'); return; }
       const data = res.data || {};
 
