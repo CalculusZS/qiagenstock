@@ -85,3 +85,18 @@ function logout(){ location.href = "index.html"; }
 
 // ====== COMPAT (กัน error หน้าเก่า) ======
 function loadMaterials(){ loadAll(); }
+// ====== SIMPLE LOGIN (Demo) ======
+// ใช้ร่วมกับค่าคงที่ PASSWORD ในไฟล์นี้ (ตอนนี้คือ "Service")
+// *คำเตือน*: โปรดอย่าใช้กับระบบโปรดักชันโดยไม่ตรวจสอบฝั่งเซิร์ฟเวอร์
+function login(){
+  const input = document.getElementById('password');
+  const pass = (input?.value || '').trim();
+
+  if(pass === PASSWORD){
+    // เข้าสู่ระบบสำเร็จ -> ไปหน้าเมนูหลัก (ปรับปลายทางได้ตามต้องการ)
+    location.href = 'menu.html';
+  }else{
+    alert('รหัสผ่านไม่ถูกต้อง');
+    input?.focus();
+  }
+}
