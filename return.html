@@ -1,34 +1,29 @@
-<div class="header">
-  🔄 Return
-  <div class="btn-group">
-    <button class="neutral" onclick="goBack()">Back</button>
-  </div>
-</div>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Return Parts</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body onload="initReturn()">
   <div class="header">
-    🔄 Return
-    <div class="btn-group">
-      <button class="neutral" onclick="goBack()">Back</button>
+    <div class="title">🔄 <span>Return</span></div>
+    <div class="actions">
+      <button class="btn-ghost" onclick="goBack()">Back</button>
     </div>
   </div>
 
-  <div class="container" style="grid-template-columns:1fr;">
-    <div class="card">
-      <div class="btn-group" style="justify-content:space-between;">
-        <div>User: <strong id="username">-</strong></div>
+  <div class="container">
+    <div class="card stack">
+      <div class="row">
+        <div>User:&nbsp;<strong id="username">-</strong></div>
       </div>
 
-      <div class="btn-group" style="margin-top:8px;">
-        <input id="keyword" placeholder="Search Material (column B)" />
-        <button onclick="doSearch()">Search</button>
+      <div class="input-wrap">
+        <span class="search-icon">🔎</span>
+        <input id="keyword" class="search-input" placeholder="Search anything (Instrument / Material / Product Name / Type / 0243)">
+        <button class="search-btn" onclick="doSearchAll()">Search</button>
       </div>
 
       <table class="mt-12">
@@ -44,33 +39,35 @@
         <tbody id="data"></tbody>
       </table>
 
-      <div class="btn-group mt-12" style="align-items:center; flex-wrap:wrap;">
-        <label for="materialSel">Material</label>
-        <select id="materialSel" class="w-100"></select>
-
-        <label for="qty" style="margin-left:12px;">Qty</label>
-        <input id="qty" type="number" min="1" style="max-width:140px;" />
-
-        <button id="btnConfirm" class="return" onclick="doTransaction('return')">
-          Confirm Return
-        </button>
+      <div class="row">
+        <div class="w-100">
+          <label for="materialSel">Material</label>
+          <select id="materialSel" class="w-100"></select>
+        </div>
+        <div>
+          <label for="qty">Qty</label>
+          <input id="qty" type="number" min="1" style="width:140px;" />
+        </div>
+        <div>
+          <button id="btnConfirm" class="btn-success" onclick="doTransaction('return')">Confirm Return</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <script src="js/app.js?v=5"></script>
+  <script src="js/app.js?v=7"></script>
   <script>
     function initReturn(){
       const user = resolveUser();
       document.getElementById('username').textContent = user || '-';
       loadAllWithSchema().then(() => {
-        const kw = document.getElementById('keyword');
-        kw?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearch(); });
+        const kwAll = document.getElementById('keyword');
+        kwAll?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearchAll(); });
       });
     }
-    function doSearch(){
+    function doSearchAll(){
       const k = (document.getElementById('keyword').value || '').trim();
-      searchByMaterial(k);
+      searchAll(k);
     }
     function doTransaction(type){
       const user = resolveUser();
