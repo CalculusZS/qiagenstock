@@ -2,25 +2,22 @@ const API = "https://script.google.com/macros/s/AKfycbw7Eg3Z0JuePwx2mXA-rAGLaN_A
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 
-let rows = []; // เก็บข้อมูลสต็อกทั้งหมด
+let rows = [];
 
-// Helper ฟังก์ชันสำหรับดึง Element
 const qs = id => document.getElementById(id);
 function getQS(name){ const u = new URL(location.href); return u.searchParams.get(name); }
 function resolveUser(){ return getQS('user') || sessionStorage.getItem('selectedUser') || ''; }
 
-/* ===== 2. Login & Authentication ===== */
+/* ===== 1. Authentication & Navigation ===== */
 window.login = function() {
-  const passField = qs('password');
-  const passValue = (passField?.value || '').trim();
-  if (passValue === PASSWORD) {
+  const pass = (qs('password')?.value || '').trim();
+  if (pass === PASSWORD) {
     location.href = 'user-select.html';
   } else {
     alert('รหัสผ่านไม่ถูกต้อง');
   }
 };
 
-// ตรวจสอบรหัสผ่าน Supervisor
 function supAuth(p){ 
   if(p === SUP_PASSWORD){ 
     sessionStorage.setItem('isSupervisor','1'); 
@@ -29,114 +26,77 @@ function supAuth(p){
   return false; 
 }
 
-/* ===== 3. Data Loading (หัวใจหลักที่ทำให้รายชื่อและข้อมูลขึ้น) ===== */
+function goBack(){ 
+  if (document.referrer) history.back(); 
+  else location.href = 'user-select.html'; 
+}
 
-// ดึงรายชื่อผู้ใช้งาน (Whitelist) มาสร้างปุ่ม
+/* ===== 2. Data Loading (ส่วนที่ทำให้ชื่อขึ้น) ===== */
+
+// ดึงรายชื่อจากคอลัมน์ใน Google Sheets
 async function loadUsers() {
   try {
-    const url = `${API}?action=users&password=${encodeURIComponent(PASSWORD)}`;
-    const res = await fetch(url).then(r => r.json());
-    return res.success ? res.users : [];
+    const res = await fetch(`${API}?action=users&password=${PASSWORD}`).then(r => r.json());
+    if (res.success) return res.users; 
+    console.error("Server error:", res.msg);
+    return [];
   } catch (e) {
-    console.error("Error loading users:", e);
+    console.error("Fetch error:", e);
     return [];
   }
 }
 
-// ดึงข้อมูลสต็อกทั้งหมด
+// ดึงข้อมูลสต็อก
 async function loadAllWithSchema(){
   try {
-    const url = `${API}?action=list2&password=${encodeURIComponent(PASSWORD)}`;
-    const res = await fetch(url).then(r => r.json());
-    if(!res.success){ console.error(res.msg); return; }
-    
-    rows = res.rows || [];
-    // แสดงผลในหน้าที่มีตาราง (Withdraw/Return/All)
-    if (qs('data')) renderTable(rows);
-    // แสดงผลใน Dropdown เลือกอะไหล่
-    if (qs('materialSel')) renderSelect(rows);
-    
-    return rows;
-  } catch(e) {
-    console.error('Error loading data:', e);
-  }
+    const res = await fetch(`${API}?action=list2&password=${PASSWORD}`).then(r => r.json());
+    if(res.success) {
+      rows = res.rows;
+      if (qs('data')) renderTable(rows);
+      if (qs('materialSel')) renderSelect(rows);
+    }
+  } catch(e) { console.error("Load data failed", e); }
 }
 
-/* ===== 4. User Transactions (เบิก/คืน) ===== */
+/* ===== 3. Transactions (เบิก/คืน) ===== */
 async function transactionV2({type, material, qty, user}){
-  try {
-    const url = `${API}?action=${type}`
-      + `&password=${encodeURIComponent(PASSWORD)}`
-      + `&material=${encodeURIComponent(material)}`
-      + `&qty=${encodeURIComponent(qty)}`
-      + `&user=${encodeURIComponent(user)}`;
-    return await fetch(url).then(r => r.json());
-  } catch(e) {
-    return { success: false, msg: String(e) };
-  }
+  const url = `${API}?action=${type}&password=${PASSWORD}&material=${material}&qty=${qty}&user=${user}`;
+  return await fetch(url).then(r => r.json());
 }
 
-/* ===== 5. Supervisor Functions (เติมสต็อก/หักยอดคนถือ) ===== */
-
-// เติมอะไหล่เข้าสต็อกกลาง (0243)
+/* ===== 4. Supervisor Functions (เติม/ตัดสต็อก) ===== */
 async function supAddStock(material, qty){
-  try {
-    const url = `${API}?action=sup_add_stock`
-      + `&password=${encodeURIComponent(PASSWORD)}`
-      + `&sup_password=${encodeURIComponent(SUP_PASSWORD)}`
-      + `&material=${encodeURIComponent(material)}`
-      + `&qty=${encodeURIComponent(qty)}`;
-    return await fetch(url).then(r => r.json());
-  } catch(e) { return { success:false, msg:String(e) }; }
+  const url = `${API}?action=sup_add_stock&password=${PASSWORD}&sup_password=${SUP_PASSWORD}&material=${material}&qty=${qty}`;
+  return await fetch(url).then(r => r.json());
 }
 
-// หักยอดที่บุคคลถืออยู่ (Deduct Used) หรือแก้ไขยอด
 async function supSetUserQty({ material, user, qty, status = 'SET' }){
-  try {
-    const url = `${API}?action=sup_set_user_qty`
-      + `&password=${encodeURIComponent(PASSWORD)}`
-      + `&sup_password=${encodeURIComponent(SUP_PASSWORD)}`
-      + `&material=${encodeURIComponent(material)}`
-      + `&user=${encodeURIComponent(user)}`
-      + `&qty=${encodeURIComponent(qty)}`
-      + `&status=${encodeURIComponent(status)}`;
-    return await fetch(url).then(r => r.json());
-  } catch(e) { return { success:false, msg:String(e) }; }
+  const url = `${API}?action=sup_set_user_qty&password=${PASSWORD}&sup_password=${SUP_PASSWORD}&material=${material}&user=${user}&qty=${qty}&status=${status}`;
+  return await fetch(url).then(r => r.json());
 }
 
-/* ===== 6. UI Renderers & Search ===== */
-
+/* ===== 5. UI Renderers ===== */
 function renderTable(list){
   const tb = qs('data'); if(!tb) return;
   tb.innerHTML = list.map(r => `
     <tr>
       <td>${r.Instrument || ''}</td>
-      <td><b>${r.Material || ''}</b></td>
+      <td><b>${r.Material}</b></td>
       <td>${r['Product Name'] || ''}</td>
       <td>${r.Type || ''}</td>
-      <td style="color:var(--accent); font-weight:bold;">${r['0243'] || 0}</td>
+      <td style="color:blue; font-weight:bold;">${r['0243'] || 0}</td>
     </tr>
   `).join('');
 }
 
 function renderSelect(list){
   const sel = qs('materialSel'); if(!sel) return;
-  sel.innerHTML = '<option value="">-- เลือก Material --</option>' + 
+  sel.innerHTML = '<option value="">-- เลือกอะไหล่ --</option>' + 
     list.map(r => `<option value="${r.Material}">${r.Material} | ${r['Product Name']}</option>`).join('');
 }
 
 function searchAll(keyword){
   const k = (keyword || '').toLowerCase();
-  const filtered = !k ? rows : rows.filter(r => 
-    Object.values(r).some(v => String(v).toLowerCase().includes(k))
-  );
+  const filtered = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(k)));
   renderTable(filtered);
 }
-
-function goBack(){ 
-  if (document.referrer) history.back(); 
-  else location.href = 'user-select.html'; 
-}
-// --- NAVIGATION ---
-function goBack(){ if (document.referrer) history.back(); else location.href = 'user-select.html'; }
-function supAuth(p){ if(p === SUP_PASSWORD){ sessionStorage.setItem('isSupervisor','1'); return true; } return false; }
