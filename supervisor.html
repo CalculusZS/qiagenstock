@@ -9,13 +9,18 @@
     .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
     @media (max-width: 720px){ .grid-2{ grid-template-columns: 1fr; } }
     .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#f8fafc; border:1px solid #e5e7eb; }
+    
+    /* Table Styling */
     .table-container { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid #e5e7eb; }
     .inspector-table { width: 100%; border-collapse: collapse; background: #fff; min-width: 600px; }
     .inspector-table th { background: #f8fafc; padding: 12px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; color: #475569; }
     .inspector-table td { padding: 12px 15px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; color: #1e293b; }
+    .inspector-table tr:hover { background-color: #fcfcfc; }
+    
     .input-qty { width: 70px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; }
     .btn-used { background-color: #10b981; border: none; color: white; padding: 7px 15px; border-radius: 6px; cursor: pointer; font-weight: 500; }
     .btn-used:hover { background-color: #059669; }
+    
     .muted { color:#6b7280; font-size:12px; margin-top: 10px; }
   </style>
 </head>
@@ -48,7 +53,7 @@
     </div>
 
     <div class="card stack">
-      <div class="row" style="justify-content: space-between; align-items: center;">
+      <div class="row" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <h3 style="margin:0;">Material Inspector (Pending Use)</h3>
         <label class="pill">
           <input type="checkbox" id="sup_reconcile" style="transform:scale(1.1);" />
@@ -71,23 +76,24 @@
             <tbody id="sup_users_table_body"></tbody>
           </table>
         </div>
-        <div class="muted">* List shows only users with quantity > 0. Clicking "Used" will update Column I-N.</div>
+        <div class="muted">* Showing only items where user quantity > 0. Clicking "Used" will subtract the amount from Column I-N.</div>
       </div>
     </div>
   </div>
 
-  <script src="js/app.js?v=20"></script>
+  <script src="js/app.js?v=25"></script>
   <script>
+    // รายชื่อผู้ใช้ที่ตรงกับคอลัมน์ I-N
     const USER_NAMES = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
 
     async function onSupLoad(){
       try {
         if (typeof supRequire === 'function') supRequire();
         if (typeof loadAllWithSchema === 'function') {
-          await loadAllWithSchema(); // ดึงข้อมูล rows มาไว้ในตัวแปร global
-          renderAutoInspector(); // แสดงตารางอัตโนมัติ
+          await loadAllWithSchema(); 
+          renderAutoInspector(); // เรียกแสดงตารางทันทีที่โหลดหน้า
           
-          // เติม datalist สำหรับการค้นหา/เพิ่มสต็อก
+          // ตั้งค่า Datalist สำหรับช่องค้นหา
           const dl = document.getElementById('materialList');
           dl.innerHTML = (Array.isArray(rows) ? rows : [])
             .map(r => `<option value="${r['Material']}">${r['Material']} - ${r['Product Name'] ?? ''}</option>`).join('');
@@ -95,6 +101,7 @@
       } catch(e) { console.error(e); }
     }
 
+    // ฟังก์ชันสร้างตารางโดยกรองเฉพาะค่าที่ไม่ใช่ 0
     function renderAutoInspector() {
       const wrapper = document.getElementById('sup_table_wrapper');
       const tbody = document.getElementById('sup_users_table_body');
@@ -104,6 +111,7 @@
         USER_NAMES.forEach(user => {
           const userQty = Number(row[user] || 0);
           if (userQty > 0) {
+            // ใช้ ID ที่รวมทั้ง Material และ User เพื่อให้ดึงค่ามาคำนวณได้ถูกต้อง
             html += `
               <tr>
                 <td style="font-weight:600;">${user}</td>
@@ -121,27 +129,36 @@
         });
       });
 
+      wrapper.style.display = 'block';
       if (html !== '') {
-        wrapper.style.display = 'block';
         tbody.innerHTML = html;
       } else {
-        wrapper.style.display = 'block';
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No pending materials found in columns I-N.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No pending materials found.</td></tr>';
       }
     }
 
     async function supMarkAsUsed(material, user){
-      const input = document.getElementById(`sup_user_${material}_${user}`);
-      const qty = Number(input?.value || 0);
+      const inputId = `sup_user_${material}_${user}`;
+      const inputElement = document.getElementById(inputId);
+      const qtyToUse = Number(inputElement?.value || 0);
       const reconcile = document.getElementById('sup_reconcile')?.checked ? 'true' : 'false';
 
-      if(!confirm(`Confirm update for ${user}?`)) return;
+      if(qtyToUse <= 0) return alert('Please enter a valid quantity');
+      if(!confirm(`Confirm using ${qtyToUse} unit(s) for ${user}?`)) return;
 
-      const res = await supSetUserQty({ material, user, qty, reconcile, status: 'USED' }); 
+      // ส่งสถานะ 'USED' เพื่อให้ Code.gs ทำการหักลบยอดเดิมออก
+      const res = await supSetUserQty({ 
+        material, 
+        user, 
+        qty: qtyToUse, 
+        reconcile, 
+        status: 'USED' 
+      }); 
+
       if(res.success) {
-        alert('Updated successfully');
-        await loadAllWithSchema(); // รีโหลดข้อมูลใหม่จากชีท
-        renderAutoInspector(); // วาดตารางใหม่
+        alert('Inventory updated successfully');
+        await loadAllWithSchema(); // โหลดข้อมูลล่าสุดจาก Sheet
+        renderAutoInspector();      // วาดตารางใหม่ (รายการที่ยอดเป็น 0 จะหายไป)
       } else {
         alert('Error: ' + res.msg);
       }
@@ -151,12 +168,15 @@
       const material = (document.getElementById('sup_mat_add').value || '').trim();
       const qty = Number(document.getElementById('sup_qty_add').value || 0);
       if(!material || qty <= 0) return alert('Please enter Material and Qty');
+      
       const res = await supAddStock(material, qty);
-      alert(res.success ? 'Added successfully' : 'Failed: ' + res.msg);
       if(res.success) {
+        alert('Added to 0243 successfully');
         document.getElementById('sup_qty_add').value = '';
         await loadAllWithSchema();
         renderAutoInspector();
+      } else {
+        alert('Failed: ' + res.msg);
       }
     }
   </script>
