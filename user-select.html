@@ -1,41 +1,164 @@
-<!-- เพิ่มปุ่มนี้ใน .cta-row -->
-<button class="btn-primary" onclick="openSupModal()">Supervisor</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Select User</title>
 
-<!-- วาง modal นี้ก่อน </body> -->
-<dialog id="supModal" style="border:none;border-radius:14px;padding:18px;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.35);">
-  <h3 style="margin:0 0 10px;">Supervisor Login</h3>
-  <p style="margin:0 0 8px;color:#6b7280;">Enter supervisor password to continue</p>
-  <input id="supPass" type="password" placeholder="Password"
-         style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;">
-  <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
-    <button class="btn-ghost" onclick="closeSupModal()">Cancel</button>
-    <button class="btn-primary" onclick="submitSup()">Enter</button>
-  </div>
-  <p id="supErr" style="color:#dc2626;margin:10px 0 0;display:none;">Invalid password</p>
-</dialog>
+  <!-- Your global stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
 
-<script>
-  function openSupModal(){
-    const dlg = document.getElementById('supModal'); dlg?.showModal();
-    setTimeout(()=>document.getElementById('supPass')?.focus(), 50);
-  }
-  function closeSupModal(){
-    document.getElementById('supPass').value = '';
-    document.getElementById('supErr').style.display = 'none';
-    document.getElementById('supModal')?.close();
-  }
-  function submitSup(){
-    const pass = (document.getElementById('supPass').value || '').trim();
-    if (supAuth(pass)) { // SUP_PASSWORD is "Qiagen" in app.js
-      closeSupModal();
-      location.href = 'supervisor.html';
-    } else {
-      document.getElementById('supErr').style.display = 'block';
-      document.getElementById('supPass').focus();
+  <!-- Page-local styles for the user grid (can be moved into style.css later) -->
+  <style>
+    .user-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
     }
-  }
-  document.addEventListener('keydown', (e) => {
-    const dlg = document.getElementById('supModal');
-    if (dlg?.open && e.key === 'Enter') submitSup();
-  });
-</script>
+    .user-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 14px 12px;
+      border-radius: 12px; border: 1px solid #e5e7eb;
+      background: #fff; color: #111827; font-weight: 600;
+      cursor: pointer; min-height: 48px;
+      transition: box-shadow .2s, transform .02s;
+    }
+    .user-btn:hover { box-shadow: 0 4px 12px rgba(0,0,0,.10); }
+    .user-btn:active { transform: translateY(1px); }
+    .user-btn.is-active {
+      border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,.12);
+    }
+    .cta-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  </style>
+</head>
+<body>
+  <!-- Single header (with Back) -->
+  <div class="header">
+    <div class="title">👤 <span>Select User</span></div>
+    <div class="actions">
+      <button class="btn-ghost" onclick="goBack()">Back</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <p style="margin:0 0 6px;">Please choose a user before proceeding:</p>
+
+      <!-- User buttons grid -->
+      <div id="userGrid" class="user-grid"></div>
+
+      <!-- Main actions (v1) + Supervisor (v2) -->
+      <div class="cta-row">
+        <button class="btn-danger"  onclick="goNext('withdraw.html')">Withdraw</button>
+        <button class="btn-success" onclick="goNext('return.html')">Return</button>
+        <button class="btn-neutral" onclick="goNext('all.html')">Show All</button>
+        <button class="btn-primary" onclick="openSupModal()">Supervisor</button>
+      </div>
+
+      <p style="color:#6b7280; margin:8px 0 0;">
+        Tip: you can change the user anytime by coming back to this page.
+      </p>
+    </div>
+  </div>
+
+  <!-- Supervisor password modal -->
+  <dialog id="supModal"
+          style="border:none;border-radius:14px;padding:18px;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.35);">
+    <h3 style="margin:0 0 10px;">Supervisor Login</h3>
+    <p style="margin:0 0 8px;color:#6b7280;">Enter supervisor password to continue</p>
+    <input id="supPass" type="password" placeholder="Password"
+           style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;">
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+      <button class="btn-ghost" onclick="closeSupModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitSup()">Enter</button>
+    </div>
+    <p id="supErr" style="color:#dc2626;margin:10px 0 0;display:none;">Invalid password</p>
+  </dialog>
+
+  <!-- IMPORTANT: correct script tag (avoid printing 'js/app.js?...' on the page) -->
+  <script src="js/app.js?v=11"></script>
+  <script>
+    // 1) Load users and render as buttons (v1)
+    (async function init(){
+      try{
+        const users = await loadUsers(); // expects [{header:'Kitti'}, {header:'Tatchai'}, ...]
+        const grid  = document.getElementById('userGrid');
+        const saved = sessionStorage.getItem('selectedUser') || '';
+
+        grid.innerHTML = users.map(u => {
+          const name = u.header;
+          const isActive = (name === saved) ? ' is-active' : '';
+          return `<button class="user-btn${isActive}" data-user="${name}">${name}</button>`;
+        }).join('');
+
+        grid.addEventListener('click', (e) => {
+          const btn = e.target.closest('.user-btn');
+          if(!btn) return;
+          // toggle active
+          [...grid.querySelectorAll('.user-btn')].forEach(b => b.classList.remove('is-active'));
+          btn.classList.add('is-active');
+          const username = btn.getAttribute('data-user');
+          sessionStorage.setItem('selectedUser', username);
+        });
+      }catch(err){
+        console.error('Failed to load users:', err);
+        alert('Failed to load users');
+      }
+    })();
+
+    // 2) Navigate with selected user (v1)
+    function goNext(path){
+      const user = sessionStorage.getItem('selectedUser') || '';
+      if(!user){ alert('Please select a user first'); return; }
+      location.href = `${path}?user=${encodeURIComponent(user)}`;
+    }
+
+    // 3) Supervisor modal + auth (v2)
+    function openSupModal(){
+      const dlg = document.getElementById('supModal');
+      dlg?.showModal();
+      setTimeout(()=>document.getElementById('supPass')?.focus(), 50);
+    }
+    function closeSupModal(){
+      const dlg = document.getElementById('supModal');
+      document.getElementById('supPass').value = '';
+      document.getElementById('supErr').style.display = 'none';
+      dlg?.close();
+    }
+    function submitSup(){
+      const pass = (document.getElementById('supPass').value || '').trim();
+      if (typeof supAuth === 'function' ? supAuth(pass) : (pass === 'Qiagen')) {
+        // mark login (if your app.js doesn't already do it)
+        if (!sessionStorage.getItem('isSupervisor') && pass === 'Qiagen') {
+          sessionStorage.setItem('isSupervisor', '1');
+        }
+        closeSupModal();
+        location.href = 'supervisor.html';
+      } else {
+        document.getElementById('supErr').style.display = 'block';
+        document.getElementById('supPass').focus();
+      }
+    }
+
+    // 4) Quality-of-life: Enter key submits modal
+    document.addEventListener('keydown', (e) => {
+      const dlg = document.getElementById('supModal');
+      if (dlg?.open && e.key === 'Enter') submitSup();
+    });
+
+    /* ---------- Safe fallbacks (in case app.js misses these) ---------- */
+    // Fallback goBack
+    if (typeof goBack !== 'function') {
+      window.goBack = () => {
+        if (document.referrer) history.back();
+        else location.href = 'index.html'; // or 'login.html' / 'menu.html'
+      };
+    }
+    // Fallback supAuth (uses Qiagen)
+    if (typeof supAuth !== 'function') {
+      window.supAuth = (p) => p === 'Qiagen';
+    }
+  </script>
+</body>
+</html>
