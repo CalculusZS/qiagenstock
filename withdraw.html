@@ -2,44 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Withdraw Parts</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    /* ปรับแต่งหน้าตาให้ทันสมัย กดง่ายบนมือถือ */
-    .search-box-sticky { position: sticky; top: 60px; z-index: 100; background: #0b1220; padding: 15px; margin: -15px -15px 15px -15px; }
+    /* สไตล์เฉพาะหน้าเบิกเพื่อให้ดู Modern */
+    .search-sticky { position: sticky; top: 60px; z-index: 100; background: #0b1220; padding: 15px; margin: -15px -15px 15px -15px; }
     .item-row td { vertical-align: middle; border-bottom: 1px solid #f1f5f9; padding: 12px 8px; background: #fff; }
-    .qty-input-inline { width: 65px !important; height: 40px; text-align: center; border: 2px solid #e2e8f0; border-radius: 8px; font-weight: bold; font-size: 16px; }
-    .btn-action-inline { height: 40px; padding: 0 15px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; }
-    .stock-val { font-size: 18px; font-weight: 800; color: #2563eb; text-align: center; }
-    .info-container { display: flex; flex-direction: column; }
-    .info-mat { font-weight: 800; font-size: 15px; color: #1e293b; }
-    .info-prod { font-size: 12px; color: #64748b; line-height: 1.2; }
-    .info-tag { font-size: 10px; color: #2563eb; font-weight: bold; text-transform: uppercase; }
+    .qty-input { width: 60px !important; height: 40px; text-align: center; border: 2px solid #e2e8f0; border-radius: 8px; font-weight: bold; }
+    .stock-num { font-size: 18px; font-weight: 800; color: #2563eb; text-align: center; }
+    .detail-wrap { display: flex; flex-direction: column; }
+    .txt-mat { font-weight: 800; font-size: 15px; color: #1e293b; }
+    .txt-prod { font-size: 12px; color: #64748b; line-height: 1.2; }
+    .txt-inst { font-size: 10px; color: #2563eb; font-weight: bold; text-transform: uppercase; }
   </style>
 </head>
 <body onload="initWithdraw()">
   <div class="header">
-    <div class="title">🔧 Withdraw (เบิก)</div>
+    <div class="title">🔧 Withdraw (เบิกอะไหล่)</div>
     <div class="actions"><button class="btn-ghost" onclick="goBack()">Back</button></div>
   </div>
 
   <div class="container">
-    <div style="padding: 10px; font-size: 14px; color: #fff;">
+    <div style="padding: 10px; color: #fff; font-size: 14px;">
       User: <strong id="username" style="color:#60a5fa;">-</strong>
     </div>
 
-    <div class="search-box-sticky">
+    <div class="search-sticky">
       <input type="text" id="keyword" class="search-input" 
-             placeholder="🔍 พิมพ์ชื่ออะไหล่ หรือ รุ่นเครื่อง..." oninput="doSearch()">
+             placeholder="🔍 ค้นหาอะไหล่, รุ่นเครื่อง, หรือเลข Material..." oninput="doSearch()">
     </div>
 
-    <table style="width: 100%; border-collapse: collapse; margin-top: 5px;">
+    <table style="width: 100%; border-collapse: collapse;">
       <thead>
-        <tr style="font-size: 11px; color: #94a3b8; text-align: left; background: transparent;">
-          <th width="55%" style="padding: 8px;">DETAILS</th>
+        <tr style="font-size: 11px; color: #94a3b8; text-align: left;">
+          <th width="55%">DETAILS</th>
           <th width="15%" style="text-align:center;">STOCK</th>
-          <th width="30%" style="text-align:right; padding-right: 10px;">ACTION</th>
+          <th width="30%" style="text-align:right;">ACTION</th>
         </tr>
       </thead>
       <tbody id="data">
@@ -53,7 +52,7 @@
       const user = resolveUser();
       if(!user) { alert("กรุณาเลือก User ก่อน"); location.href='user-select.html'; return; }
       document.getElementById('username').textContent = user;
-      loadAllWithSchema('withdraw'); 
+      loadAllWithSchema('withdraw'); // ดึงข้อมูลและระบุว่าเป็นหน้าเบิก
     }
     function doSearch(){
       const k = document.getElementById('keyword').value;
