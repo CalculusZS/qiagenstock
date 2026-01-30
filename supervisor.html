@@ -2,49 +2,45 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="css/style.css">
-  <style>
-    .inspector-table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
-    .inspector-table th, .inspector-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-    .inspector-table th { background-color: #f8fafc; color: #475569; }
-    .input-qty { width: 70px; padding: 6px; text-align: center; border: 1px solid #cbd5e1; }
-    .btn-used { background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
-    .btn-primary { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
-  </style>
 </head>
 <body onload="onSupLoad()">
   <div class="header">
     <div class="title">🛠️ Supervisor Panel</div>
-    <button onclick="goBack()">Back</button>
+    <button class="btn-ghost" onclick="goBack()">Back</button>
   </div>
 
   <div class="container">
     <div class="card stack">
       <h3>Add Stock to 0243 (เพิ่มอะไหล่)</h3>
       <div class="row">
-        <input id="sup_mat_add" placeholder="Material Number (e.g. 9025186)" style="flex:1;">
+        <input id="sup_mat_add" placeholder="Material No. (เช่น 9025186)" style="flex:1;">
         <input id="sup_qty_add" type="number" placeholder="Qty" style="width:80px;">
-        <button class="btn-primary" onclick="supAddTo0243()">Add</button>
+        <button class="btn-primary" onclick="supAddTo0243()">Add to Stock</button>
       </div>
     </div>
 
     <div class="card stack">
-      <h3>Material Inspector (ตัดยอดคนใช้งาน)</h3>
-      <label><input type="checkbox" id="sup_reconcile"> Auto-reconcile with 0243</label>
-      <table class="inspector-table">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Material</th>
-            <th>Product Name</th>
-            <th>Qty to Subtract</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="sup_users_table_body">
-          <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
-        </tbody>
-      </table>
+      <h3>Material Inspector (ตัดยอดที่คนถืออยู่)</h3>
+      <label class="pill">
+        <input type="checkbox" id="sup_reconcile"> Auto-reconcile with 0243
+      </label>
+      <div class="table-container">
+        <table class="inspector-table" style="width:100%; border-collapse:collapse;">
+          <thead style="background:#f1f5f9;">
+            <tr>
+              <th>User</th>
+              <th>Material</th>
+              <th>Qty Used</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="sup_users_table_body">
+            <tr><td colspan="4" style="text-align:center; padding:20px;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -55,7 +51,7 @@
     async function onSupLoad() { await refreshTable(); }
 
     async function refreshTable() {
-      await loadAllWithSchema();
+      await loadAllWithSchema(); // โหลดข้อมูล rows จาก app.js
       const tbody = document.getElementById('sup_users_table_body');
       let html = '';
       rows.forEach(row => {
@@ -63,41 +59,40 @@
           const val = Number(row[user] || 0);
           if (val > 0) {
             const uid = `id_${row['Material']}_${user}`;
-            html += `<tr>
-              <td><strong>${user}</strong></td>
+            html += `<tr style="border-bottom:1px solid #ddd;">
+              <td style="padding:10px;"><strong>${user}</strong></td>
               <td>${row['Material']}</td>
-              <td>${row['Product Name'] || ''}</td>
-              <td><input type="number" class="input-qty" id="${uid}" value="${val}"></td>
+              <td><input type="number" id="${uid}" value="${val}" style="width:60px; text-align:center;"></td>
               <td><button class="btn-used" onclick="handleUsed('${row['Material']}','${user}')">Used</button></td>
             </tr>`;
           }
         });
       });
-      tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">No data</td></tr>';
+      tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center; padding:20px;">No pending materials</td></tr>';
     }
 
     async function handleUsed(mat, user) {
       const qty = Number(document.getElementById(`id_${mat}_${user}`).value);
       const rec = document.getElementById('sup_reconcile').checked ? 'true' : 'false';
-      if (!confirm(`ตัดยอด ${qty} หน่วย จาก ${user}?`)) return;
+      if (!confirm(`ยืนยันตัดยอด ${qty} หน่วย จาก ${user}?`)) return;
 
       const res = await supSetUserQty({ material: mat, user: user, qty: qty, reconcile: rec, status: 'USED' });
-      if(res.success) { alert('สำเร็จ'); await refreshTable(); }
+      if(res.success) { alert('ตัดยอดสำเร็จ'); await refreshTable(); }
       else { alert('ผิดพลาด: ' + res.msg); }
     }
 
     async function supAddTo0243() {
       const mat = document.getElementById('sup_mat_add').value;
-      const qty = Number(document.getElementById('sup_qty_add').value);
-      if(!mat || !qty) return alert('กรุณาระบุ Material และ Qty');
+      const qty = document.getElementById('sup_qty_add').value;
+      if(!mat || !qty) return alert('กรุณาระบุข้อมูลให้ครบ');
       
       const res = await supAddStock(mat, qty);
       if(res.success) { 
-        alert('เพิ่มอะไหล่สำเร็จ'); 
+        alert('เพิ่มอะไหล่เข้าสต็อกกลางสำเร็จ'); 
         document.getElementById('sup_mat_add').value = '';
         document.getElementById('sup_qty_add').value = '';
         await refreshTable(); 
-      }
+      } else { alert('ล้มเหลว: ' + res.msg); }
     }
   </script>
 </body>
