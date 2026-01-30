@@ -2,19 +2,19 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Supervisor Control Panel</title>
+  <title>Supervisor Panel</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
     :root { --primary: #1e293b; --accent: #2563eb; --success: #10b981; }
     body { background: #f8fafc; font-family: sans-serif; margin: 0; }
     .header-panel { background: var(--primary); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
     .container { max-width: 1100px; margin: 20px auto; padding: 0 20px; }
-    .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e2e8f0; }
+    .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .qty-input { width: 80px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-weight: bold; }
+    #display_prod_name { margin-top: 8px; font-weight: bold; color: #2563eb; font-size: 14px; min-height: 20px; }
     .modern-table { width: 100%; border-collapse: collapse; }
     .modern-table th { background: #f8fafc; padding: 12px; text-align: left; font-size: 12px; color: #64748b; border-bottom: 2px solid #e2e8f0; }
     .modern-table td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; }
-    .qty-input { width: 80px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-weight: bold; }
-    #display_prod_name { margin-top: 8px; font-weight: bold; color: #2563eb; font-size: 14px; min-height: 20px; }
   </style>
 </head>
 <body onload="onSupLoad()">
@@ -25,7 +25,7 @@
 
   <div class="container">
     <div class="card">
-      <h3>📥 Add Stock to 0243</h3>
+      <h3>📥 Add Stock to 0243 (Column H)</h3>
       <div style="display:flex; gap:12px; align-items:flex-start;">
         <div style="flex: 1;">
           <input id="sup_mat_add" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;" 
@@ -53,17 +53,11 @@
     const USERS = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
     async function onSupLoad() { await window.loadStockData('all'); }
 
-    // ฟังก์ชันค้นหาและแสดงชื่อสินค้าอัตโนมัติขณะพิมพ์
     function lookupMat(val) {
         const item = window.findProductByMaterial(val);
         const div = document.getElementById('display_prod_name');
-        if (item) {
-            div.textContent = "Product: " + item['Product Name'];
-            div.style.color = "#2563eb";
-        } else {
-            div.textContent = "Product: Not found";
-            div.style.color = "#ef4444";
-        }
+        div.textContent = item ? "Product: " + item['Product Name'] : "Product: Not found";
+        div.style.color = item ? "#2563eb" : "#ef4444";
     }
 
     function refreshTable() {
@@ -74,18 +68,15 @@
           const val = Number(row[user] || 0);
           if (val > 0) {
             const tid = `id_${row.Material}_${user}`;
-            html += `<tr>
-              <td><span style="background:#eff6ff; color:#1d4ed8; padding:4px 12px; border-radius:99px; font-size:13px; font-weight:600;">${user}</span></td>
+            html += `<tr><td><span style="background:#eff6ff;color:#1d4ed8;padding:4px 12px;border-radius:99px;font-size:13px;font-weight:600;">${user}</span></td>
               <td style="font-weight:700;">${row.Material}</td>
-              <td style="color:#475569; font-size:14px;">${row['Product Name'] || ''}</td>
+              <td style="font-size:13px;color:#475569;">${row['Product Name'] || ''}</td>
               <td><input type="number" class="qty-input" id="${tid}" value="${val}"></td>
-              <td><button onclick="doDeduct('${row.Material}','${user}','${tid}')" 
-                   style="background:var(--success); color:white; border:none; padding:9px 18px; border-radius:8px; font-weight:600; cursor:pointer;">Deduct Used</button></td>
-            </tr>`;
+              <td><button onclick="doDeduct('${row.Material}','${user}','${tid}')" style="background:var(--success);color:white;border:none;padding:9px 18px;border-radius:8px;font-weight:600;cursor:pointer;">Deduct Used</button></td></tr>`;
           }
         });
       });
-      tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:30px;">No one is holding stock.</td></tr>';
+      tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;padding:30px;">No data found.</td></tr>';
     }
 
     async function doAdd() {
@@ -93,20 +84,16 @@
         const qty = document.getElementById('sup_qty_add').value;
         if(!mat || !qty) return alert("Please enter Material and Qty");
         const res = await window.supAddStock(mat, qty);
-        if(res.success) { 
-            alert("Stock added to 0243 successfully!"); 
-            location.reload(); 
-        } else { alert("Error: " + res.msg); }
+        if(res.success) { alert("Stock added to 0243 successfully!"); location.reload(); }
+        else { alert("Error: " + res.msg); }
     }
 
     async function doDeduct(mat, user, tid) {
-        const qtyToDeduct = document.getElementById(tid).value;
-        if(!confirm(`Deduct ${qtyToDeduct} from ${user}?`)) return;
-        const res = await window.supDeductUser(mat, user, qtyToDeduct);
-        if(res.success) { 
-            alert("Deducted Successfully! (Logged as Supervisor)"); 
-            onSupLoad(); 
-        } else { alert("Error: " + res.msg); }
+        const qty = document.getElementById(tid).value;
+        if(!confirm(`Deduct ${qty} from ${user}?`)) return;
+        const res = await window.supDeductUser(mat, user, qty);
+        if(res.success) { alert("Deducted Successfully!"); onSupLoad(); }
+        else { alert("Error: " + res.msg); }
     }
   </script>
 </body>
