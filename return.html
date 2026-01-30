@@ -1,21 +1,85 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Return Parts</title>
   <link rel="stylesheet" href="css/style.css" />
-  <title>คืนอะไหล่</title>
 </head>
-<body onload="loadAll()"><!-- เดิม loadMaterials() -->
-  <div class="header">🔄 Return</div>
-
-  <div class="container">
-    <input placeholder="ค้นหาอะไหล่" onkeyup="searchMaterial(this.value)" />
-    <select id="material"></select>
-    <input id="qty" type="number" min="1" placeholder="จำนวน" />
-    <button id="btnConfirm" class="return" onclick="transaction('return')">ยืนยันคืน</button>
+<body onload="initReturn()">
+  <div class="header">
+    🔄 Return
+    <div class="btn-group">
+      <button class="neutral" onclick="goBack()">Back</button>
+    </div>
   </div>
 
-  <script src="js/app.js?v=1"></script>
+  <div class="container" style="grid-template-columns:1fr;">
+    <div class="card">
+      <div class="btn-group" style="justify-content:space-between;">
+        <div>User: <strong id="username">-</strong></div>
+      </div>
+
+      <div class="btn-group" style="margin-top:8px;">
+        <input id="keyword" placeholder="Search Material (column B)" />
+        <button onclick="doSearch()">Search</button>
+      </div>
+
+      <table class="mt-12">
+        <thead>
+          <tr>
+            <th>Instrument</th>
+            <th>Material</th>
+            <th>Product Name</th>
+            <th>Type</th>
+            <th>0243</th>
+          </tr>
+        </thead>
+        <tbody id="data"></tbody>
+      </table>
+
+      <div class="btn-group mt-12" style="align-items:center; flex-wrap:wrap;">
+        <label for="materialSel">Material</label>
+        <select id="materialSel" class="w-100"></select>
+
+        <label for="qty" style="margin-left:12px;">Qty</label>
+        <input id="qty" type="number" min="1" style="max-width:140px;" />
+
+        <button id="btnConfirm" class="return" onclick="doTransaction('return')">
+          Confirm Return
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js?v=5"></script>
+  <script>
+    function initReturn(){
+      const user = resolveUser();
+      document.getElementById('username').textContent = user || '-';
+      loadAllWithSchema().then(() => {
+        const kw = document.getElementById('keyword');
+        kw?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearch(); });
+      });
+    }
+    function doSearch(){
+      const k = (document.getElementById('keyword').value || '').trim();
+      searchByMaterial(k);
+    }
+    function doTransaction(type){
+      const user = resolveUser();
+      if(!user) return alert("Please select a user first");
+      const material = document.getElementById('materialSel').value;
+      const qty = Number(document.getElementById('qty').value || 0);
+      if(!material) return alert("Please select a material");
+      if(!(qty > 0)) return alert("Please enter qty > 0");
+      transactionV2({ type, material, qty, user }).then(ok => {
+        alert(ok ? "Success" : "Failed");
+        loadAllWithSchema();
+        document.getElementById('qty').value = "";
+        document.getElementById('materialSel').selectedIndex = 0;
+      });
+    }
+  </script>
 </body>
 </html>
