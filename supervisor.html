@@ -1,8 +1,164 @@
-<!-- change body tag -->
-<body onload="initSupervisor(); supRequire();">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Supervisor – Update Stock</title>
 
-<!-- เพิ่มปุ่มออกจาก Supervisor (ไม่บังคับ) -->
-<div class="actions">
-  <button class="btn-ghost" onclick="supLogout(); goBack();">Sign out</button>
-  <button class="btn-ghost" onclick="goBack()">Back</button>
-</div>
+  <!-- your global stylesheet, keep this line -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- quick, page-only helpers (optional; can move to style.css) -->
+  <style>
+    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    @media (max-width: 720px){ .grid-2{ grid-template-columns: 1fr; } }
+    .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#f8fafc; border:1px solid #e5e7eb; }
+    .inspector-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap:10px; }
+    .inspector-item{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:10px; box-shadow:0 4px 12px rgba(0,0,0,.05); }
+    .muted { color:#6b7280; font-size:12px; }
+  </style>
+</head>
+<body onload="onSupLoad()">
+  <!-- Single header -->
+  <div class="header">
+    <div class="title">🛠️ <span>Supervisor</span></div>
+    <div class="actions">
+      <button class="btn-ghost" onclick="supLogout(); goBack();">Sign out</button>
+      <button class="btn-ghost" onclick="goBack()">Back</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Block A: Add to 0243 -->
+    <div class="card stack">
+      <h3 style="margin:0;">Add Stock to <span class="pill">0243 (Central)</span></h3>
+      <div class="grid-2">
+        <div>
+          <label for="sup_mat_add">Material (Column B)</label>
+          <input id="sup_mat_add" list="materialList" placeholder="e.g., 9025180" />
+          <datalist id="materialList"></datalist>
+        </div>
+        <div>
+          <label for="sup_qty_add">Qty</label>
+          <input id="sup_qty_add" type="number" min="1" placeholder="e.g., 5" />
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn-primary" onclick="supAddTo0243()">Add to 0243</button>
+      </div>
+      <div class="muted">This increases the “0243” quantity for the specified Material.</div>
+    </div>
+
+    <!-- Block B: Material Inspector -->
+    <div class="card stack">
+      <h3 style="margin:0;">Material Inspector</h3>
+      <div class="grid-2">
+        <div class="input-wrap">
+          <span class="search-icon">🔎</span>
+          <input id="sup_mat_check" class="search-input" list="materialList"
+                 placeholder="Type Material to inspect (0243 + each user)" />
+          <button class="search-btn" onclick="supLoadMaterial()">Load</button>
+        </div>
+        <div class="row" style="align-items:center;">
+          <label class="pill"><input type="checkbox" id="sup_reconcile" style="transform:scale(1.1);" />
+            Auto‑reconcile delta with 0243</label>
+        </div>
+      </div>
+
+      <!-- summary row -->
+      <div id="sup_summary" class="row" style="display:none; gap:16px;">
+        <div class="pill">Instrument: <span id="sup_info_inst"></span></div>
+        <div class="pill">Product: <span id="sup_info_prod"></span></div>
+        <div class="pill">Type: <span id="sup_info_type"></span></div>
+        <div class="pill">0243: <strong id="sup_info_0243">0</strong></div>
+      </div>
+
+      <!-- per-user editor -->
+      <div id="sup_users" class="inspector-grid"></div>
+      <div class="muted">Adjust each user's on‑hand. If “Auto‑reconcile” is checked, the difference moves to/from 0243 automatically.</div>
+    </div>
+  </div>
+
+  <!-- Load shared app code (IMPORTANT: use a valid script tag) -->
+  <script src="js/app.js?v=12"></script>
+  <script>
+    // Run on page load: enforce supervisor auth + preload materials for datalist
+    async function onSupLoad(){
+      try{
+        // require supervisor (redirects back if not logged in)
+        if (typeof supRequire === 'function') supRequire();
+
+        // preload materials to datalist (UI will show even if fetch fails)
+        await loadAllWithSchema();
+        const dl = document.getElementById('materialList');
+        dl.innerHTML = (Array.isArray(rows) ? rows : [])
+          .map(r => `<option value="${r['Material']}">${r['Material']} - ${r['Product Name'] ?? ''}</option>`)
+          .join('');
+      }catch(err){
+        console.error(err);
+        alert('Failed to initialize supervisor page.');
+      }
+    }
+
+    // A) Add stock to 0243
+    async function supAddTo0243(){
+      const material = (document.getElementById('sup_mat_add').value || '').trim();
+      const qty = Number(document.getElementById('sup_qty_add').value || 0);
+      if(!material) return alert('Please enter Material');
+      if(!(qty > 0)) return alert('Please enter Qty > 0');
+
+      const ok = await (typeof supAddStock === 'function'
+                        ? supAddStock(material, qty)
+                        : Promise.resolve(false));
+      alert(ok ? 'Added successfully' : 'Failed');
+      if(ok){
+        document.getElementById('sup_qty_add').value = '';
+        // refresh 0243 if this material is currently loaded in inspector
+        const current = (document.getElementById('sup_mat_check').value || '').trim();
+        if(current && current === material) supLoadMaterial();
+      }
+    }
+
+    // B) Load a material snapshot (0243 + each user)
+    async function supLoadMaterial(){
+      const material = (document.getElementById('sup_mat_check').value || '').trim();
+      if(!material) return alert('Please enter Material');
+
+      const data = await (typeof supGetMaterial === 'function'
+                          ? supGetMaterial(material)
+                          : Promise.resolve(null));
+      if(!data){ alert('Material not found'); return; }
+
+      document.getElementById('sup_summary').style.display = 'flex';
+      document.getElementById('sup_info_inst').textContent  = data.instrument || '';
+      document.getElementById('sup_info_prod').textContent  = data.productName || '';
+      document.getElementById('sup_info_type').textContent  = data.type || '';
+      document.getElementById('sup_info_0243').textContent  = data.centerQty ?? 0;
+
+      const box = document.getElementById('sup_users');
+      box.innerHTML = (data.users || []).map(u => `
+        <div class="inspector-item">
+          <div style="font-weight:700;margin-bottom:6px;">${u.name}</div>
+          <div class="row">
+            <input type="number" min="0" id="sup_user_${u.name}" value="${Number(u.qty || 0)}" style="width:120px;" />
+            <button class="btn-primary" onclick="supSaveUser('${material}','${u.name}')">Save</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // C) Save a user's on‑hand (optional reconcile with 0243)
+    async function supSaveUser(material, user){
+      const input = document.getElementById(`sup_user_${user}`);
+      const qty = Number(input?.value || 0);
+      const reconcile = document.getElementById('sup_reconcile')?.checked ? 'true' : 'false';
+
+      const ok = await (typeof supSetUserQty === 'function'
+                        ? supSetUserQty({ material, user, qty, reconcile })
+                        : Promise.resolve(false));
+      alert(ok ? 'Saved' : 'Failed');
+      if(ok) supLoadMaterial(); // refresh summary and user tiles
+    }
+  </script>
+</body>
+</html>
