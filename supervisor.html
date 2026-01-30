@@ -4,11 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Supervisor – Update Stock</title>
-
-  <!-- your global stylesheet, keep this line -->
   <link rel="stylesheet" href="css/style.css" />
-
-  <!-- quick, page-only helpers (optional; can move to style.css) -->
   <style>
     .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
     @media (max-width: 720px){ .grid-2{ grid-template-columns: 1fr; } }
@@ -19,7 +15,6 @@
   </style>
 </head>
 <body onload="onSupLoad()">
-  <!-- Single header -->
   <div class="header">
     <div class="title">🛠️ <span>Supervisor</span></div>
     <div class="actions">
@@ -55,8 +50,7 @@
       <div class="grid-2">
         <div class="input-wrap">
           <span class="search-icon">🔎</span>
-          <input id="sup_mat_check" class="search-input" list="materialList"
-                 placeholder="Type Material to inspect (0243 + each user)" />
+          <input id="sup_mat_check" class="search-input" list="materialList" placeholder="Type Material to inspect (0243 + each user)" />
           <button class="search-btn" onclick="supLoadMaterial()">Load</button>
         </div>
         <div class="row" style="align-items:center;">
@@ -65,7 +59,6 @@
         </div>
       </div>
 
-      <!-- summary row -->
       <div id="sup_summary" class="row" style="display:none; gap:16px;">
         <div class="pill">Instrument: <span id="sup_info_inst"></span></div>
         <div class="pill">Product: <span id="sup_info_prod"></span></div>
@@ -73,61 +66,51 @@
         <div class="pill">0243: <strong id="sup_info_0243">0</strong></div>
       </div>
 
-      <!-- per-user editor -->
       <div id="sup_users" class="inspector-grid"></div>
       <div class="muted">Adjust each user's on‑hand. If “Auto‑reconcile” is checked, the difference moves to/from 0243 automatically.</div>
     </div>
   </div>
 
-  <!-- Load shared app code (IMPORTANT: use a valid script tag) -->
-  <script src="js/app.js?v=12"></script>
+  <script src="js/app.js?v=13"></script>
   <script>
-    // Run on page load: enforce supervisor auth + preload materials for datalist
     async function onSupLoad(){
       try{
-        // require supervisor (redirects back if not logged in)
         if (typeof supRequire === 'function') supRequire();
-
-        // preload materials to datalist (UI will show even if fetch fails)
-        await loadAllWithSchema();
-        const dl = document.getElementById('materialList');
-        dl.innerHTML = (Array.isArray(rows) ? rows : [])
-          .map(r => `<option value="${r['Material']}">${r['Material']} - ${r['Product Name'] ?? ''}</option>`)
-          .join('');
+        if (typeof loadAllWithSchema === 'function') {
+          await loadAllWithSchema();
+          const dl = document.getElementById('materialList');
+          dl.innerHTML = (Array.isArray(rows) ? rows : [])
+            .map(r => `<option value="${r['Material']}">${r['Material']} - ${r['Product Name'] ?? ''}</option>`)
+            .join('');
+        }
       }catch(err){
-        console.error(err);
-        alert('Failed to initialize supervisor page.');
+        console.error(err); alert('Failed to initialize supervisor page.');
       }
     }
 
-    // A) Add stock to 0243
     async function supAddTo0243(){
       const material = (document.getElementById('sup_mat_add').value || '').trim();
       const qty = Number(document.getElementById('sup_qty_add').value || 0);
       if(!material) return alert('Please enter Material');
       if(!(qty > 0)) return alert('Please enter Qty > 0');
 
-      const ok = await (typeof supAddStock === 'function'
-                        ? supAddStock(material, qty)
-                        : Promise.resolve(false));
-      alert(ok ? 'Added successfully' : 'Failed');
-      if(ok){
+      const res = await supAddStock(material, qty);          // {success,msg?}
+      alert(res.success ? 'Added successfully' : `Failed: ${res.msg || 'Unknown error'}`);
+
+      if(res.success){
         document.getElementById('sup_qty_add').value = '';
-        // refresh 0243 if this material is currently loaded in inspector
         const current = (document.getElementById('sup_mat_check').value || '').trim();
         if(current && current === material) supLoadMaterial();
       }
     }
 
-    // B) Load a material snapshot (0243 + each user)
     async function supLoadMaterial(){
       const material = (document.getElementById('sup_mat_check').value || '').trim();
       if(!material) return alert('Please enter Material');
 
-      const data = await (typeof supGetMaterial === 'function'
-                          ? supGetMaterial(material)
-                          : Promise.resolve(null));
-      if(!data){ alert('Material not found'); return; }
+      const res = await supGetMaterial(material);            // {success,data?,msg?}
+      if(!res.success){ alert(res.msg || 'Material not found'); return; }
+      const data = res.data || {};
 
       document.getElementById('sup_summary').style.display = 'flex';
       document.getElementById('sup_info_inst').textContent  = data.instrument || '';
@@ -147,17 +130,14 @@
       `).join('');
     }
 
-    // C) Save a user's on‑hand (optional reconcile with 0243)
     async function supSaveUser(material, user){
       const input = document.getElementById(`sup_user_${user}`);
       const qty = Number(input?.value || 0);
       const reconcile = document.getElementById('sup_reconcile')?.checked ? 'true' : 'false';
 
-      const ok = await (typeof supSetUserQty === 'function'
-                        ? supSetUserQty({ material, user, qty, reconcile })
-                        : Promise.resolve(false));
-      alert(ok ? 'Saved' : 'Failed');
-      if(ok) supLoadMaterial(); // refresh summary and user tiles
+      const res = await supSetUserQty({ material, user, qty, reconcile }); // {success,msg?}
+      alert(res.success ? 'Saved' : `Failed: ${res.msg || 'Unknown error'}`);
+      if(res.success) supLoadMaterial();
     }
   </script>
 </body>
