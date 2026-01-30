@@ -1,16 +1,28 @@
 // ====== CONFIG ======
 const API = "https://script.google.com/macros/s/AKfycbwG6Hm-9nLBTV_OC5iq_9KC_zl0cV9DHcddz39qN1dAuDl_cEmd0OX9UU6WNimAoPsAjQ/exec";
-const PASSWORD = "Service"; // หมายเหตุ: โปรดักชันควรจำกัดการเข้าถึง/ไม่ hard-code
+const PASSWORD = "Service"; // เดโมเท่านั้น โปรดอย่า hard-code ในโปรดักชัน
 let materials = [];
 
 // ====== HELPERS ======
 function qs(id){ return document.getElementById(id); }
 function numberOr0(x){ const n = Number(x); return Number.isFinite(n) ? n : 0; }
 
-// ====== RENDERING ======
+// ====== LOGIN (จำเป็นสำหรับ index.html) ======
+function login(){
+  const input = document.getElementById('password');
+  const pass = (input?.value || '').trim();
+  if(pass === PASSWORD){
+    location.href = 'menu.html'; // ปรับปลายทางตามที่ต้องการ
+  }else{
+    alert('รหัสผ่านไม่ถูกต้อง');
+    input?.focus();
+  }
+}
+
+// ====== RENDER ตาราง ======
 function render(list){
   const tb = qs("data");
-  if(!tb) return; // บางหน้าไม่มีตาราง
+  if(!tb) return; // หน้า login/เมนูที่ไม่มีตาราง ให้ข้าม
   tb.innerHTML = list.map(m => `
     <tr>
       <td>${m.code ?? ""}</td>
@@ -20,6 +32,7 @@ function render(list){
   `).join("");
 }
 
+// ====== เติมรายการใน <select> ======
 function loadSelect(list){
   const sel = qs("material");
   if(!sel) return;
@@ -28,7 +41,7 @@ function loadSelect(list){
   ).join("");
 }
 
-// ====== DATA LOADING ======
+// ====== ดึงข้อมูลทั้งหมด ======
 function loadAll(){
   fetch(`${API}?action=list&password=${PASSWORD}`)
     .then(r => r.json())
@@ -41,19 +54,18 @@ function loadAll(){
     .catch(() => alert("เครือข่ายขัดข้อง กรุณาลองใหม่"));
 }
 
-// ====== SEARCH ======
+// ====== ค้นหา ======
 function searchMaterial(k){
   k = (k || "").toLowerCase();
   const filtered = !k ? materials : materials.filter(m =>
     (m.code || "").toLowerCase().includes(k) ||
     (m.name || "").toLowerCase().includes(k)
   );
-  // อัปเดตทั้งตารางและ select (หน้าไหนมีก็จะทำงาน)
   render(filtered);
   loadSelect(filtered);
 }
 
-// ====== TRANSACTION ======
+// ====== ทำรายการเบิก/คืน ======
 function transaction(type){
   const btn = document.getElementById('btnConfirm') || this;
   if(btn && btn.disabled) return;
@@ -85,18 +97,3 @@ function logout(){ location.href = "index.html"; }
 
 // ====== COMPAT (กัน error หน้าเก่า) ======
 function loadMaterials(){ loadAll(); }
-// ====== SIMPLE LOGIN (Demo) ======
-// ใช้ร่วมกับค่าคงที่ PASSWORD ในไฟล์นี้ (ตอนนี้คือ "Service")
-// *คำเตือน*: โปรดอย่าใช้กับระบบโปรดักชันโดยไม่ตรวจสอบฝั่งเซิร์ฟเวอร์
-function login(){
-  const input = document.getElementById('password');
-  const pass = (input?.value || '').trim();
-
-  if(pass === PASSWORD){
-    // เข้าสู่ระบบสำเร็จ -> ไปหน้าเมนูหลัก (ปรับปลายทางได้ตามต้องการ)
-    location.href = 'menu.html';
-  }else{
-    alert('รหัสผ่านไม่ถูกต้อง');
-    input?.focus();
-  }
-}
