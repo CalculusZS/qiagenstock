@@ -5,72 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Return Parts</title>
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .search-box { position: sticky; top: 60px; z-index: 100; background: #0b1220; padding: 15px; margin: -15px -15px 15px -15px; }
+    .qty-inline { width: 65px !important; height: 40px; text-align: center; border: 2px solid #e5e7eb; border-radius: 8px; font-weight: bold; }
+    .btn-action { height: 40px; padding: 0 15px; font-weight: bold; border-radius: 8px; }
+    .stock-badge { display: block; font-size: 18px; font-weight: bold; color: #16a34a; text-align: center; }
+    .item-info { display: flex; flex-direction: column; gap: 2px; }
+    .item-info .mat { font-weight: 800; font-size: 15px; color: #1e293b; }
+    .item-info .prod { font-size: 12px; color: #64748b; line-height: 1.2; }
+    .item-info .inst { font-size: 10px; color: #16a34a; font-weight: bold; text-transform: uppercase; }
+  </style>
 </head>
 <body onload="initReturn()">
   <div class="header">
-    <div class="title">🔄 Return</div>
+    <div class="title">🔄 Return (คืนอะไหล่)</div>
     <div class="actions"><button class="btn-ghost" onclick="goBack()">Back</button></div>
   </div>
 
   <div class="container">
-    <div class="card stack">
-      <div class="row" style="justify-content:space-between;">
-        <div>User: <strong id="username">-</strong></div>
+    <div class="card">
+      <div style="margin-bottom: 12px; font-size: 16px;">
+        ผู้คืน: <strong id="username" style="color:#16a34a;">-</strong>
       </div>
 
-      <div class="input-wrap">
-        <span class="search-icon">🔎</span>
-        <input id="keyword" class="search-input" placeholder="Search anything (Instrument / Material / Product Name / Type / 0243)" />
-        <button class="search-btn" onclick="doSearchAll()">Search</button>
+      <div class="search-box">
+        <input type="text" id="keyword" class="search-input" 
+               placeholder="🔍 ค้นหาอะไหล่ที่จะคืน..." oninput="doSearch()">
       </div>
 
-      <table>
-        <thead><tr>
-          <th>Instrument</th><th>Material</th><th>Product Name</th><th>Type</th><th>0243</th>
-        </tr></thead>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="font-size: 11px; color: #94a3b8; text-align: left;">
+            <th width="55%">รายละเอียดอะไหล่</th>
+            <th width="15%" style="text-align:center;">ในมือ</th>
+            <th width="30%" style="text-align:right;">คืนจำนวน</th>
+          </tr>
+        </thead>
         <tbody id="data"></tbody>
       </table>
-
-      <div class="row">
-        <div class="w-100">
-          <label for="materialSel">Material</label>
-          <select id="materialSel" class="w-100"></select>
-        </div>
-        <div>
-          <label for="qty">Qty</label>
-          <input id="qty" type="number" min="1" style="width:140px;" />
-        </div>
-        <div>
-          <button id="btnConfirm" class="btn-success" onclick="doTransaction('return')">Confirm Return</button>
-        </div>
-      </div>
     </div>
   </div>
 
-  <script src="js/app.js?v=14"></script>
+  <script src="js/app.js"></script>
   <script>
     function initReturn(){
       const user = resolveUser();
-      document.getElementById('username').textContent = user || '-';
-      loadAllWithSchema().then(() => {
-        const kw = document.getElementById('keyword');
-        kw?.addEventListener('keydown', e => { if(e.key === 'Enter') doSearchAll(); });
-      });
+      if(!user) {
+        alert("กรุณาเลือกชื่อผู้ใช้งานก่อน");
+        location.href = 'user-select.html';
+        return;
+      }
+      document.getElementById('username').textContent = user;
+      loadAllWithSchema('return'); 
     }
-    function doSearchAll(){ const k = (document.getElementById('keyword').value || '').trim(); searchAll(k); }
-    function doTransaction(type){
-      const user = resolveUser();
-      if(!user) return alert("Please select a user first");
-      const material = document.getElementById('materialSel').value;
-      const qty = Number(document.getElementById('qty').value || 0);
-      if(!material) return alert("Please select a material");
-      if(!(qty > 0)) return alert("Please enter qty > 0");
-      transactionV2({ type, material, qty, user }).then(ok => {
-        alert(ok ? "Success" : "Failed");
-        loadAllWithSchema();
-        document.getElementById('qty').value = "";
-        document.getElementById('materialSel').selectedIndex = 0;
-      });
+
+    function doSearch(){
+      const k = document.getElementById('keyword').value;
+      searchAll(k, 'return');
     }
   </script>
 </body>
