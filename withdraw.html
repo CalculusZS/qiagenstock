@@ -3,19 +3,77 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="css/style.css" />
   <title>เบิกอะไหล่</title>
+  <link rel="stylesheet" href="css/style.css" />
 </head>
-<body onload="loadAll()">
-  <div class="header">🔧 Withdraw</div>
+<body onload="initPage()">
+  <div class="header">🔧 เบิกอะไหล่</div>
 
-  <div class="container">
-    <input placeholder="ค้นหาอะไหล่" onkeyup="searchMaterial(this.value)" />
-    <select id="material"></select>
-    <input id="qty" type="number" min="1" placeholder="จำนวน" />
-    <button id="btnConfirm" class="withdraw" onclick="transaction('withdraw')">ยืนยันเบิก</button>
+  <div class="container" style="grid-template-columns:1fr;">
+    <div class="card">
+      <div class="btn-group" style="justify-content:space-between;">
+        <div>ผู้ใช้งาน: <strong id="username">-</strong></div>
+        user-select.htmlกลับหน้าเลือกผู้ใช้งาน</button>
+      </div>
+
+      <div class="btn-group" style="margin-top:8px;">
+        <input id="keyword" placeholder="ค้นหา Material (คอลัมน์ B)" onkeyup="if(event.key==='Enter') doSearch()" />
+        <button onclick="doSearch()">ค้นหา</button>
+      </div>
+
+      <table class="mt-12">
+        <thead>
+          <tr>
+            <th>Instrument</th>
+            <th>Material</th>
+            <th>Product Name</th>
+            <th>Type</th>
+            <th>0243</th>
+          </tr>
+        </thead>
+        <tbody id="data"></tbody>
+      </table>
+
+      <div class="btn-group mt-12" style="align-items:center;">
+        <label for="materialSel">เลือก Material</label>
+        <select id="materialSel" class="w-100"></select>
+
+        <label for="qty" style="margin-left:12px;">จำนวน</label>
+        <input id="qty" type="number" min="1" style="max-width:140px;" />
+
+        <button id="btnConfirm" class="withdraw" onclick="doTransaction('withdraw')">ยืนยันเบิก</button>
+      </div>
+    </div>
   </div>
 
-  <script src="js/app.js?v=1"></script>
+  <script src="js/app.js"></script>
+  <script>
+    async function initPage(){
+      const user = resolveUser();
+      document.getElementById('username').textContent = user || '-';
+      await loadAllWithSchema(); // โหลดข้อมูล + สร้างตาราง/option จาก schema header
+    }
+    function doSearch(){
+      const k = (document.getElementById('keyword').value || '').trim();
+      searchByMaterial(k); // ค้นหาเฉพาะคอลัมน์ B (Material)
+    }
+    function doTransaction(type){
+      const user = resolveUser();
+      if(!user) return alert("กรุณาเลือกผู้ใช้งานจากหน้าก่อนหน้า");
+
+      const code = document.getElementById('materialSel').value;
+      const qty = Number(document.getElementById('qty').value || 0);
+      if(!code) return alert("กรุณาเลือก Material");
+      if(!(qty > 0)) return alert("กรุณาใส่จำนวน > 0");
+
+      transactionV2({ type, material: code, qty, user })
+        .then(ok => {
+          alert(ok ? "สำเร็จ" : "ไม่สำเร็จ");
+          loadAllWithSchema();
+          document.getElementById('qty').value = "";
+          document.getElementById('materialSel').selectedIndex = 0;
+        });
+    }
+  </script>
 </body>
 </html>
