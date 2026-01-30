@@ -86,3 +86,17 @@ async function transactionV2({type, material, qty, user}){
     if(btn) btn.disabled = false;
   }
 }
+// ทำให้ login เป็นฟังก์ชัน global เรียกได้จาก onclick ใน HTML
+window.login = function () {
+  const input = document.getElementById('password');
+  const pass = (input?.value || '').trim();
+
+  // ใช้รหัสเดียวกับที่กำหนดใน app.js (ตัวอย่าง: "Service")
+  if (pass === PASSWORD) {
+    // เข้าสู่ระบบสำเร็จ -> ไปหน้าเมนู (เปลี่ยนปลายทางได้)
+    location.href = 'menu.html';
+  } else {
+    alert('รหัสผ่านไม่ถูกต้อง');
+    input?.focus();
+  }
+};
