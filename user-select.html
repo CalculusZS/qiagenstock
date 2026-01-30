@@ -6,21 +6,23 @@
     <title>Select User</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body onload="initUserPage()" style="background:#f8fafc;">
-    <div class="header" style="background:#1e293b; color:white; padding:15px; text-align:center; font-weight:bold; font-size:18px;">
+<body onload="initUserPage()" style="background:#f8fafc; font-family: sans-serif;">
+    <div class="header" style="background:#1e293b; color:white; padding:15px; text-align:center; font-weight:bold;">
         👤 SELECT USER
     </div>
 
-    <div class="container" style="max-width:500px; margin:20px auto; padding:0 15px;">
-        <p style="color:#64748b; font-size:14px; text-align:center; margin-bottom:20px;">Please select your name before proceeding:</p>
+    <div class="container" style="max-width:500px; margin:20px auto; padding:15px; background:white; border-radius:15px; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+        <p style="text-align:center; color:#64748b;">Please select your name before proceeding:</p>
         
-        <div id="userGrid" style="display:grid; gap:10px; margin-bottom:30px;">
-            <p style="text-align:center; color:#94a3b8;">Loading names...</p>
+        <div id="userGrid" style="display:grid; gap:10px; margin-bottom:20px;">
+            <p style="text-align:center;">Loading users...</p>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
-            <button onclick="navigate('withdraw.html')" style="background:#ef4444; color:white; border:none; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer;">WITHDRAW</button>
-            <button onclick="navigate('return.html')" style="background:#22c55e; color:white; border:none; padding:15px; border-radius:12px; font-weight:bold; cursor:pointer;">RETURN</button>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <button onclick="navigate('withdraw.html')" style="background:#ef4444; color:white; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">WITHDRAW</button>
+            <button onclick="navigate('return.html')" style="background:#22c55e; color:white; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">RETURN</button>
+            <button onclick="location.href='show-all.html'" style="background:#94a3b8; color:white; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">SHOW ALL</button>
+            <button onclick="checkSupervisor()" style="background:#2563eb; color:white; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">SUPERVISOR</button>
         </div>
     </div>
 
@@ -31,32 +33,28 @@
             const users = await window.loadUsers();
             
             if (users.length === 0) {
-                grid.innerHTML = "Error loading users.";
+                grid.innerHTML = "Error: Check API connectivity.";
                 return;
             }
 
-            // แสดงเฉพาะชื่อที่เป็น String ไม่ให้เป็น [object Object]
             grid.innerHTML = users.map(name => {
-                const displayName = typeof name === 'object' ? (name.name || name.User) : name;
+                // แก้ปัญหา [object Object] โดยดึงชื่อพนักงานโดยตรง
+                const displayName = (typeof name === 'object') ? (name.name || Object.values(name)[0]) : name;
                 return `<button class="user-btn" onclick="selectUser(this, '${displayName}')" 
-                        style="padding:15px; background:white; border:2px solid #e2e8f0; border-radius:12px; font-weight:600; color:#1e293b; text-align:left; cursor:pointer; transition:0.2s;">
+                        style="padding:12px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; text-align:left; cursor:pointer;">
                         ${displayName}
                         </button>`;
             }).join('');
         }
 
         function selectUser(btn, name) {
-            document.querySelectorAll('.user-btn').forEach(b => {
-                b.style.borderColor = '#e2e8f0';
-                b.style.background = 'white';
-            });
+            document.querySelectorAll('.user-btn').forEach(b => b.style.borderColor = '#e2e8f0');
             btn.style.borderColor = '#2563eb';
-            btn.style.background = '#eff6ff';
             sessionStorage.setItem('selectedUser', name);
         }
 
         function navigate(path) {
-            if (!sessionStorage.getItem('selectedUser')) return alert("กรุณาเลือกชื่อก่อน!");
+            if (!sessionStorage.getItem('selectedUser')) return alert("Select user first!");
             location.href = path;
         }
     </script>
