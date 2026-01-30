@@ -1,47 +1,19 @@
-:root{
-  --bg:#0f172a; --paper:#ffffff; --ink:#0b1220; --muted:#6b7280;
-  --brand:#111827; --accent:#2563eb; --success:#16a34a; --danger:#dc2626;
-  --border:#e5e7eb; --shadow:0 10px 25px rgba(2,6,23,.10),0 3px 8px rgba(2,6,23,.06);
-}
-*{box-sizing:border-box} html,body{height:100%}
-body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai",sans-serif;
-  background:linear-gradient(180deg,#0f172a 0%,#111827 100%); color:var(--ink); -webkit-font-smoothing:antialiased;}
+:root { --brand: #1e293b; --accent: #2563eb; --success: #16a34a; --danger: #dc2626; }
 
-.header{position:sticky; top:0; z-index:50; background:#0b1220; color:#fff; padding:14px 16px;
-  display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 6px 18px rgba(2,6,23,.30);}
-.header .title{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px}
-.header .actions{display:flex; gap:10px;}
+body { font-family: sans-serif; margin: 0; background: #f1f5f9; }
 
-.container{padding:18px; max-width:1100px; margin:0 auto;}
-.card{background:var(--paper); border-radius:16px; box-shadow:var(--shadow); padding:16px;}
-.stack{display:grid; gap:14px}
-.row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
-.w-100{width:100%}
+/* ปรับ Header ให้อ่านง่าย */
+.header { background: var(--brand); color: white; padding: 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
 
-.input-wrap{position:relative; width:100%}
-.search-input{width:100%; padding:12px 44px; border:1px solid var(--border); border-radius:12px; font-size:15px;
-  background:#fff; transition:box-shadow .2s,border-color .2s;}
-.search-input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 4px rgba(37,99,235,.15);}
-.search-icon{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted);}
-.search-btn{position:absolute; right:8px; top:50%; transform:translateY(-50%); background:var(--brand); color:#fff;
-  border:none; border-radius:10px; padding:8px 12px; cursor:pointer;}
+/* ปรับตารางให้เลื่อนซ้ายขวาได้ในมือถือ */
+.table-container { width: 100%; overflow-x: auto; background: white; border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; min-width: 600px; }
+th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }
 
-label{font-size:13px; color:var(--muted)}
-input[type="number"], select, input[type="password"], input[type="text"]{
-  width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:12px; font-size:15px; background:#fff;}
+/* ขยายขนาดปุ่มให้กดง่าย (Mobile Friendly) */
+button { min-height: 48px; padding: 10px 20px; border-radius: 8px; cursor: pointer; border: none; font-size: 16px; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-danger { background: var(--danger); color: white; }
 
-button{border:none; padding:10px 14px; min-height:44px; border-radius:12px; font-size:15px; cursor:pointer;
-  transition:transform .02s, opacity .2s;}
-button:active{transform:translateY(1px)} button:disabled{opacity:.6; cursor:not-allowed}
-.btn-ghost{background:#fff; color:#0b1220; border:1px solid var(--border)}
-.btn-primary{background:var(--brand); color:#fff} .btn-success{background:var(--success); color:#fff}
-.btn-danger{background:var(--danger); color:#fff} .btn-neutral{background:#374151; color:#fff}
-
-table{width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden}
-thead th{position:sticky; top:0; background:#f8fafc; color:#0b1220; font-weight:800; text-align:left; padding:12px; border-bottom:1px solid var(--border); z-index:1}
-tbody td{padding:10px 12px; border-bottom:1px solid #f1f5f9} tbody tr:hover{background:#f9fafb} td.num{text-align:right}
-
-@media (max-width: 720px){
-  .header{padding:12px} .container{padding:12px} .card{padding:12px; border-radius:14px}
-  thead th, tbody td{padding:10px}
-}
+/* การแสดงผล Card */
+.card { background: white; margin: 10px; padding: 16px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
