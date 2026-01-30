@@ -68,12 +68,19 @@ function searchByMaterial(keyword){
   const filtered = !k ? rows : rows.filter(r => (r['Material'] || '').toLowerCase().includes(k));
   renderTable(filtered); renderSelect(filtered);
 }
+
 function searchAll(keyword){
   const k = (keyword || '').toLowerCase();
   const keys = ['Instrument','Material','Product Name','Type','0243'];
-  const filtered = !k ? rows : rows.filter(r => keys.some(key => String(r[key] ?? '').toLowerCase().includes(k)));
-  renderTable(filtered); renderSelect(filtered);
+
+  const filtered = !k ? rows : rows.filter(r =>
+    keys.some(key => String(r[key] ?? '').toLowerCase().includes(k))
+  );
+
+  renderTable(filtered);
+  renderSelect(filtered);
 }
+
 async function transactionV2({type, material, qty, user}){
   const btn = qs('btnConfirm'); if(btn) btn.disabled = true;
   try{
