@@ -1,59 +1,87 @@
+// ====== CONFIG ======
 const API = "https://script.google.com/macros/s/AKfycbwG6Hm-9nLBTV_OC5iq_9KC_zl0cV9DHcddz39qN1dAuDl_cEmd0OX9UU6WNimAoPsAjQ/exec";
-const PASSWORD = "Service";
+const PASSWORD = "Service"; // หมายเหตุ: โปรดักชันควรจำกัดการเข้าถึง/ไม่ hard-code
 let materials = [];
 
-function loadAll() {
-  fetch(`${API}?action=list&password=${PASSWORD}`)
-    .then(r => r.json())
-    .then(res => {
-      if (!res.success) return alert("โหลดข้อมูลไม่สำเร็จ");
-      materials = res.data;
-      render(materials);
-      loadSelect(materials);
-    });
-}
+// ====== HELPERS ======
+function qs(id){ return document.getElementById(id); }
+function numberOr0(x){ const n = Number(x); return Number.isFinite(n) ? n : 0; }
 
-function render(list) {
-  const tb = document.getElementById("data");
+// ====== RENDERING ======
+function render(list){
+  const tb = qs("data");
+  if(!tb) return; // บางหน้าไม่มีตาราง
   tb.innerHTML = list.map(m => `
     <tr>
-      <td>${m.code}</td>
-      <td>${m.name}</td>
-      <td>${m.qty}</td>
+      <td>${m.code ?? ""}</td>
+      <td>${m.name ?? ""}</td>
+      <td class="num">${m.qty ?? 0}</td>
     </tr>
   `).join("");
 }
 
-function loadSelect(list) {
-  const sel = document.getElementById("material");
+function loadSelect(list){
+  const sel = qs("material");
+  if(!sel) return;
   sel.innerHTML = list.map(m =>
     `<option value="${m.code}">${m.code} - ${m.name}</option>`
   ).join("");
 }
 
-function searchMaterial(k) {
-  k = k.toLowerCase();
-  render(materials.filter(m =>
-    m.code.toLowerCase().includes(k) ||
-    m.name.toLowerCase().includes(k)
-  ));
-}
-
-function transaction(type) {
-  const code = material.value;
-  const qty  = document.getElementById("qty").value;
-
-  fetch(`${API}?action=${type}&code=${code}&qty=${qty}&password=${PASSWORD}`)
+// ====== DATA LOADING ======
+function loadAll(){
+  fetch(`${API}?action=list&password=${PASSWORD}`)
     .then(r => r.json())
     .then(res => {
-      if (!res.success) return alert(res.msg);
+      if(!res.success) return alert("โหลดข้อมูลไม่สำเร็จ");
+      materials = Array.isArray(res.data) ? res.data : [];
+      render(materials);
+      loadSelect(materials);
+    })
+    .catch(() => alert("เครือข่ายขัดข้อง กรุณาลองใหม่"));
+}
+
+// ====== SEARCH ======
+function searchMaterial(k){
+  k = (k || "").toLowerCase();
+  const filtered = !k ? materials : materials.filter(m =>
+    (m.code || "").toLowerCase().includes(k) ||
+    (m.name || "").toLowerCase().includes(k)
+  );
+  // อัปเดตทั้งตารางและ select (หน้าไหนมีก็จะทำงาน)
+  render(filtered);
+  loadSelect(filtered);
+}
+
+// ====== TRANSACTION ======
+function transaction(type){
+  const btn = document.getElementById('btnConfirm') || this;
+  if(btn && btn.disabled) return;
+
+  const sel = qs("material");
+  const code = sel ? sel.value : "";
+  const qty  = numberOr0(qs("qty")?.value);
+
+  if(!code){ alert("กรุณาเลือกอะไหล่"); return; }
+  if(!(qty > 0)){ alert("กรุณาใส่จำนวนมากกว่า 0"); return; }
+
+  if(btn) btn.disabled = true;
+
+  fetch(`${API}?action=${type}&code=${encodeURIComponent(code)}&qty=${qty}&password=${PASSWORD}`)
+    .then(r => r.json())
+    .then(res => {
+      if(!res.success) return alert(res.msg || "ทำรายการไม่สำเร็จ");
       alert("สำเร็จ");
       loadAll();
-    });
+      if(qs("qty")) qs("qty").value = "";
+      if(sel) sel.selectedIndex = 0;
+    })
+    .catch(() => alert("เครือข่ายขัดข้อง กรุณาลองใหม่"))
+    .finally(() => { if(btn) btn.disabled = false; });
 }
 
-function logout() {
-  location.href = "index.html";
-}
+// ====== NAV ======
+function logout(){ location.href = "index.html"; }
 
-loadAll();
+// ====== COMPAT (กัน error หน้าเก่า) ======
+function loadMaterials(){ loadAll(); }
