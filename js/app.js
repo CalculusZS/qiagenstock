@@ -134,17 +134,20 @@ async function supGetMaterial(material){
     return res.success ? res.data : null;
   }catch(e){ return null; }
 }
-async function supSetUserQty({ material, user, qty, reconcile='false' }){
+
+// BEFORE (returns !!res.success)
+// async function supAddStock(material, qty){ ... return !!res.success; }
+
+async function supAddStock(material, qty){
   try{
-    const url = `${API}?action=sup_set_user_qty`
+    const url = `${API}?action=sup_add_stock`
       + `&password=${encodeURIComponent(PASSWORD)}`
       + `&sup_password=${encodeURIComponent(SUP_PASSWORD)}`
       + `&material=${encodeURIComponent(material)}`
-      + `&user=${encodeURIComponent(user)}`
-      + `&qty=${encodeURIComponent(qty)}`
-      + `&reconcile=${encodeURIComponent(reconcile)}`;
-    const res = await fetch(url).then(r=>r.json());
-    return !!res.success;
-  }catch(e){ return false; }
+      + `&qty=${encodeURIComponent(qty)}`;
+    const res = await fetch(url).then(r => r.json());
+    return res; // <— return whole response {success, msg, ...}
+  }catch(e){
+    return { success:false, msg: String(e) };
+  }
 }
-``
