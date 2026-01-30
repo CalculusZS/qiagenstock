@@ -1,16 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-  <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/style.css" />
+  <title>เบิกอะไหล่</title>
 </head>
-<body onload="loadMaterials()">
-<div class="header">🔧 Withdraw</div>
-<div class="container">
-  <input placeholder="Search" onkeyup="searchMaterial(this.value)">
-  <select id="material"></select>
-  <input id="qty" type="number" min="1">
-  <button onclick="transaction('withdraw')">Confirm</button>
-</div>
-<script src="js/app.js"></script>
+<body onload="loadAll()">
+  <div class="header">🔧 Withdraw</div>
+
+  <div class="container">
+    <input placeholder="ค้นหาอะไหล่" onkeyup="searchMaterial(this.value)" />
+    <select id="material"></select>
+    <input id="qty" type="number" min="1" placeholder="จำนวน" />
+    <button id="btnConfirm" class="withdraw" onclick="transaction('withdraw')">ยืนยันเบิก</button>
+  </div>
+
+  <script src="js/app.js?v=1"></script>
 </body>
 </html>
