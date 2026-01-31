@@ -1,5 +1,6 @@
 /* ===== 1. Configuration & Global Variables ===== */
 const API = "https://script.google.com/macros/s/AKfycbwo6dwFjysW-4jdUtkOoImfyw2fjCGurNO0zmSbFfNkvXoTB7ZkXTnvtUjea7xl-LRznA/exec";  
+
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 
@@ -13,13 +14,12 @@ function resetLogoutTimer() {
         logoutTimer = setTimeout(() => {
             alert("Session expired due to inactivity.");
             window.logout();
-        }, 300000); // 300,000 ms = 5 นาที
+        }, 300000); 
     }
 }
 window.onload = resetLogoutTimer;
 window.onmousemove = resetLogoutTimer;
 window.onclick = resetLogoutTimer;
-window.onkeypress = resetLogoutTimer;
 
 /* ===== 3. Authentication & Navigation ===== */
 window.login = function() {
@@ -30,31 +30,6 @@ window.login = function() {
     } else { alert('Invalid Password!'); }
 };
 
-window.openSupModal = function() {
-    const modal = document.getElementById('supModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        document.getElementById('sup_pass_input').value = '';
-        document.getElementById('sup_pass_input').focus();
-    }
-};
-
-window.closeSupModal = function() {
-    const modal = document.getElementById('supModal');
-    if (modal) modal.style.display = 'none';
-};
-
-window.submitSupLogin = function() {
-    const p = document.getElementById('sup_pass_input').value;
-    if (p === SUP_PASSWORD) {
-        sessionStorage.setItem('isSupervisor', 'true');
-        location.href = 'supervisor.html'; 
-    } else { 
-        alert("Wrong Password!"); 
-        document.getElementById('sup_pass_input').value = '';
-    }
-};
-
 window.logout = function() {
     sessionStorage.clear();
     location.href = 'index.html';
@@ -62,9 +37,9 @@ window.logout = function() {
 
 window.goBack = () => { location.href = 'user-select.html'; };
 
-/* ===== 4. Data Loading (แก้ไขปัญหาดึงชื่อไม่ขึ้น) ===== */
+/* ===== 4. Load Data (แก้บั๊กรายชื่อไม่ขึ้น) ===== */
 window.loadUsers = async function() {
-    sessionStorage.removeItem('selectedUser'); // บังคับเลือกใหม่ทุกครั้ง
+    sessionStorage.removeItem('selectedUser'); 
     try {
         const response = await fetch(`${API}?action=users&password=${PASSWORD}`);
         const res = await response.json();
@@ -82,23 +57,22 @@ window.loadStockData = async function(pageType) {
         if (res.success) {
             rows = res.rows;
             if (document.getElementById('data')) renderTable(rows, pageType);
-            if (typeof refreshTable === 'function') refreshTable(); // รักษาฟังก์ชันหน้า Supervisor
+            if (typeof refreshTable === 'function') refreshTable(); 
         }
     } catch (e) { console.error("API Error (Stock):", e); }
 };
 
-/* ===== 5. UI Rendering (Single Line & Red 0) ===== */
+/* ===== 5. UI Rendering (บรรทัดเดียว & ศูนย์สีแดง) ===== */
 function renderTable(dataList, type) {
     const container = document.getElementById('data');
     if (!container) return;
     const currentUser = sessionStorage.getItem('selectedUser') || '';
 
-    // กรองรายการ: หน้า Return โชว์เฉพาะของที่ตัวเองมี
     let displayList = (type === 'return') ? dataList.filter(item => (item[currentUser] || 0) > 0) : dataList;
 
     container.innerHTML = displayList.map((item, index) => {
         const stockQty = (type === 'withdraw' || type === 'all') ? (item['0243'] || 0) : (item[currentUser] || 0);
-        const qtyStyle = stockQty === 0 ? 'color: #ef4444; font-weight: bold;' : 'font-weight: bold;'; // เลข 0 สีแดง
+        const qtyStyle = stockQty === 0 ? 'color: #ef4444; font-weight: bold;' : 'font-weight: bold;';
 
         return `
             <tr style="border-bottom: 1px solid #eee;">
@@ -124,7 +98,7 @@ function renderTable(dataList, type) {
     }).join('');
 }
 
-/* ===== 6. Core Business Actions ===== */
+/* ===== 6. Core Logic & Supervisor (ฟังก์ชันเดิมทั้งหมด) ===== */
 window.handleAction = async function(type, material, index) {
     const input = document.getElementById(`qty_${index}`);
     const qty = Number(input.value);
@@ -135,7 +109,7 @@ window.handleAction = async function(type, material, index) {
         const url = `${API}?action=${type}&password=${PASSWORD}&material=${encodeURIComponent(material)}&qty=${qty}&user=${encodeURIComponent(user)}`;
         const res = await fetch(url).then(r => r.json());
         if (res.success) { alert("Success!"); window.loadStockData(type); }
-        else { alert("Failed: " + res.msg); input.disabled = false; }
+        else { alert("Failed"); input.disabled = false; }
     } catch (e) { alert("Error"); input.disabled = false; }
 };
 
@@ -144,21 +118,21 @@ window.searchStock = (keyword, type) => {
     renderTable(filtered, type);
 };
 
-/* ===== 7. Original Supervisor Functions (คงไว้ทั้งหมด) ===== */
-window.findProductByMaterial = (mat) => {
-    return rows.find(r => String(r.Material).trim() === String(mat).trim());
+/* Supervisor Functions เดิม */
+window.openSupModal = () => { document.getElementById('supModal').style.display = 'flex'; };
+window.closeSupModal = () => { document.getElementById('supModal').style.display = 'none'; };
+window.submitSupLogin = () => {
+    if(document.getElementById('sup_pass_input').value === SUP_PASSWORD) {
+        sessionStorage.setItem('isSupervisor', 'true');
+        location.href = 'supervisor.html';
+    } else { alert("Wrong Password!"); }
 };
-
+window.findProductByMaterial = (mat) => rows.find(r => String(r.Material).trim() === String(mat).trim());
 window.supAddStock = async function(mat, qty) {
     const url = `${API}?action=addStock&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=Supervisor`;
-    try {
-        return await fetch(url).then(r => r.json());
-    } catch (e) { return { success: false, msg: "Network Error" }; }
+    return await fetch(url).then(r => r.json());
 };
-
 window.supDeductUser = async function(mat, user, qty) {
     const url = `${API}?action=return&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}&status=USED&admin=Supervisor`;
-    try {
-        return await fetch(url).then(r => r.json());
-    } catch (e) { return { success: false, msg: "Network Error" }; }
+    return await fetch(url).then(r => r.json());
 };
