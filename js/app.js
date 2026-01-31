@@ -6,7 +6,7 @@ const SUP_PASSWORD = "Qiagen";
 let rows = []; 
 let logoutTimer;
 
-/* ===== 2. Auto Logout System (5 Minutes) ===== */
+/* ===== 2. Auto Logout System (ฟังก์ชันเดิมที่สำเร็จแล้ว) ===== */
 function resetLogoutTimer() {
     clearTimeout(logoutTimer);
     if (sessionStorage.getItem('isLoggedIn') === 'true' || sessionStorage.getItem('isSupervisor') === 'true') {
@@ -20,7 +20,7 @@ window.onload = resetLogoutTimer;
 window.onmousemove = resetLogoutTimer;
 window.onclick = resetLogoutTimer;
 
-/* ===== 3. Authentication & Navigation ===== */
+/* ===== 3. Authentication & Navigation (ฟังก์ชันเดิม) ===== */
 window.login = function() {
     const passValue = document.getElementById('password')?.value.trim();
     if (passValue === PASSWORD) {
@@ -36,7 +36,7 @@ window.logout = function() {
 
 window.goBack = () => { location.href = 'user-select.html'; };
 
-/* ===== 4. Data Loading (แก้ไขให้รองรับคอลัมน์ I-N และดึงข้อมูลสำเร็จ) ===== */
+/* ===== 4. Data Loading (แก้ไขให้เสถียรและรองรับคอลัมน์ I-N) ===== */
 window.loadUsers = async function() {
     sessionStorage.removeItem('selectedUser'); 
     try {
@@ -51,25 +51,17 @@ window.loadUsers = async function() {
 
 window.loadStockData = async function(pageType) {
     try {
-        // เพิ่ม Loader ระหว่างรอข้อมูล
-        const container = document.getElementById('data');
-        if (container) container.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">กำลังโหลดข้อมูลสต็อก...</td></tr>';
-
         const response = await fetch(`${API}?action=list2&password=${PASSWORD}`);
         const res = await response.json();
         if (res.success) {
             rows = res.rows;
-            if (container) renderTable(rows, pageType);
+            if (document.getElementById('data')) renderTable(rows, pageType);
             if (typeof refreshTable === 'function') refreshTable(); 
-        } else {
-            if (container) container.innerHTML = '<tr><td colspan="3" style="text-align:center; color:red;">โหลดข้อมูลไม่สำเร็จ</td></tr>';
         }
-    } catch (e) { 
-        console.error("API Error (Stock):", e); 
-    }
+    } catch (e) { console.error("API Error (Stock):", e); }
 };
 
-/* ===== 5. UI Rendering (แสดงชื่ออะไหล่จากคอลัมน์ I-N และเลข 0 สีแดง) ===== */
+/* ===== 5. UI Rendering (แสดงชื่ออะไหล่ I-N และสต็อก 0243) ===== */
 function renderTable(dataList, type) {
     const container = document.getElementById('data');
     if (!container) return;
@@ -78,26 +70,21 @@ function renderTable(dataList, type) {
     let displayList = (type === 'return') ? dataList.filter(item => (item[currentUser] || 0) > 0) : dataList;
 
     container.innerHTML = displayList.map((item, index) => {
-        // ดึงชื่ออะไหล่จากคอลัมน์ Product Name (I-N) หรือ Material Description
+        // ดึงชื่ออะไหล่จากคอลัมน์ I-N (Product Name)
         const productName = item['Product Name'] || item['Material Description'] || 'N/A';
-        const instrument = item['Instrument'] || '-';
-        
         const stockQty = (type === 'withdraw' || type === 'all') ? (item['0243'] || 0) : (item[currentUser] || 0);
         const qtyStyle = stockQty === 0 ? 'color: #ef4444; font-weight: bold;' : 'font-weight: bold;';
 
         return `
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 10px;">
-                    <div style="display: flex; flex-direction: column; gap: 2px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <b style="color: #2563eb; min-width: 80px; font-size: 14px;">${item.Material}</b>
-                            <span style="font-size: 13px; color: #334155;">${productName}</span>
-                        </div>
-                        <small style="color: #94a3b8;">${instrument}</small>
+                    <div style="display: flex; align-items: center; gap: 10px; font-size: 13px;">
+                        <b style="color: #2563eb; min-width: 80px;">${item.Material}</b>
+                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">${productName}</span>
                     </div>
                 </td>
                 <td style="text-align: center; ${qtyStyle}">${stockQty}</td>
-                <td style="text-align: right; padding-right:10px;">
+                <td style="text-align: right;">
                     ${type !== 'all' ? `
                     <div style="display: flex; gap: 5px; justify-content: flex-end;">
                         <input type="number" id="qty_${index}" style="width: 50px; text-align: center; border: 1px solid #ddd; border-radius: 5px;" placeholder="0">
@@ -111,7 +98,7 @@ function renderTable(dataList, type) {
     }).join('');
 }
 
-/* ===== 6. Core Actions เดิม (เบิก/คืน/ค้นหา) ===== */
+/* ===== 6. Core Logic & Supervisor (ฟังก์ชันเดิมที่สำเร็จแล้ว) ===== */
 window.handleAction = async function(type, material, index) {
     const input = document.getElementById(`qty_${index}`);
     const qty = Number(input.value);
@@ -122,7 +109,7 @@ window.handleAction = async function(type, material, index) {
         const url = `${API}?action=${type}&password=${PASSWORD}&material=${encodeURIComponent(material)}&qty=${qty}&user=${encodeURIComponent(user)}`;
         const res = await fetch(url).then(r => r.json());
         if (res.success) { alert("Success!"); window.loadStockData(type); }
-        else { alert("Failed: " + res.msg); input.disabled = false; }
+        else { alert("Failed"); input.disabled = false; }
     } catch (e) { alert("Error"); input.disabled = false; }
 };
 
@@ -131,7 +118,7 @@ window.searchStock = (keyword, type) => {
     renderTable(filtered, type);
 };
 
-/* ===== 7. Supervisor ออปชั่นเดิมที่ทำสำเร็จ (ห้ามตัดออก) ===== */
+/* Supervisor Functions */
 window.openSupModal = () => { document.getElementById('supModal').style.display = 'flex'; };
 window.closeSupModal = () => { document.getElementById('supModal').style.display = 'none'; };
 window.submitSupLogin = () => {
