@@ -9,7 +9,7 @@ let logoutTimer;
 /* ===== 2. Auto Logout System (5 Minutes) ===== */
 function resetLogoutTimer() {
     clearTimeout(logoutTimer);
-    // ทำงานเฉพาะเมื่อมีการ Login เข้าสู่ระบบแล้วเท่านั้น
+    // ระบบจะเริ่มนับถอยหลัง 5 นาที เมื่อมีการล็อกอินแล้วเท่านั้น
     if (sessionStorage.getItem('isLoggedIn') === 'true' || sessionStorage.getItem('isSupervisor') === 'true') {
         logoutTimer = setTimeout(() => {
             alert("Session expired due to inactivity. Returning to login page.");
@@ -18,7 +18,7 @@ function resetLogoutTimer() {
     }
 }
 
-// ตรวจจับการเคลื่อนไหวเพื่อต่อเวลาการใช้งาน
+// ตรวจจับทุกการเคลื่อนไหวเพื่อต่อเวลาการใช้งานอัตโนมัติ
 window.onload = resetLogoutTimer;
 window.onmousemove = resetLogoutTimer;
 window.onmousedown = resetLogoutTimer;
@@ -37,7 +37,7 @@ window.login = function() {
     }
 };
 
-// ควบคุม Modal สำหรับ Supervisor Login
+// ฟังก์ชันควบคุม Modal สำหรับ Supervisor Login แบบซ่อนรหัสผ่าน
 window.openSupModal = function() {
     const modal = document.getElementById('supModal');
     if (modal) {
@@ -72,12 +72,13 @@ window.goBack = () => {
     location.href = 'user-select.html'; 
 };
 
-/* ===== 4. Data Loading & API Interraction ===== */
+/* ===== 4. Data Loading & API Logic ===== */
 window.loadUsers = async function() {
-    // บังคับล้างค่าพนักงานที่เลือกไว้เสมอ (โจทย์: ไม่จำค่าเก่า)
+    // บังคับเลือกพนักงานใหม่ทุกครั้ง (ไม่จำค่าเก่า)
     sessionStorage.removeItem('selectedUser');
     try {
-        const res = await fetch(`${API}?action=users&password=${PASSWORD}`).then(r => r.json());
+        const response = await fetch(`${API}?action=users&password=${PASSWORD}`);
+        const res = await response.json();
         return res.success ? res.users : [];
     } catch (e) { 
         console.error("Load users failed", e);
@@ -87,14 +88,15 @@ window.loadUsers = async function() {
 
 window.loadStockData = async function(pageType) {
     try {
-        const res = await fetch(`${API}?action=list2&password=${PASSWORD}`).then(r => r.json());
+        const response = await fetch(`${API}?action=list2&password=${PASSWORD}`);
+        const res = await response.json();
         if (res.success) {
             rows = res.rows;
-            // เรนเดอร์ตารางถ้ามี Element 'data' (หน้าพนักงาน)
+            // เรนเดอร์ตารางพนักงานถ้ามีช่อง 'data'
             if (document.getElementById('data')) {
                 renderTable(rows, pageType);
             }
-            // เรียกฟังก์ชันรีเฟรชถ้ามี (หน้า Supervisor)
+            // รีเฟรชหน้า Supervisor ถ้าฟังก์ชันนั้นมีตัวตนอยู่
             if (typeof refreshTable === 'function') {
                 refreshTable();
             }
@@ -104,20 +106,20 @@ window.loadStockData = async function(pageType) {
     }
 };
 
-/* ===== 5. UI Rendering (Single Line & Logic) ===== */
+/* ===== 5. UI Rendering (Single Line & Zero Qty Logic) ===== */
 function renderTable(dataList, type) {
     const container = document.getElementById('data');
     if (!container) return;
     const currentUser = sessionStorage.getItem('selectedUser') || '';
 
-    // กรองรายการ: หน้า Return โชว์เฉพาะอะไหล่ที่ตัวเองถือครองอยู่ > 0
+    // หน้า Return จะแสดงเฉพาะของที่พนักงานคนนั้นถือครองอยู่ > 0
     let displayList = dataList;
     if (type === 'return') {
         displayList = dataList.filter(item => (item[currentUser] || 0) > 0);
     }
 
     container.innerHTML = displayList.map((item, index) => {
-        // กำหนดจำนวนที่จะโชว์ตามโหมด (H หรือ My Stock)
+        // กำหนดจำนวนที่จะแสดงตามโหมด (H=0243 หรือ My Stock)
         const stockQty = (type === 'withdraw' || type === 'all') ? (item['0243'] || 0) : (item[currentUser] || 0);
         
         // ถ้าจำนวนเป็น 0 ให้ตัวเลขเป็นสีแดง
@@ -141,14 +143,14 @@ function renderTable(dataList, type) {
                                 style="background: ${type === 'withdraw' ? '#ef4444' : '#22c55e'}; color: white; border: none; padding: 7px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px;">
                             ${type.toUpperCase()}
                         </button>
-                    </div>` : '<span style="color: #94a3b8; font-size: 11px;">VIEW ONLY</span>'}
+                    </div>` : '<span style="color: #94a3b8; font-size: 11px; font-weight: bold;">VIEW ONLY</span>'}
                 </td>
             </tr>
         `;
     }).join('');
 }
 
-/* ===== 6. Core Business Actions ===== */
+/* ===== 6. Core Actions & Search ===== */
 window.handleAction = async function(type, material, index) {
     const input = document.getElementById(`qty_${index}`);
     const qty = Number(input.value);
@@ -180,7 +182,7 @@ window.searchStock = (keyword, type) => {
     renderTable(filtered, type);
 };
 
-/* ===== 7. Supervisor Original Functions (ห้ามตัด) ===== */
+/* ===== 7. Supervisor Functions (Original - ห้ามตัด) ===== */
 window.findProductByMaterial = (mat) => {
     return rows.find(r => String(r.Material).trim() === String(mat).trim());
 };
@@ -188,8 +190,7 @@ window.findProductByMaterial = (mat) => {
 window.supAddStock = async function(mat, qty) {
     const url = `${API}?action=addStock&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=Supervisor`;
     try {
-        const res = await fetch(url).then(r => r.json());
-        return res;
+        return await fetch(url).then(r => r.json());
     } catch (e) {
         return { success: false, msg: "Network Error" };
     }
@@ -198,8 +199,7 @@ window.supAddStock = async function(mat, qty) {
 window.supDeductUser = async function(mat, user, qty) {
     const url = `${API}?action=return&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}&status=USED&admin=Supervisor`;
     try {
-        const res = await fetch(url).then(r => r.json());
-        return res;
+        return await fetch(url).then(r => r.json());
     } catch (e) {
         return { success: false, msg: "Network Error" };
     }
