@@ -6,20 +6,20 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body onload="loadStockData('all')">
-    <div style="background:#1e293b; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
-        <b>📦 All Parts Inventory (0243)</b>
+    <div style="background:#1e293b; color:white; padding:15px; display:flex; justify-content:space-between;">
+        <b>📦 All Parts (0243)</b>
         <button onclick="goBack()" style="background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:5px; cursor:pointer;">Back</button>
     </div>
     <div class="container" style="padding:15px;">
-        <input type="text" placeholder="Search Material, Name, Instrument..." oninput="window.searchStock(this.value, 'all')" 
+        <input type="text" placeholder="ค้นหาอะไหล่..." oninput="window.searchStock(this.value, 'all')" 
                style="width:100%; padding:12px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd; box-sizing:border-box;">
         
         <table style="width:100%; border-collapse:collapse; background:white; border-radius:10px; overflow:hidden;">
-            <thead style="background:#f1f5f9; border-bottom: 2px solid #e2e8f0;">
+            <thead style="background:#f1f5f9;">
                 <tr>
-                    <th style="text-align:left; padding:10px; font-size:12px; color:#64748b;">ITEM DETAILS</th>
-                    <th style="text-align:center; padding:10px; font-size:12px; color:#64748b;">H (0243)</th>
-                    <th style="text-align:right; padding:10px; font-size:12px; color:#64748b; padding-right:15px;">STATUS</th>
+                    <th style="text-align:left; padding:10px; font-size:12px;">ITEM DETAILS</th>
+                    <th>STOCK 0243</th>
+                    <th>STATUS</th>
                 </tr>
             </thead>
             <tbody id="data"></tbody>
