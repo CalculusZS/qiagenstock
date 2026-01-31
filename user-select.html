@@ -1,32 +1,37 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Select User</title>
+    <title>Select User - Qiagen</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body onload="init()">
-    <div style="background:#1e293b; color:white; padding:15px; display:flex; justify-content:space-between;">
-        <b>📦 Qiagen Stock</b>
-        <button onclick="logout()" style="background:#ef4444; border:none; color:white; border-radius:5px; padding:5px 10px;">Logout</button>
+    <div style="background:#1e293b; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+        <b>Qiagen Inventory</b>
+        <button onclick="logout()" style="background:#ef4444; border:none; color:white; padding:5px 12px; border-radius:5px; cursor:pointer;">Logout</button>
     </div>
-    <div class="container" style="max-width:400px; margin:20px auto; padding:0 20px;">
-        <h3 style="text-align:center;">👤 เลือกรายชื่อผู้ใช้งาน</h3>
+
+    <div class="container" style="max-width:400px; margin:30px auto; padding:0 20px;">
+        <h3 style="text-align:center;">👤 Select Staff Name</h3>
         <div id="user_list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
-            กำลังโหลดรายชื่อ...
+            Loading Staff List...
         </div>
         <hr>
-        <button onclick="location.href='showall.html'" style="width:100%; padding:15px; background:#f1f5f9; border:1px solid #ccc; border-radius:10px; font-weight:bold; cursor:pointer; margin-bottom:10px;">🔍 View All Parts (0243)</button>
-        <button onclick="openSupModal()" style="width:100%; padding:15px; background:#1e293b; color:white; border-radius:10px; font-weight:bold; cursor:pointer; border:none;">🛡️ Supervisor Login</button>
+        <button onclick="location.href='showall.html'" style="width:100%; padding:15px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:12px;">
+            🔍 View All Parts (0243)
+        </button>
+        <button onclick="openSupModal()" style="width:100%; padding:15px; background:#1e293b; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">
+            🛡️ Supervisor Login
+        </button>
     </div>
 
     <div id="supModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
         <div style="background:white; padding:20px; border-radius:10px; text-align:center;">
             <h3>Supervisor Login</h3>
-            <input type="password" id="sup_pass_input" style="padding:10px; margin-bottom:10px;" placeholder="Password">
+            <input type="password" id="sup_pass_input" placeholder="Password" style="padding:10px; margin-bottom:10px;">
             <br>
-            <button onclick="closeSupModal()">ยกเลิก</button>
-            <button onclick="submitSupLogin()" style="background:#1e293b; color:white; border:none; padding:5px 15px; border-radius:5px;">ยืนยัน</button>
+            <button onclick="closeSupModal()">Cancel</button>
+            <button onclick="submitSupLogin()" style="background:#1e293b; color:white; border:none; padding:5px 15px; border-radius:5px; cursor:pointer;">Submit</button>
         </div>
     </div>
 
@@ -36,8 +41,12 @@
             const users = await window.loadUsers();
             const container = document.getElementById('user_list');
             if (users && users.length > 0) {
-                container.innerHTML = users.map(u => `<button style="padding:15px; border-radius:10px; border:1px solid #ddd; background:white; font-weight:bold; cursor:pointer;" onclick="selectUser('${u.header}')">${u.header}</button>`).join('');
-            } else { container.innerHTML = 'ไม่พบข้อมูลผู้ใช้งาน'; }
+                container.innerHTML = users.map(u => `
+                    <button style="width:100%; background:white; border:1px solid #e2e8f0; padding:15px; border-radius:10px; font-weight:bold; cursor:pointer;" 
+                            onclick="selectUser('${u.header}')">
+                        👤 ${u.header}
+                    </button>`).join('');
+            } else { container.innerHTML = 'Staff List Empty'; }
         }
         function selectUser(name) {
             sessionStorage.setItem('selectedUser', name);
