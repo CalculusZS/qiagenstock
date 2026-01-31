@@ -1,18 +1,17 @@
 /* ===== 1. Configuration & Global Variables ===== */
 const API = "https://script.google.com/macros/s/AKfycbwo6dwFjysW-4jdUtkOoImfyw2fjCGurNO0zmSbFfNkvXoTB7ZkXTnvtUjea7xl-LRznA/exec";  
-
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 
 let rows = []; 
 let logoutTimer;
 
-/* ===== 2. Auto Logout System (5 Minutes) ===== */
+/* ===== 2. Auto Logout (5 Minutes) ===== */
 function resetLogoutTimer() {
     clearTimeout(logoutTimer);
     if (sessionStorage.getItem('isLoggedIn') === 'true' || sessionStorage.getItem('isSupervisor') === 'true') {
         logoutTimer = setTimeout(() => {
-            alert("Session expired due to inactivity.");
+            alert("หมดเวลาเชื่อมต่อ กรุณาล็อกอินใหม่");
             window.logout();
         }, 300000); 
     }
@@ -21,13 +20,13 @@ window.onload = resetLogoutTimer;
 window.onmousemove = resetLogoutTimer;
 window.onclick = resetLogoutTimer;
 
-/* ===== 3. Authentication & Navigation ===== */
+/* ===== 3. Login & Navigation ===== */
 window.login = function() {
-    const passValue = document.getElementById('password')?.value.trim();
-    if (passValue === PASSWORD) {
+    const p = document.getElementById('password')?.value.trim();
+    if (p === PASSWORD) {
         sessionStorage.setItem('isLoggedIn', 'true');
         location.href = 'user-select.html';
-    } else { alert('Invalid Password!'); }
+    } else { alert('รหัสผ่านไม่ถูกต้อง'); }
 };
 
 window.logout = function() {
@@ -37,7 +36,7 @@ window.logout = function() {
 
 window.goBack = () => { location.href = 'user-select.html'; };
 
-/* ===== 4. Load Data (แก้บั๊กรายชื่อไม่ขึ้น) ===== */
+/* ===== 4. Data Loading (ฟังก์ชันดึงข้อมูล) ===== */
 window.loadUsers = async function() {
     sessionStorage.removeItem('selectedUser'); 
     try {
@@ -62,7 +61,7 @@ window.loadStockData = async function(pageType) {
     } catch (e) { console.error("API Error (Stock):", e); }
 };
 
-/* ===== 5. UI Rendering (บรรทัดเดียว & ศูนย์สีแดง) ===== */
+/* ===== 5. UI Rendering (แสดงผลบรรทัดเดียว & ศูนย์สีแดง) ===== */
 function renderTable(dataList, type) {
     const container = document.getElementById('data');
     if (!container) return;
@@ -98,19 +97,19 @@ function renderTable(dataList, type) {
     }).join('');
 }
 
-/* ===== 6. Core Logic & Supervisor (ฟังก์ชันเดิมทั้งหมด) ===== */
+/* ===== 6. Core Logic เดิม (ห้ามลบ) ===== */
 window.handleAction = async function(type, material, index) {
     const input = document.getElementById(`qty_${index}`);
     const qty = Number(input.value);
     const user = sessionStorage.getItem('selectedUser');
-    if (qty <= 0) return alert("Please enter quantity");
+    if (qty <= 0) return alert("กรุณาใส่จำนวน");
     input.disabled = true;
     try {
         const url = `${API}?action=${type}&password=${PASSWORD}&material=${encodeURIComponent(material)}&qty=${qty}&user=${encodeURIComponent(user)}`;
         const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("Success!"); window.loadStockData(type); }
-        else { alert("Failed"); input.disabled = false; }
-    } catch (e) { alert("Error"); input.disabled = false; }
+        if (res.success) { alert("สำเร็จ!"); window.loadStockData(type); }
+        else { alert("ไม่สำเร็จ"); input.disabled = false; }
+    } catch (e) { alert("เกิดข้อผิดพลาด"); input.disabled = false; }
 };
 
 window.searchStock = (keyword, type) => {
@@ -118,14 +117,14 @@ window.searchStock = (keyword, type) => {
     renderTable(filtered, type);
 };
 
-/* Supervisor Functions เดิม */
+/* ===== 7. Supervisor Functions เดิม (คงไว้ครบ) ===== */
 window.openSupModal = () => { document.getElementById('supModal').style.display = 'flex'; };
 window.closeSupModal = () => { document.getElementById('supModal').style.display = 'none'; };
 window.submitSupLogin = () => {
     if(document.getElementById('sup_pass_input').value === SUP_PASSWORD) {
         sessionStorage.setItem('isSupervisor', 'true');
         location.href = 'supervisor.html';
-    } else { alert("Wrong Password!"); }
+    } else { alert("รหัสผ่านผิด!"); }
 };
 window.findProductByMaterial = (mat) => rows.find(r => String(r.Material).trim() === String(mat).trim());
 window.supAddStock = async function(mat, qty) {
@@ -135,4 +134,4 @@ window.supAddStock = async function(mat, qty) {
 window.supDeductUser = async function(mat, user, qty) {
     const url = `${API}?action=return&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}&status=USED&admin=Supervisor`;
     return await fetch(url).then(r => r.json());
-};
+};;
