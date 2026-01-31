@@ -10,38 +10,47 @@
         body { font-family: -apple-system, sans-serif; background: #f8fafc; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
         .nav-header { background: var(--dark); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
         .container { max-width: 400px; margin: 30px auto; padding: 0 15px; width: 100%; box-sizing: border-box; }
-        .user-card { 
-            background: white; border: 1px solid #e2e8f0; padding: 18px; margin-bottom: 12px; 
-            border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; 
-            transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color: #334155;
-        }
-        .user-card:hover { border-color: var(--primary); background: #f0f7ff; transform: translateY(-1px); }
-        .btn-all { width: 100%; padding: 14px; background: #f1f5f9; color: var(--dark); border: 1px solid #cbd5e1; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; }
-        .btn-sup { width: 100%; padding: 14px; background: var(--dark); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         
-        /* Modal Style */
+        /* สไตล์ปุ่มรายชื่อพนักงาน */
+        .user-btn { 
+            width: 100%; background: white; border: 1px solid #e2e8f0; padding: 18px; margin-bottom: 12px; 
+            border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; 
+            transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color: #334155; font-size: 16px;
+        }
+        .user-btn:hover { border-color: var(--primary); background: #f0f7ff; transform: translateY(-1px); }
+        
+        /* สไตล์ปุ่มฟังก์ชันเสริม */
+        .btn-all { width: 100%; padding: 14px; background: #f1f5f9; color: var(--dark); border: 1px solid #cbd5e1; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; font-size: 14px; }
+        .btn-sup { width: 100%; padding: 14px; background: var(--dark); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 14px; }
+        
+        /* Supervisor Modal */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 16px; width: 300px; text-align: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 16px; width: 300px; text-align: center; border: none; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         .modal-input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px; text-align: center; font-size: 20px; box-sizing: border-box; }
+        
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body onload="initPage()">
+<body onload="initUserSelection()">
 
     <div class="nav-header">
         <div style="font-weight: bold;">Qiagen Inventory</div>
-        <button onclick="logout()" style="background: var(--danger); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Logout</button>
+        <button onclick="logout()" style="background: var(--danger); border: none; color: white; padding: 6px 15px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold;">Logout</button>
     </div>
 
     <div class="container">
         <h2 style="text-align: center; color: #1e293b; margin-bottom: 25px;">👤 Select Your Name</h2>
         
         <div id="user_list">
-            <div style="text-align: center; color: #64748b;">Loading names...</div>
+            <div class="loader"></div>
+            <p style="text-align: center; color: #64748b; font-size: 14px;">Fetching staff names...</p>
         </div>
 
         <hr style="margin: 30px 0; border: 0; border-top: 1px solid #e2e8f0;">
         
         <button class="btn-all" onclick="location.href='showall.html'">🔍 View All Parts Stock</button>
+        
         <button class="btn-sup" onclick="openSupModal()">🛡️ Supervisor Login</button>
     </div>
 
@@ -51,42 +60,49 @@
             <p style="font-size: 13px; color: #64748b;">Enter password to access</p>
             <input type="password" id="sup_pass_input" class="modal-input" placeholder="••••••">
             <div style="display: flex; gap: 10px;">
-                <button onclick="closeSupModal()" style="flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; background: #e2e8f0;">Cancel</button>
-                <button onclick="submitSupLogin()" style="flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; background: var(--dark); color: white;">Login</button>
+                <button onclick="closeSupModal()" style="flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; background: #e2e8f0; font-weight: bold;">Cancel</button>
+                <button onclick="submitSupLogin()" style="flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; background: var(--dark); color: white; font-weight: bold;">Login</button>
             </div>
         </div>
     </div>
 
     <script src="js/app.js"></script>
     <script>
-        async function initPage() {
+        // ฟังก์ชันเริ่มต้นเมื่อโหลดหน้าจอ
+        async function initUserSelection() {
             try {
-                // เรียกฟังก์ชันจาก app.js ซึ่งจะล้าง selectedUser ให้อัตโนมัติด้วย
+                // เรียกใช้ loadUsers จาก app.js ซึ่งจะล้าง selectedUser เก่าให้อัตโนมัติ
                 const users = await window.loadUsers();
                 const listContainer = document.getElementById('user_list');
                 
                 if (users && users.length > 0) {
+                    // สร้างปุ่มรายชื่อพนักงานตามข้อมูลจาก Google Sheets
                     listContainer.innerHTML = users.map(user => `
-                        <div class="user-card" onclick="selectUser('${user.header}')">
+                        <button class="user-btn" onclick="selectUser('${user.header}')">
                             ${user.header}
-                        </div>
+                        </button>
                     `).join('');
                 } else {
-                    listContainer.innerHTML = '<div style="text-align:center; color:red;">No users found or API Error</div>';
+                    listContainer.innerHTML = `
+                        <div style="text-align:center; color:var(--danger); padding: 20px;">
+                            <b>⚠️ Data not found</b><br>
+                            <small>Please check API deployment or Network.</small>
+                        </div>`;
                 }
             } catch (error) {
                 console.error("Init Error:", error);
-                document.getElementById('user_list').innerHTML = '<div style="text-align:center; color:red;">Connection Failed</div>';
+                document.getElementById('user_list').innerHTML = '<p style="text-align:center; color:red;">Connection Failed</p>';
             }
         }
 
+        // ฟังก์ชันเลือกชื่อและจำค่าลง Session
         function selectUser(name) {
             sessionStorage.setItem('selectedUser', name);
             location.href = 'main.html';
         }
 
         // รองรับการกด Enter ในช่อง Password Modal
-        document.getElementById('sup_pass_input').addEventListener('keypress', function(e) {
+        document.getElementById('sup_pass_input')?.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') submitSupLogin();
         });
     </script>
