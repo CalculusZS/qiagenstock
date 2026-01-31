@@ -3,47 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qiagen Stock - All Parts</title>
+    <title>Select User - Qiagen Stock</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        :root { --dark: #1e293b; --primary: #2563eb; }
-        body { font-family: -apple-system, sans-serif; background: #f8fafc; margin: 0; }
-        .nav-header { background: var(--dark); color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
-        .container { padding: 20px; max-width: 900px; margin: auto; }
-        .search-box { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; margin-bottom: 20px; box-sizing: border-box; outline: none; }
-        .table-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f1f5f9; padding: 12px; text-align: left; font-size: 12px; color: #64748b; text-transform: uppercase; }
-        /* ตกแต่งป้ายสถานะ View Only */
-        .status-badge { font-size: 10px; background: #f1f5f9; color: #94a3b8; padding: 4px 8px; border-radius: 6px; font-weight: bold; border: 1px solid #e2e8f0; }
+        :root { --dark: #1e293b; --primary: #2563eb; --danger: #ef4444; }
+        body { font-family: -apple-system, sans-serif; background: #f8fafc; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        .nav-header { background: var(--dark); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .container { max-width: 400px; margin: 30px auto; padding: 0 15px; width: 100%; box-sizing: border-box; }
+        .user-card { 
+            background: white; border: 1px solid #e2e8f0; padding: 18px; margin-bottom: 12px; 
+            border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; 
+            transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); color: #334155;
+        }
+        .user-card:hover { border-color: var(--primary); background: #f0f7ff; transform: translateY(-1px); }
+        .btn-all { width: 100%; padding: 14px; background: #f1f5f9; color: var(--dark); border: 1px solid #cbd5e1; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        .btn-sup { width: 100%; padding: 14px; background: var(--dark); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        
+        /* Modal Style */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 16px; width: 300px; text-align: center; }
+        .modal-input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px; text-align: center; font-size: 20px; box-sizing: border-box; }
     </style>
 </head>
-<body onload="loadStockData('all')">
+<body onload="initPage()">
 
     <div class="nav-header">
-        <div style="font-weight: bold; font-size: 1.1rem;">📦 All Parts Inventory (0243)</div>
-        <button onclick="goBack()" style="background: rgba(255,255,255,0.1); border: 1px solid #fff; color: white; padding: 6px 15px; border-radius: 6px; cursor: pointer;">Back</button>
+        <div style="font-weight: bold;">Qiagen Inventory</div>
+        <button onclick="logout()" style="background: var(--danger); border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;">Logout</button>
     </div>
 
     <div class="container">
-        <input type="text" class="search-box" placeholder="Search Material, Name or Instrument..." oninput="window.searchStock(this.value, 'all')">
+        <h2 style="text-align: center; color: #1e293b; margin-bottom: 25px;">👤 Select Your Name</h2>
+        
+        <div id="user_list">
+            <div style="text-align: center; color: #64748b;">Loading names...</div>
+        </div>
 
-        <div class="table-card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Item Details (Material / Product / Instrument)</th>
-                        <th style="text-align: center; width: 80px;">Stock</th>
-                        <th style="text-align: right; width: 120px;">Status</th>
-                    </tr>
-                </thead>
-                <tbody id="data">
-                    </tbody>
-            </table>
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #e2e8f0;">
+        
+        <button class="btn-all" onclick="location.href='showall.html'">🔍 View All Parts Stock</button>
+        <button class="btn-sup" onclick="openSupModal()">🛡️ Supervisor Login</button>
+    </div>
+
+    <div id="supModal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin: 0 0 10px 0;">🔐 Supervisor</h2>
+            <p style="font-size: 13px; color: #64748b;">Enter password to access</p>
+            <input type="password" id="sup_pass_input" class="modal-input" placeholder="••••••">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="closeSupModal()" style="flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; background: #e2e8f0;">Cancel</button>
+                <button onclick="submitSupLogin()" style="flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; background: var(--dark); color: white;">Login</button>
+            </div>
         </div>
     </div>
 
     <script src="js/app.js"></script>
+    <script>
+        async function initPage() {
+            try {
+                // เรียกฟังก์ชันจาก app.js ซึ่งจะล้าง selectedUser ให้อัตโนมัติด้วย
+                const users = await window.loadUsers();
+                const listContainer = document.getElementById('user_list');
+                
+                if (users && users.length > 0) {
+                    listContainer.innerHTML = users.map(user => `
+                        <div class="user-card" onclick="selectUser('${user.header}')">
+                            ${user.header}
+                        </div>
+                    `).join('');
+                } else {
+                    listContainer.innerHTML = '<div style="text-align:center; color:red;">No users found or API Error</div>';
+                }
+            } catch (error) {
+                console.error("Init Error:", error);
+                document.getElementById('user_list').innerHTML = '<div style="text-align:center; color:red;">Connection Failed</div>';
+            }
+        }
 
+        function selectUser(name) {
+            sessionStorage.setItem('selectedUser', name);
+            location.href = 'main.html';
+        }
+
+        // รองรับการกด Enter ในช่อง Password Modal
+        document.getElementById('sup_pass_input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') submitSupLogin();
+        });
+    </script>
 </body>
 </html>
