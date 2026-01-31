@@ -1,38 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Select User</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select User - Qiagen Stock</title>
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        :root { --dark: #1e293b; --primary: #2563eb; --danger: #ef4444; }
-        body { font-family: -apple-system, sans-serif; background: #f8fafc; margin: 0; }
-        .container { max-width: 400px; margin: 30px auto; padding: 0 15px; }
-        .user-btn { width: 100%; background: white; border: 1px solid #e2e8f0; padding: 18px; margin-bottom: 12px; border-radius: 12px; cursor: pointer; text-align: center; font-weight: bold; color: #334155; font-size: 16px; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 16px; width: 300px; text-align: center; }
-    </style>
 </head>
 <body onload="init()">
-    <div style="background:#1e293b; color:white; padding:15px; display:flex; justify-content:space-between;">
-        <b>Qiagen Stock</b>
-        <button onclick="logout()" style="background:var(--danger); border:none; color:white; padding:5px 10px; border-radius:5px;">Logout</button>
-    </div>
-    <div class="container">
-        <h2 style="text-align:center;">👤 Select Your Name</h2>
-        <div id="user_list" style="text-align:center;">กำลังโหลดรายชื่อ...</div>
-        <hr style="margin:25px 0; border:0; border-top:1px solid #e2e8f0;">
-        <button onclick="location.href='showall.html'" style="width:100%; padding:15px; background:#f1f5f9; border:1px solid #ccc; border-radius:12px; margin-bottom:10px; font-weight:bold; cursor:pointer;">🔍 View All Parts (H-0243)</button>
-        <button onclick="openSupModal()" style="width:100%; padding:15px; background:#1e293b; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">🛡️ Supervisor Login</button>
+    <div style="background:#1e293b; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+        <b>Qiagen Inventory</b>
+        <button onclick="logout()" style="background:#ef4444; border:none; color:white; padding:5px 12px; border-radius:8px; cursor:pointer;">Logout</button>
     </div>
 
-    <div id="supModal" class="modal">
-        <div class="modal-content">
-            <h3>🔐 Supervisor</h3>
-            <input type="password" id="sup_pass_input" style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:8px; text-align:center;" placeholder="••••••">
+    <div class="container" style="max-width:400px; margin:30px auto; padding:0 20px;">
+        <h3 style="text-align:center; color:#1e293b;">👤 เลือกรายชื่อผู้ใช้งาน</h3>
+        
+        <div id="user_list" style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+            <p style="text-align:center; color:#64748b;">กำลังโหลดรายชื่อ...</p>
+        </div>
+
+        <hr style="border:0; border-top:1px solid #e2e8f0; margin:25px 0;">
+
+        <button onclick="location.href='showall.html'" 
+                style="width:100%; background:#f1f5f9; border:1px solid #cbd5e1; padding:16px; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:12px; color:#1e293b;">
+            🔍 View All Parts (0243)
+        </button>
+
+        <button onclick="openSupModal()" 
+                style="width:100%; background:#1e293b; color:white; border:none; padding:16px; border-radius:12px; font-weight:bold; cursor:pointer;">
+            🛡️ Supervisor Login
+        </button>
+    </div>
+
+    <div id="supModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:1000;">
+        <div style="background:white; padding:25px; border-radius:15px; width:85%; max-width:320px; text-align:center;">
+            <h3 style="margin-top:0;">Supervisor Login</h3>
+            <input type="password" id="sup_pass_input" style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;" placeholder="ใส่รหัสผ่าน">
             <div style="display:flex; gap:10px;">
-                <button onclick="closeSupModal()" style="flex:1; padding:10px; border:none; border-radius:8px; background:#e2e8f0;">Cancel</button>
-                <button onclick="submitSupLogin()" style="flex:1; padding:10px; border:none; border-radius:8px; background:#1e293b; color:white;">Login</button>
+                <button onclick="closeSupModal()" style="flex:1; padding:10px; background:#f1f5f9; border:none; border-radius:8px;">ยกเลิก</button>
+                <button onclick="submitSupLogin()" style="flex:1; padding:10px; background:#1e293b; color:white; border:none; border-radius:8px;">ตกลง</button>
             </div>
         </div>
     </div>
@@ -40,13 +46,25 @@
     <script src="js/app.js"></script>
     <script>
         async function init() {
-            const users = await window.loadUsers();
-            const list = document.getElementById('user_list');
-            if (users && users.length > 0) {
-                list.innerHTML = users.map(u => `<button class="user-btn" onclick="selectUser('${u.header}')">${u.header}</button>`).join('');
-            } else { list.innerHTML = '<p style="color:red;">ไม่สามารถโหลดรายชื่อได้ กรุณารีเฟรช</p>'; }
+            try {
+                const users = await window.loadUsers();
+                const listContainer = document.getElementById('user_list');
+                if (users && users.length > 0) {
+                    listContainer.innerHTML = users.map(user => `
+                        <button style="width:100%; background:white; border:1px solid #e2e8f0; padding:16px; border-radius:12px; cursor:pointer; font-weight:bold; color:#334155;" 
+                                onclick="selectUser('${user.header}')">
+                            ${user.header}
+                        </button>
+                    `).join('');
+                } else {
+                    listContainer.innerHTML = '<p style="text-align:center; color:red;">ไม่พบรายชื่อพนักงาน</p>';
+                }
+            } catch (err) { console.error(err); }
         }
-        function selectUser(name) { sessionStorage.setItem('selectedUser', name); location.href = 'main.html'; }
+        function selectUser(name) {
+            sessionStorage.setItem('selectedUser', name);
+            location.href = 'main.html';
+        }
     </script>
 </body>
 </html>
