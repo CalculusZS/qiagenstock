@@ -1,32 +1,32 @@
 /* ===== 1. Configuration & Global Variables ===== */
-const API = "https://script.google.com/macros/s/AKfycbwo6dwFjysW-4jdUtkOoImfyw2fjCGurNO0zmSbFfNkvXoTB7ZkXTnvtUjea7xl-LRznA/exec";  
+const API = "https://script.google.com/macros/s/AKfycbwo6dwFjysW-4jdUtkOoImfyw2fjCGurNO0zmSbFfNkvXoTB7ZkXTnvtUjea7xl-LRznA/exec";    
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 
 let rows = []; 
 let logoutTimer;
 
-/* ===== 2. Auto Logout System (ฟังก์ชันดั้งเดิมที่สมบูรณ์) ===== */
+/* ===== 2. Auto Logout System ===== */
 function resetLogoutTimer() {
     clearTimeout(logoutTimer);
     if (sessionStorage.getItem('isLoggedIn') === 'true' || sessionStorage.getItem('isSupervisor') === 'true') {
         logoutTimer = setTimeout(() => {
-            alert("Session expired due to inactivity.");
+            alert("Session expired. Please login again.");
             window.logout();
-        }, 300000); // 5 นาที
+        }, 300000); 
     }
 }
 window.onload = resetLogoutTimer;
 window.onmousemove = resetLogoutTimer;
 window.onclick = resetLogoutTimer;
 
-/* ===== 3. Authentication & Navigation ===== */
+/* ===== 3. Login & Navigation ===== */
 window.login = function() {
     const passValue = document.getElementById('password')?.value.trim();
     if (passValue === PASSWORD) {
         sessionStorage.setItem('isLoggedIn', 'true');
         location.href = 'user-select.html';
-    } else { alert('Invalid Password!'); }
+    } else { alert('Incorrect Password'); }
 };
 
 window.logout = function() {
@@ -36,7 +36,7 @@ window.logout = function() {
 
 window.goBack = () => { location.href = 'user-select.html'; };
 
-/* ===== 4. Load Data (ดึงรายชื่อและข้อมูลสต็อก - แก้บั๊กรายชื่อไม่ขึ้น) ===== */
+/* ===== 4. Load Data (Users & Stock) ===== */
 window.loadUsers = async function() {
     sessionStorage.removeItem('selectedUser'); 
     try {
@@ -44,7 +44,7 @@ window.loadUsers = async function() {
         const res = await response.json();
         return res.success ? res.users : [];
     } catch (e) {
-        console.error("API Error (Users):", e);
+        console.error("Load Users Error:", e);
         return [];
     }
 };
@@ -56,12 +56,11 @@ window.loadStockData = async function(pageType) {
         if (res.success) {
             rows = res.rows;
             if (document.getElementById('data')) renderTable(rows, pageType);
-            if (typeof refreshTable === 'function') refreshTable(); 
         }
-    } catch (e) { console.error("API Error (Stock):", e); }
+    } catch (e) { console.error("Load Stock Error:", e); }
 };
 
-/* ===== 5. UI Rendering (ดึงข้อมูลชื่อจากคอลัมน์ I-N และแสดงสต็อก 0243) ===== */
+/* ===== 5. UI Rendering (Column I-N & Instrument) ===== */
 function renderTable(dataList, type) {
     const container = document.getElementById('data');
     if (!container) return;
@@ -70,31 +69,35 @@ function renderTable(dataList, type) {
     let displayList = (type === 'return') ? dataList.filter(item => (item[currentUser] || 0) > 0) : dataList;
 
     container.innerHTML = displayList.map((item, index) => {
-        // ดึงชื่ออะไหล่จากคอลัมน์ I-N (Product Name) และคอลัมน์ Instrument
+        // ดึงข้อมูลจาก Column I-N และหัวข้ออื่นๆ
+        const material = item['Material'] || '-';
         const productName = item['Product Name'] || item['Material Description'] || 'N/A';
         const instrument = item['Instrument'] || '-';
+        const typeInfo = item['Type'] || '-';
         
-        // กำหนดสต็อก: หน้า All/Withdraw ดูคอลัมน์ 0243, หน้า Return ดูคอลัมน์ชื่อพนักงาน
+        // สต็อกคอลัมน์ 0243
         const stockQty = (type === 'withdraw' || type === 'all') ? (item['0243'] || 0) : (item[currentUser] || 0);
         const qtyStyle = stockQty === 0 ? 'color: #ef4444; font-weight: bold;' : 'font-weight: bold;';
 
         return `
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 10px;">
-                    <div style="display: flex; flex-direction: column;">
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <b style="color: #2563eb; min-width: 80px;">${item.Material}</b>
-                            <span style="font-size: 13px; color: #334155;">${productName}</span>
+                            <b style="color: #2563eb; font-size: 14px;">${material}</b>
+                            <span style="font-size: 13px; font-weight: 500;">${productName}</span>
                         </div>
-                        <small style="color: #94a3b8; margin-top: 2px;">Instrument: ${instrument}</small>
+                        <div style="font-size: 11px; color: #64748b;">
+                            Inst: ${instrument} | Type: ${typeInfo}
+                        </div>
                     </div>
                 </td>
                 <td style="text-align: center; ${qtyStyle}">${stockQty}</td>
-                <td style="text-align: right;">
+                <td style="text-align: right; padding-right:10px;">
                     ${type !== 'all' ? `
                     <div style="display: flex; gap: 5px; justify-content: flex-end;">
                         <input type="number" id="qty_${index}" style="width: 50px; text-align: center; border: 1px solid #ddd; border-radius: 5px;" placeholder="0">
-                        <button onclick="handleAction('${type}', '${item.Material}', ${index})" 
+                        <button onclick="handleAction('${type}', '${material}', ${index})" 
                                 style="background: ${type === 'withdraw' ? '#ef4444' : '#22c55e'}; color: white; border: none; padding: 7px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px;">
                             ${type.toUpperCase()}
                         </button>
@@ -104,7 +107,7 @@ function renderTable(dataList, type) {
     }).join('');
 }
 
-/* ===== 6. Logic เดิม - การเบิก/คืน และค้นหา (ห้ามตัดออก) ===== */
+/* ===== 6. Core Actions & Supervisor ===== */
 window.handleAction = async function(type, material, index) {
     const input = document.getElementById(`qty_${index}`);
     const qty = Number(input.value);
@@ -116,7 +119,7 @@ window.handleAction = async function(type, material, index) {
         const res = await fetch(url).then(r => r.json());
         if (res.success) { alert("Success!"); window.loadStockData(type); }
         else { alert("Failed"); input.disabled = false; }
-    } catch (e) { alert("Error"); input.disabled = false; }
+    } catch (e) { alert("Connection Error"); input.disabled = false; }
 };
 
 window.searchStock = (keyword, type) => {
@@ -124,21 +127,17 @@ window.searchStock = (keyword, type) => {
     renderTable(filtered, type);
 };
 
-/* ===== 7. Supervisor Functions (สมบูรณ์ตามเวอร์ชันเก่า) ===== */
+/* Supervisor Logic */
 window.openSupModal = () => { document.getElementById('supModal').style.display = 'flex'; };
 window.closeSupModal = () => { document.getElementById('supModal').style.display = 'none'; };
 window.submitSupLogin = () => {
     if(document.getElementById('sup_pass_input').value === SUP_PASSWORD) {
         sessionStorage.setItem('isSupervisor', 'true');
         location.href = 'supervisor.html';
-    } else { alert("Wrong Password!"); }
+    } else { alert("Incorrect Supervisor Password"); }
 };
 window.findProductByMaterial = (mat) => rows.find(r => String(r.Material).trim() === String(mat).trim());
 window.supAddStock = async function(mat, qty) {
     const url = `${API}?action=addStock&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=Supervisor`;
-    return await fetch(url).then(r => r.json());
-};
-window.supDeductUser = async function(mat, user, qty) {
-    const url = `${API}?action=return&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}&status=USED&admin=Supervisor`;
     return await fetch(url).then(r => r.json());
 };
