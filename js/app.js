@@ -6,21 +6,21 @@ const SUP_PASSWORD = "Qiagen";
 let rows = []; 
 let logoutTimer;
 
-/* ===== 2. Auto Logout System (ฟังก์ชันเดิมที่สำเร็จแล้ว) ===== */
+/* ===== 2. Auto Logout System (ฟังก์ชันดั้งเดิมที่สมบูรณ์) ===== */
 function resetLogoutTimer() {
     clearTimeout(logoutTimer);
     if (sessionStorage.getItem('isLoggedIn') === 'true' || sessionStorage.getItem('isSupervisor') === 'true') {
         logoutTimer = setTimeout(() => {
             alert("Session expired due to inactivity.");
             window.logout();
-        }, 300000); 
+        }, 300000); // 5 นาที
     }
 }
 window.onload = resetLogoutTimer;
 window.onmousemove = resetLogoutTimer;
 window.onclick = resetLogoutTimer;
 
-/* ===== 3. Authentication & Navigation (ฟังก์ชันเดิม) ===== */
+/* ===== 3. Authentication & Navigation ===== */
 window.login = function() {
     const passValue = document.getElementById('password')?.value.trim();
     if (passValue === PASSWORD) {
@@ -36,7 +36,7 @@ window.logout = function() {
 
 window.goBack = () => { location.href = 'user-select.html'; };
 
-/* ===== 4. Data Loading (แก้ไขให้เสถียรและรองรับคอลัมน์ I-N) ===== */
+/* ===== 4. Load Data (ดึงรายชื่อและข้อมูลสต็อก - แก้บั๊กรายชื่อไม่ขึ้น) ===== */
 window.loadUsers = async function() {
     sessionStorage.removeItem('selectedUser'); 
     try {
@@ -61,7 +61,7 @@ window.loadStockData = async function(pageType) {
     } catch (e) { console.error("API Error (Stock):", e); }
 };
 
-/* ===== 5. UI Rendering (แสดงชื่ออะไหล่ I-N และสต็อก 0243) ===== */
+/* ===== 5. UI Rendering (ดึงข้อมูลชื่อจากคอลัมน์ I-N และแสดงสต็อก 0243) ===== */
 function renderTable(dataList, type) {
     const container = document.getElementById('data');
     if (!container) return;
@@ -70,17 +70,23 @@ function renderTable(dataList, type) {
     let displayList = (type === 'return') ? dataList.filter(item => (item[currentUser] || 0) > 0) : dataList;
 
     container.innerHTML = displayList.map((item, index) => {
-        // ดึงชื่ออะไหล่จากคอลัมน์ I-N (Product Name)
+        // ดึงชื่ออะไหล่จากคอลัมน์ I-N (Product Name) และคอลัมน์ Instrument
         const productName = item['Product Name'] || item['Material Description'] || 'N/A';
+        const instrument = item['Instrument'] || '-';
+        
+        // กำหนดสต็อก: หน้า All/Withdraw ดูคอลัมน์ 0243, หน้า Return ดูคอลัมน์ชื่อพนักงาน
         const stockQty = (type === 'withdraw' || type === 'all') ? (item['0243'] || 0) : (item[currentUser] || 0);
         const qtyStyle = stockQty === 0 ? 'color: #ef4444; font-weight: bold;' : 'font-weight: bold;';
 
         return `
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 10px;">
-                    <div style="display: flex; align-items: center; gap: 10px; font-size: 13px;">
-                        <b style="color: #2563eb; min-width: 80px;">${item.Material}</b>
-                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">${productName}</span>
+                    <div style="display: flex; flex-direction: column;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <b style="color: #2563eb; min-width: 80px;">${item.Material}</b>
+                            <span style="font-size: 13px; color: #334155;">${productName}</span>
+                        </div>
+                        <small style="color: #94a3b8; margin-top: 2px;">Instrument: ${instrument}</small>
                     </div>
                 </td>
                 <td style="text-align: center; ${qtyStyle}">${stockQty}</td>
@@ -98,7 +104,7 @@ function renderTable(dataList, type) {
     }).join('');
 }
 
-/* ===== 6. Core Logic & Supervisor (ฟังก์ชันเดิมที่สำเร็จแล้ว) ===== */
+/* ===== 6. Logic เดิม - การเบิก/คืน และค้นหา (ห้ามตัดออก) ===== */
 window.handleAction = async function(type, material, index) {
     const input = document.getElementById(`qty_${index}`);
     const qty = Number(input.value);
@@ -118,7 +124,7 @@ window.searchStock = (keyword, type) => {
     renderTable(filtered, type);
 };
 
-/* Supervisor Functions */
+/* ===== 7. Supervisor Functions (สมบูรณ์ตามเวอร์ชันเก่า) ===== */
 window.openSupModal = () => { document.getElementById('supModal').style.display = 'flex'; };
 window.closeSupModal = () => { document.getElementById('supModal').style.display = 'none'; };
 window.submitSupLogin = () => {
