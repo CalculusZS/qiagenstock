@@ -115,3 +115,30 @@ window.searchStock = (keyword, type) => {
     const filtered = rows.filter(r => String(r.Material + r['Product Name']).toLowerCase().includes(keyword.toLowerCase()));
     window.renderTable(filtered, type);
 };
+/* ===== 7. Auto Logout Function ===== */
+let idleTimer;
+const IDLE_TIMEOUT = 5 * 60 * 1000; // ตั้งเวลาไว้ที่ 5 นาที (หน่วยเป็นมิลลิวินาที)
+
+function resetIdleTimer() {
+    // ล้างค่า Timer เดิม
+    clearTimeout(idleTimer);
+    
+    // ถ้าผู้ใช้ล็อกอินอยู่ ให้เริ่มนับถอยหลังใหม่
+    if (sessionStorage.getItem('isLoggedIn') === 'true') {
+        idleTimer = setTimeout(() => {
+            alert("Session expired due to inactivity. Logging out...");
+            window.logout(); // เรียกใช้ฟังก์ชัน logout ที่มีอยู่แล้ว
+        }, IDLE_TIMEOUT);
+    }
+}
+
+// ตรวจจับเหตุการณ์ต่างๆ (ขยับเมาส์, กดคีย์บอร์ด, ทัชหน้าจอ)
+window.onload = resetIdleTimer;
+window.onmousemove = resetIdleTimer;
+window.onmousedown = resetIdleTimer; // สำหรับคลิก
+window.ontouchstart = resetIdleTimer; // สำหรับมือถือ
+window.onclick = resetIdleTimer; 
+window.onkeydown = resetIdleTimer;
+
+// เริ่มการนับถอยหลังทันทีที่หน้าเว็บโหลด
+resetIdleTimer();
