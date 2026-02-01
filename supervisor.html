@@ -3,84 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supervisor - Stock Management</title>
+    <title>Supervisor Control</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* Full Width Enhancements */
         .container { max-width: 100% !important; width: 95%; margin: 20px auto; }
-        .admin-section { display: flex; flex-direction: column; gap: 20px; }
-        .admin-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-        .admin-h3 { margin-top: 0; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
-        
-        /* Table Styling */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { background: #f8fafc; color: #64748b; text-align: left; padding: 12px; font-size: 13px; }
-        td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-        
-        /* Input & Button Styling */
-        .input-sup { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
-        .badge-user { background: #e2e8f0; color: #475569; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        .staff-row:hover { background-color: #f8fafc; }
-        
-        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-back { background: #64748b; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .admin-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        .badge-user { background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        #s_name_display { display: block; margin-top: 5px; font-size: 13px; font-weight: bold; min-height: 18px; }
     </style>
 </head>
 <body onload="loadStockData()">
-
     <div class="container">
-        <div class="header-actions">
-            <button onclick="location.href='user-select.html'" class="btn-back">◀ Back to User Selection</button>
-            <h2 style="margin: 0; color: #003366;">Supervisor Control Panel</h2>
-            <button onclick="logout()" style="background:#ef4444; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Logout</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <button onclick="location.href='user-select.html'" style="padding:10px; cursor:pointer;">◀ Back to User Selection</button>
+            <h2 style="color:#003366;">Supervisor Panel</h2>
+            <button onclick="logout()" style="background:red; color:white; border:none; padding:10px; border-radius:6px; cursor:pointer;">Logout</button>
         </div>
 
-        <div class="admin-section">
-            
-            <div class="admin-card">
-                <h3 class="admin-h3">Add Stock to Central (0243)</h3>
-                <div style="display:flex; gap:10px; flex-wrap: wrap;">
-                    <input type="text" id="s_mat" class="input-sup" placeholder="Enter Material Code (e.g. 1018250)" style="flex:3; min-width: 200px;">
-                    <input type="number" id="s_qty" class="input-sup" value="1" min="1" style="flex:1; min-width: 80px;">
-                    <button onclick="doSupAdd()" style="background:#003366; color:white; border:none; padding:10px 25px; border-radius:8px; font-weight:bold; cursor:pointer; flex:1;">ADD STOCK</button>
+        <div class="admin-card">
+            <h3>Add Stock to Central (0243)</h3>
+            <div style="display:flex; gap:10px; align-items: flex-start;">
+                <div style="flex:3;">
+                    <input type="text" id="s_mat" placeholder="Material Code" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc;">
+                    <span id="s_name_display"></span>
                 </div>
-                <p style="font-size: 12px; color: #94a3b8; margin-top: 8px;">* The system will automatically fetch the Product Name for confirmation.</p>
+                <input type="number" id="s_qty" value="1" style="flex:1; padding:10px; border-radius:6px; border:1px solid #ccc; max-width:80px;">
+                <button onclick="doSupAdd()" style="background:#003366; color:white; padding:10px 20px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ADD</button>
             </div>
+        </div>
 
-            <div class="admin-card">
-                <h3 class="admin-h3">Staff Inventory List</h3>
-                <div style="overflow-x: auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Material & Product Description</th>
-                                <th>Staff Name</th>
-                                <th style="text-align: center;">Qty</th>
-                                <th style="text-align: right;">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="staff-data">
-                            <tr><td colspan="4" align="center">Loading staff data...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
+        <div class="admin-card">
+            <h3>Staff Inventory</h3>
+            <table>
+                <thead>
+                    <tr><th>Material & Product</th><th>Staff</th><th>Qty</th><th>Action</th></tr>
+                </thead>
+                <tbody id="staff-data"></tbody>
+            </table>
         </div>
     </div>
-
     <script src="js/app.js"></script>
-    <script>
-        // Security check: Ensure only supervisors can access
-        if (sessionStorage.getItem('isSupervisor') !== 'true') {
-            alert("Unauthorized Access!");
-            window.location.href = 'index.html';
-        }
-
-        // Keep session alive or logout after 5 mins inactivity
-        setInterval(() => {
-            if (window.checkAuth) window.checkAuth();
-        }, 60000);
-    </script>
 </body>
 </html>
