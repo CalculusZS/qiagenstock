@@ -3,46 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select User - Qiagen</title>
+    <title>Select User - Qiagen Stock</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .btn-staff { width:100%; background:white; border:1px solid #e2e8f0; padding:18px; border-radius:12px; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:12px; transition: 0.2s; margin-bottom: 10px; }
-        .btn-staff:hover { background: #f8fafc; border-color: #003366; transform: translateY(-1px); }
-        .container { max-width: 500px; margin: auto; padding: 20px; }
-        .title { text-align: center; color: #003366; margin-bottom: 20px; font-size: 20px; font-weight: bold; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f8; margin: 0; }
+        .nav-header { background: #003366; color: white; padding: 18px; text-align: center; font-weight: bold; font-size: 20px; letter-spacing: 1px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .container { max-width: 480px; margin: 30px auto; padding: 0 20px; }
+        .selection-title { text-align: center; color: #64748b; margin-bottom: 25px; font-weight: 500; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; }
+        
+        .btn-staff { 
+            width: 100%; background: white; border: 1px solid #e2e8f0; padding: 18px; border-radius: 15px; 
+            font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 15px; 
+            transition: all 0.2s ease; margin-bottom: 12px; color: #1e293b; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .btn-staff:hover { background: #f8fafc; border-color: #003366; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .btn-staff i-icon { font-size: 24px; }
+
+        .divider { margin: 30px 0; border: none; border-top: 1px solid #e2e8f0; position: relative; }
+        .divider::before { content: "OR"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #f4f6f8; padding: 0 15px; color: #94a3b8; font-size: 12px; font-weight: bold; }
+
+        .btn-view-all { 
+            width: 100%; padding: 18px; background: #64748b; color: white; border: none; 
+            border-radius: 15px; font-weight: bold; cursor: pointer; display: flex; 
+            align-items: center; justify-content: center; gap: 10px; transition: background 0.2s; 
+        }
+        .btn-view-all:hover { background: #475569; }
+        
+        /* Modal for Supervisor */
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items:center; justify-content:center; z-index:1000; }
+        .modal-content { background:white; padding:30px; border-radius:20px; width:90%; max-width:320px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
     </style>
 </head>
-<body onload="init()">
-    <div style="background:#003366; color:white; padding:15px; text-align:center; font-weight:bold;">QIAGEN INVENTORY SYSTEM</div>
-    
+<body onload="initSelection()">
+
+    <div class="nav-header">QIAGEN INVENTORY</div>
+
     <div class="container">
-        <div class="title">PLEASE SELECT YOUR NAME</div>
+        <div class="selection-title">Staff Selection (Column I-N)</div>
+        
         <div id="user_list">
-            <p style="text-align:center;">Loading staff list...</p>
+            <div style="text-align:center; padding:20px; color:#94a3b8;">Loading staff members...</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <button class="btn-view-all" onclick="location.href='showall.html'">
+            <span>🔍</span> VIEW ALL PARTS (0243)
+        </button>
+
+        <button onclick="openSupModal()" style="width:100%; margin-top:10px; background:none; border:none; color:#94a3b8; font-size:12px; cursor:pointer; text-decoration:underline;">
+            Supervisor Access
+        </button>
+    </div>
+
+    <div id="sup_modal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-top:0;">Admin Login</h3>
+            <input type="password" id="sup_pass_input" placeholder="Enter Password" style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ddd; border-radius:8px; box-sizing:border-box;">
+            <div style="display:flex; gap:10px;">
+                <button onclick="closeSupModal()" style="flex:1; padding:10px; border-radius:8px; border:1px solid #ddd; background:none; cursor:pointer;">Cancel</button>
+                <button onclick="submitSupLogin()" style="flex:1; padding:10px; border-radius:8px; border:none; background:#003366; color:white; cursor:pointer; font-weight:bold;">Login</button>
+            </div>
         </div>
     </div>
 
     <script src="js/app.js"></script>
+    
     <script>
-        // รายชื่อพนักงานตามคอลัมน์ I-N
-        const STAFF_NAMES = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+        // กำหนดรายชื่อพนักงานตรงนี้เพื่อความชัวร์ (Column I-N)
+        const STAFF_MEMBERS = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
-        async function init() {
+        function initSelection() {
             const container = document.getElementById('user_list');
-            // สร้างปุ่มจากรายชื่อพนักงาน
-            container.innerHTML = STAFF_NAMES.map(name => `
+            
+            // สร้างปุ่มรายชื่อพนักงาน
+            container.innerHTML = STAFF_MEMBERS.map(name => `
                 <button class="btn-staff" onclick="selectUser('${name}')">
-                    <span style="font-size:20px;">👤</span> ${name}
+                    <span style="font-size:22px;">👤</span>
+                    <span>${name}</span>
                 </button>
             `).join('');
         }
 
         function selectUser(name) {
-            if(!name) return;
-            // บันทึกชื่อลง Session Storage
+            // เก็บชื่อลงหน่วยความจำ
             sessionStorage.setItem('selectedUser', name);
-            // ย้ายไปหน้าหลัก
+            // ไปหน้าหลัก
             location.href = 'main.html';
+        }
+
+        // Supervisor Functions
+        function openSupModal() { document.getElementById('sup_modal').style.display='flex'; document.getElementById('sup_pass_input').focus(); }
+        function closeSupModal() { document.getElementById('sup_modal').style.display='none'; }
+        
+        function submitSupLogin() {
+            const pass = document.getElementById('sup_pass_input').value;
+            // SUP_PASSWORD ต้องถูกประกาศไว้ใน js/app.js
+            if(typeof SUP_PASSWORD !== 'undefined' && pass === SUP_PASSWORD) {
+                sessionStorage.setItem('isSupervisor', 'true');
+                location.href = 'supervisor.html';
+            } else {
+                alert('Invalid Password!');
+            }
+        }
+
+        // ปิด Modal เมื่อคลิกข้างนอก
+        window.onclick = function(event) {
+            let modal = document.getElementById('sup_modal');
+            if (event.target == modal) closeSupModal();
         }
     </script>
 </body>
