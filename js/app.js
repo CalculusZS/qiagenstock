@@ -1,12 +1,13 @@
 /* ===== 1. Configuration ===== */
 const API = "https://script.google.com/macros/s/AKfycbwd2Db27tpGfv1STLX8N6I6tBv5CDYkAM4bHbsxQDJ8wgRLqP_f3kvwkleemCH9DrEf/exec";           
+          
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
-const TIMEOUT_MS = 5 * 60 * 1000; // 5 Minutes Timeout
+const TIMEOUT_MS = 5 * 60 * 1000; // 5 Minutes
 
 let rows = []; 
 
-/* ===== 2. Auth & Auto Logout ===== */
+/* ===== 2. Auth & Auto Logout (5 Mins) ===== */
 window.login = function() {
     const passInput = document.getElementById('password').value.trim();
     if (passInput === PASSWORD || passInput === SUP_PASSWORD) {
@@ -31,14 +32,14 @@ window.checkAuth = function() {
         window.logout();
         return false;
     }
-    sessionStorage.setItem('lastActivity', now); 
+    sessionStorage.setItem('lastActivity', now);
     return true;
 };
 
 window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 window.goBack = () => { window.history.back(); };
 
-/* ===== 3. Data Loading & Rendering (โชว์บรรทัดเดียวเหมือนเดิม) ===== */
+/* ===== 3. Rendering Logic (Single Line Style) ===== */
 window.loadStockData = async function(type) {
     if (!window.checkAuth()) return;
     const tbody = document.getElementById('data');
@@ -63,11 +64,17 @@ window.renderTable = function(data, type) {
         const s0243 = Number(r['0243'] || 0);
         const sUser = Number(r[user] || 0);
         const mat = r.Material;
-        // ปรับตรงนี้ให้แสดง Material และ Name ในบรรทัดเดียว หรือเว้นวรรคนิดหน่อยตาม UI เดิม
-        const info = `<div style="font-weight:600; font-size:14px;">${mat}</div><div style="font-size:12px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">${r['Product Name']}</div>`;
+        const name = r['Product Name'] || '';
+
+        // --- หัวใจสำคัญ: โชว์บรรทัดเดียว (Material | Name) ---
+        const info = `
+            <div style="display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px;">
+                <b style="color: #003366; min-width: 80px;">${mat}</b>
+                <span style="color: #64748b; font-size: 13px; margin-left: 10px; overflow: hidden; text-overflow: ellipsis;">${name}</span>
+            </div>`;
 
         if (type === 'all') {
-            return `<tr><td>${info}</td><td align="center">${s0243}</td><td align="right">${s0243 > 0 ? '✅' : '❌'}</td></tr>`;
+            return `<tr><td>${info}</td><td align="center"><b>${s0243}</b></td><td align="right">${s0243 > 0 ? '✅' : '❌'}</td></tr>`;
         }
         
         if (type === 'withdraw') {
@@ -90,7 +97,7 @@ window.renderTable = function(data, type) {
     }).join('');
 };
 
-/* ===== 4. Actions & Search ===== */
+/* ===== 4. Actions & Supervisor Functions ===== */
 window.doAction = async function(mat, mode) {
     if (!window.checkAuth()) return;
     const user = sessionStorage.getItem('selectedUser');
@@ -102,6 +109,16 @@ window.doAction = async function(mat, mode) {
             await window.loadStockData(mode); 
         } else { alert("❌ " + res.msg); }
     } catch (e) { alert("Network Error"); }
+};
+
+window.supAddStock = async function(mat, qty) {
+    if (!window.checkAuth()) return;
+    return await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}`).then(r => r.json());
+};
+
+window.supDeductUser = async function(mat, user, qty) {
+    if (!window.checkAuth()) return;
+    return await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}`).then(r => r.json());
 };
 
 window.searchStock = (keyword, type) => {
