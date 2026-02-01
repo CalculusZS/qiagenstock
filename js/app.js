@@ -15,27 +15,20 @@ window.login = () => {
     }
 };
 
-// ฟังก์ชันดึงรายชื่อพนักงาน (สำคัญเพื่อให้ชื่อขึ้นในหน้าต่างหน้า)
-window.loadUsers = async function() {
-    try {
-        const res = await fetch(`${API}?action=users&password=${PASSWORD}`).then(r => r.json());
-        return res.success ? res.data : [];
-    } catch (e) { return []; }
-};
-
 window.goBack = () => { location.href = 'user-select.html'; };
 window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 
-/* ===== 3. Data Loader ===== */
+/* ===== 3. Data Loader & User Display ===== */
 window.loadStockData = async function(type) {
-    const tbody = document.getElementById('data');
+    // Force Display User Name from Session
     const userDisplay = document.getElementById('user_display');
-    
-    // แสดงชื่อผู้ใช้จาก Session
     const savedUser = sessionStorage.getItem('selectedUser');
-    if(userDisplay && savedUser) userDisplay.textContent = savedUser;
+    if (userDisplay && savedUser) {
+        userDisplay.textContent = savedUser;
+    }
 
-    if(tbody) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">⌛ Loading Data...</td></tr>';
+    const tbody = document.getElementById('data');
+    if(tbody) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">⌛ Loading Inventory...</td></tr>';
     
     try {
         const res = await fetch(`${API}?action=read&password=${PASSWORD}`).then(r => r.json());
@@ -57,6 +50,7 @@ window.renderTable = function(data, type) {
         const userStock = Number(r[currentUser] || 0);
         const isOut = stock0243 <= 0;
         
+        // Single Line Format: [Material Code] | Product Name
         const itemInfo = `<strong>${r.Material}</strong> | <span style="font-size:12px; color:#64748b;">${r['Product Name']}</span>`;
 
         if (type === 'withdraw') {
@@ -64,7 +58,7 @@ window.renderTable = function(data, type) {
                 <td style="padding:10px;">${itemInfo}</td>
                 <td style="text-align:center; font-weight:bold;">${stock0243}</td>
                 <td style="text-align:right; white-space:nowrap;">
-                    <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; text-align:center; border:1px solid #ddd; border-radius:4px;">
+                    <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; text-align:center; border:1px solid #ddd; border-radius:4px; padding:4px;">
                     <button onclick="doAction('${r.Material}', 'withdraw')" style="background:${isOut?'#cbd5e1':'#003366'}; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;" ${isOut ? 'disabled' : ''}>Withdraw</button>
                 </td>
             </tr>`;
@@ -75,7 +69,7 @@ window.renderTable = function(data, type) {
                 <td style="padding:10px;">${itemInfo}</td>
                 <td style="text-align:center; font-weight:bold;">${userStock}</td>
                 <td style="text-align:right; white-space:nowrap;">
-                    <input type="number" id="q_${r.Material}" value="1" style="width:40px; text-align:center; border:1px solid #ddd; border-radius:4px;">
+                    <input type="number" id="q_${r.Material}" value="1" style="width:40px; text-align:center; border:1px solid #ddd; border-radius:4px; padding:4px;">
                     <button onclick="doAction('${r.Material}', 'return')" style="background:#16a34a; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Return</button>
                 </td>
             </tr>`;
@@ -84,7 +78,7 @@ window.renderTable = function(data, type) {
             return `<tr>
                 <td style="padding:10px;">${itemInfo}</td>
                 <td style="text-align:center; font-weight:bold;">${stock0243}</td>
-                <td style="text-align:right;"><span style="color:${isOut?'#ef4444':'#16a34a'}; font-weight:bold; font-size:12px;">${isOut?'OUT':'AVAILABLE'}</span></td>
+                <td style="text-align:right;"><span style="color:${isOut?'#ef4444':'#16a34a'}; font-weight:bold; font-size:12px; padding-right:10px;">${isOut?'OUT':'AVAILABLE'}</span></td>
             </tr>`;
         }
     }).join('');
@@ -97,7 +91,7 @@ window.doAction = async function(mat, mode) {
     try {
         const res = await fetch(`${API}?action=${mode}&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}`).then(r=>r.json());
         if (res.success) { 
-            alert("Transaction Completed!"); 
+            alert("Success!"); 
             await window.loadStockData(mode); 
         } else { 
             alert("Error: " + res.msg); 
