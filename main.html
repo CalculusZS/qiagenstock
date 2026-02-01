@@ -47,5 +47,27 @@
             window.loadStockData(m);
         }
     </script>
+    <script src="js/app.js"></script>
+<script>
+    let currentMode = 'withdraw';
+    async function initMain() {
+        const u = sessionStorage.getItem('selectedUser');
+        if(!u) { location.href='user-select.html'; return; }
+        document.getElementById('user_display').textContent = u;
+        
+        // สำคัญ: ต้องใช้ await เพื่อรอโหลดข้อมูล
+        await setMode('withdraw');
+    }
+    
+    async function setMode(m) {
+        currentMode = m;
+        const btnW = document.getElementById('t-withdraw');
+        const btnR = document.getElementById('t-return');
+        if(btnW) btnW.style.background = (m==='withdraw'?'#2563eb':'#cbd5e1');
+        if(btnR) btnR.style.background = (m==='return'?'#22c55e':'#cbd5e1');
+        
+        await window.loadStockData(m); // โหลดข้อมูลสต็อกตามโหมด
+    }
+</script>
 </body>
 </html>
