@@ -1,105 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Qiagen Stock</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qiagen Stock - ระบบเบิกคืนอะไหล่</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* สไตล์เพิ่มเติมเฉพาะหน้า main */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #f8fafc; }
+        .header { background: #1e293b; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .container { max-width: 900px; margin: 20px auto; padding: 0 15px; }
+        .user-card { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .mode-selector { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn-mode { flex: 1; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 16px; }
+        .search-input { width: 100%; padding: 15px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; box-sizing: border-box; font-size: 16px; outline: none; }
+        .search-input:focus { border-color: #2563eb; ring: 2px solid #bfdbfe; }
+        .stock-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stock-table th { background: #f1f5f9; padding: 12px; text-align: left; color: #64748b; font-size: 14px; }
+        .view-all-btn { width: 100%; padding: 12px; background: #64748b; color: white; border: none; border-radius: 10px; margin-bottom: 20px; cursor: pointer; font-weight: bold; }
+        .view-all-btn:hover { background: #475569; }
+    </style>
 </head>
 <body onload="initMain()">
-    <div style="background:#1e293b; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-weight:bold;">Qiagen Stock</div>
-        <button onclick="logout()" style="background:#ef4444; border:none; color:white; padding:6px 12px; border-radius:6px; cursor:pointer;">Logout</button>
+
+    <div class="header">
+        <div style="font-weight: bold; font-size: 18px;">🧬 QIAGEN STOCK</div>
+        <button onclick="logout()" style="background: #ef4444; border: none; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer;">ออกจากระบบ</button>
     </div>
-    <div class="container" style="max-width:900px; margin:20px auto; padding:0 15px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px; background:white; padding:12px; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-            <div>User: <strong id="user_display"></strong></div>
-            <button onclick="goBack()" style="background:none; border:1px solid #ddd; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:12px;">Change User</button>
+
+    <div class="container">
+        <div class="user-card">
+            <div>ผู้ใช้งาน: <strong id="user_display" style="color: #2563eb; font-size: 18px;">-</strong></div>
+            <button onclick="goBack()" style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">เปลี่ยนคนเบิก</button>
         </div>
-        <div style="display:flex; gap:10px; margin-bottom:15px;">
-            <button id="t-withdraw" style="flex:1; padding:12px; border:none; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="setMode('withdraw')">Withdraw</button>
-            <button id="t-return" style="flex:1; padding:12px; border:none; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="setMode('return')">Return</button>
+
+        <div class="mode-selector">
+            <button id="t-withdraw" class="btn-mode" onclick="setMode('withdraw')">📤 เบิกอะไหล่ (OUT)</button>
+            <button id="t-return" class="btn-mode" onclick="setMode('return')">📥 คืนอะไหล่ (IN)</button>
         </div>
-        <input type="text" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; margin-bottom:15px; box-sizing:border-box;" placeholder="Search..." oninput="window.searchStock(this.value, currentMode)">
-        <div style="background:white; border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-            <table style="width:100%; border-collapse:collapse;">
-                <thead style="background:#f8fafc;">
-                    <tr><th style="text-align:left; padding:12px;">Item Information</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Action</th></tr>
-                </thead>
-                <tbody id="data"></tbody>
-            </table>
-        </div>
+
+        <button class="view-all-btn" onclick="location.href='showall.html'">📦 ดูรายการอะไหล่ทั้งหมด (View All Parts)</button>
+
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 ค้นหารหัสอะไหล่ หรือชื่อสินค้า..." oninput="searchStock(this.value, currentMode)">
+
+        <table class="stock-table">
+            <thead>
+                <tr>
+                    <th style="width: 55%;">รายการอะไหล่</th>
+                    <th style="text-align: center; width: 15%;">คงเหลือ</th>
+                    <th style="text-align: right; width: 30%; padding-right: 20px;">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody id="data">
+                </tbody>
+        </table>
     </div>
+
     <script src="js/app.js"></script>
+    
     <script>
         let currentMode = 'withdraw';
-        function initMain() {
-            const u = sessionStorage.getItem('selectedUser');
-            if(!u) { location.href='user-select.html'; return; }
-            document.getElementById('user_display').textContent = u;
-            setMode('withdraw');
+
+        // ฟังก์ชันเริ่มการทำงานของหน้า
+        async function initMain() {
+            // ตรวจสอบ Login
+            if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+                location.href = 'index.html';
+                return;
+            }
+
+            // แสดงชื่อผู้ใช้
+            const selectedUser = sessionStorage.getItem('selectedUser');
+            if (!selectedUser) {
+                location.href = 'user-select.html';
+                return;
+            }
+            document.getElementById('user_display').textContent = selectedUser;
+
+            // โหลดข้อมูลเริ่มต้น (โหมดเบิก)
+            await setMode('withdraw');
         }
-        function setMode(m) {
-            currentMode = m;
-            document.getElementById('t-withdraw').style.background = (m==='withdraw'?'#2563eb':'#e2e8f0');
-            document.getElementById('t-withdraw').style.color = (m==='withdraw'?'white':'#000');
-            document.getElementById('t-return').style.background = (m==='return'?'#22c55e':'#e2e8f0');
-            document.getElementById('t-return').style.color = (m==='return'?'white':'#000');
-            window.loadStockData(m);
+
+        // ฟังก์ชันเปลี่ยนโหมด (เบิก/คืน)
+        async function setMode(mode) {
+            currentMode = mode;
+            
+            // ล้างช่องค้นหาเมื่อเปลี่ยนโหมด
+            document.getElementById('searchInput').value = '';
+
+            // ปรับแต่งสีปุ่มเมนู
+            const btnWithdraw = document.getElementById('t-withdraw');
+            const btnReturn = document.getElementById('t-return');
+
+            if (mode === 'withdraw') {
+                btnWithdraw.style.background = '#2563eb';
+                btnWithdraw.style.color = 'white';
+                btnReturn.style.background = '#e2e8f0';
+                btnReturn.style.color = '#475569';
+            } else {
+                btnWithdraw.style.background = '#e2e8f0';
+                btnWithdraw.style.color = '#475569';
+                btnReturn.style.background = '#22c55e';
+                btnReturn.style.color = 'white';
+            }
+
+            // ดึงข้อมูลจากฐานข้อมูล (ใช้ await เพื่อรอให้โหลดเสร็จก่อน)
+            await window.loadStockData(mode);
         }
     </script>
-    <script src="js/app.js"></script>
-<script>
-    let currentMode = 'withdraw';
-    async function initMain() {
-        const u = sessionStorage.getItem('selectedUser');
-        if(!u) { location.href='user-select.html'; return; }
-        document.getElementById('user_display').textContent = u;
-        
-        // สำคัญ: ต้องใช้ await เพื่อรอโหลดข้อมูล
-        await setMode('withdraw');
-    }
-    
-    async function setMode(m) {
-        currentMode = m;
-        const btnW = document.getElementById('t-withdraw');
-        const btnR = document.getElementById('t-return');
-        if(btnW) btnW.style.background = (m==='withdraw'?'#2563eb':'#cbd5e1');
-        if(btnR) btnR.style.background = (m==='return'?'#22c55e':'#cbd5e1');
-        
-        await window.loadStockData(m); // โหลดข้อมูลสต็อกตามโหมด
-    }
-</script>
-    <script src="js/app.js"></script>
-
-<script>
-    let currentMode = 'withdraw';
-
-    async function initMain() {
-        const u = sessionStorage.getItem('selectedUser');
-        if(!u) { location.href='user-select.html'; return; }
-        document.getElementById('user_display').textContent = u;
-        
-        // รอให้โหลดข้อมูลเบื้องต้นเสร็จ
-        await setMode('withdraw');
-    }
-    
-    async function setMode(m) {
-        currentMode = m;
-        // เปลี่ยนสีปุ่มเมนู
-        const btnW = document.getElementById('t-withdraw');
-        const btnR = document.getElementById('t-return');
-        if(btnW) {
-            btnW.style.background = (m==='withdraw'?'#2563eb':'#e2e8f0');
-            btnW.style.color = (m==='withdraw'?'white':'#000');
-        }
-        if(btnR) {
-            btnR.style.background = (m==='return'?'#22c55e':'#e2e8f0');
-            btnR.style.color = (m==='return'?'white':'#000');
-        }
-        
-        // เรียกโหลดข้อมูลจาก Google Sheets (ต้องมี await)
-        await window.loadStockData(m);
-    }
-</script>
 </body>
 </html>
