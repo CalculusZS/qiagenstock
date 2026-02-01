@@ -5,65 +5,65 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Supervisor Management</title>
   <style>
-    body { font-family: sans-serif; background: #f1f5f9; margin: 0; padding-bottom: 30px; }
-    .header { background: #1e293b; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top:0; z-index:10; }
-    .container { padding: 15px; max-width: 600px; margin: auto; }
-    .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    body { font-family: sans-serif; background: #f8fafc; margin: 0; padding-bottom: 30px; }
+    .header { background: #1e293b; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .container { padding: 15px; max-width: 700px; margin: auto; }
+    .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     .input-group { display: flex; gap: 8px; margin-top: 10px; }
-    input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
-    #prod_name_display { background: #e0f2fe; color: #0369a1; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 13px; font-weight: bold; border-left: 4px solid #0284c7; display: none; }
-    .btn-add { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; flex: 1; }
+    #prod_name_display { background: #e0f2fe; color: #0369a1; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 13px; font-weight: bold; display: none; border-left: 4px solid #0369a1; }
+    .btn-add { background: #2563eb; color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; }
     .staff-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-    .qty-badge { background: #f1f5f9; padding: 5px 10px; border-radius: 8px; font-weight: bold; font-size: 16px; }
+    .badge { background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 14px; }
   </style>
 </head>
 <body onload="initSup()">
   <div class="header">
-    <b>🛠 Supervisor Control</b>
-    <button onclick="location.href='user-select.html'" style="background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:8px;">Exit</button>
+    <b>🛠 Supervisor Panel</b>
+    <button onclick="location.href='user-select.html'" style="background:none; border:1px solid white; color:white; padding:5px 12px; border-radius:8px; cursor:pointer;">Exit</button>
   </div>
 
   <div class="container">
     <div class="card">
       <h3 style="margin:0; font-size:16px;">➕ Add Stock (Column 0243)</h3>
       <div class="input-group">
-        <input type="text" id="sup_mat_add" placeholder="Material Code" style="flex:2;" oninput="checkProduct(this.value)">
-        <input type="number" id="sup_qty_add" value="1" style="flex:1; text-align:center;">
+        <input type="text" id="sup_mat_add" placeholder="Material Code" oninput="checkProduct(this.value)">
+        <input type="number" id="sup_qty_add" value="1" style="max-width:80px; text-align:center;">
         <button class="btn-add" onclick="doAdd()">ADD</button>
       </div>
       <div id="prod_name_display"></div>
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 10px 0; font-size:16px;">👤 Staff Inventory</h3>
-      <div id="staff_list">Loading...</div>
+      <h3 style="margin:0 0 10px 0; font-size:16px;">👤 Staff Stock Control</h3>
+      <div id="staff_list">Loading staff data...</div>
     </div>
   </div>
 
   <script src="app.js"></script>
   <script>
+    let stockData = [];
+
     async function initSup() {
       if(sessionStorage.getItem('isSupervisor') !== 'true') { location.href='user-select.html'; return; }
-      
-      // โหลดข้อมูลสต็อกก่อนเพื่อให้ค้นหาชื่อ Product ได้
       const res = await fetch(`${API}?action=read&password=${PASSWORD}`).then(r => r.json());
       if(res.success) {
-          window.rows = res.data; // เก็บข้อมูลลงใน rows ของ app.js
-          renderStaffStock();
+        stockData = res.data;
+        renderStaffStock();
       }
     }
 
-    // ฟังก์ชันโชว์ชื่อสินค้าเมื่อพิมพ์ Material
+    // ค้นหาและโชว์ชื่อสินค้า
     function checkProduct(val) {
-        const display = document.getElementById('prod_name_display');
-        const item = window.findProductByMat(val);
-        if(item) {
-            display.style.display = 'block';
-            display.innerHTML = `📦 Product: ${item['Product Name']}`;
-        } else {
-            display.style.display = val ? 'block' : 'none';
-            display.innerHTML = val ? '🔍 Searching...' : '';
-        }
+      const display = document.getElementById('prod_name_display');
+      const item = stockData.find(r => String(r.Material).trim() === val.trim());
+      if(item) {
+        display.style.display = 'block';
+        display.innerHTML = `📦 Product: ${item['Product Name']}`;
+      } else {
+        display.style.display = val ? 'block' : 'none';
+        display.innerHTML = val ? '🔍 Searching...' : '';
+      }
     }
 
     async function renderStaffStock() {
@@ -72,7 +72,7 @@
       const container = document.getElementById('staff_list');
       
       let html = '';
-      window.rows.forEach(row => {
+      stockData.forEach(row => {
         USERS.forEach(user => {
           const val = Number(row[user] || 0);
           if (val > 0) {
@@ -82,23 +82,23 @@
                 <div style="font-weight:bold;">${row.Material}</div>
                 <div style="font-size:11px; color:#666;">${row['Product Name']}</div>
               </div>
-              <div style="flex:1; display:flex; align-items:center; justify-content:flex-end; gap:10px;">
-                <div class="qty-badge">${val}</div>
-                <button onclick="doDeduct('${row.Material}','${user}',${val})" style="background:#fee2e2; color:#ef4444; border:none; padding:8px; border-radius:8px; font-weight:bold;">DEDUCT</button>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span class="badge">${val}</span>
+                <button onclick="doDeduct('${row.Material}','${user}',${val})" style="background:#fee2e2; color:#ef4444; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">DEDUCT</button>
               </div>
             </div>`;
           }
         });
       });
-      container.innerHTML = html || 'No data found.';
+      container.innerHTML = html || 'No stock in hands.';
     }
 
     async function doAdd() {
       const mat = document.getElementById('sup_mat_add').value;
       const qty = document.getElementById('sup_qty_add').value;
-      if(!mat) return alert("Enter Material");
+      if(!mat) return alert("Please enter Material");
       const res = await window.supAddStock(mat, qty);
-      if(res.success) { alert("Stock Added!"); location.reload(); }
+      if(res.success) { alert("Success!"); location.reload(); }
       else { alert("Error: " + res.msg); }
     }
 
