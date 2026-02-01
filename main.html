@@ -1,136 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qiagen Stock Management - Main</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>Main - Qiagen Stock</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; margin: 0; }
-        .header { 
-            background: #003366; color: white; padding: 15px 20px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000;
-        }
-        .container { max-width: 650px; margin: 20px auto; padding: 0 15px; }
-        
-        .user-tag { background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 20px; font-size: 14px; }
-        
-        .mode-selector { display: flex; gap: 10px; margin-bottom: 20px; }
-        .btn-mode { 
-            flex: 1; padding: 15px; border: none; border-radius: 12px; font-weight: bold; 
-            font-size: 16px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;
-            background: #ffffff; color: #64748b; border: 1px solid #e2e8f0;
-        }
-        
-        .active-withdraw { background: #003366 !important; color: white !important; box-shadow: 0 4px 12px rgba(0,51,102,0.3); }
-        .active-return { background: #16a34a !important; color: white !important; box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
-
-        .search-box { 
-            width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #cbd5e1; 
-            margin-bottom: 20px; font-size: 16px; box-sizing: border-box; outline: none;
-            transition: border-color 0.3s;
-        }
-        .search-box:focus { border-color: #003366; }
-
-        .card { background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f1f5f9; color: #64748b; text-align: left; padding: 12px; font-size: 12px; text-transform: uppercase; }
-        td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-
-        .logout-btn { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+        body { font-family:sans-serif; margin:0; background:#f8fafc; }
+        .header { background:#003366; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; }
+        .container { max-width:600px; margin:auto; padding:15px; }
+        .mode-box { display:flex; gap:10px; margin-bottom:15px; }
+        .btn-m { flex:1; padding:12px; border:none; border-radius:10px; cursor:pointer; font-weight:bold; background:white; color:#64748b; border:1px solid #ddd; }
+        .active-w { background:#003366 !important; color:white !important; }
+        .active-r { background:#16a34a !important; color:white !important; }
+        .search { width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px; box-sizing:border-box; font-size:16px; }
+        table { width:100%; border-collapse:collapse; background:white; border-radius:10px; overflow:hidden; }
+        th, td { padding:12px; border-bottom:1px solid #eee; text-align:left; font-size:14px; }
     </style>
 </head>
 <body onload="init()">
-
     <div class="header">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <b style="font-size: 18px; letter-spacing: 1px;">QIAGEN STOCK</b>
-            <span class="user-tag">👤 <span id="user_display">Loading...</span></span>
-        </div>
-        <button class="logout-btn" onclick="logout()">LOGOUT</button>
+        <b>QIAGEN: <span id="user_display"></span></b>
+        <button onclick="logout()" style="background:#ef4444;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;">Logout</button>
     </div>
-
     <div class="container">
-        <div class="mode-selector">
-            <button id="btn-withdraw" class="btn-mode active-withdraw" onclick="changeMode('withdraw')">
-                📥 WITHDRAW
-            </button>
-            <button id="btn-return" class="btn-mode" onclick="changeMode('return')">
-                📤 RETURN
-            </button>
+        <div class="mode-box">
+            <button id="bw" class="btn-m active-w" onclick="changeMode('withdraw')">📥 Withdraw</button>
+            <button id="br" class="btn-m" onclick="changeMode('return')">📤 Return</button>
         </div>
-
-        <input type="text" id="searchInput" class="search-box" 
-               placeholder="🔍 Search Material or Name..." 
-               oninput="searchStock(this.value, currentMode)">
-
-        <div class="card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Material / Description</th>
-                        <th style="text-align:center;">Stock</th>
-                        <th style="text-align:right;">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="data">
-                    <tr><td colspan="3" style="text-align:center; padding:40px; color:#94a3b8;">⌛ Initializing...</td></tr>
-                </tbody>
-            </table>
-        </div>
-        
-        <div style="margin-top: 20px; display: flex; justify-content: center; gap: 15px;">
-            <button onclick="location.href='showall.html'" style="background:none; border:none; color:#003366; cursor:pointer; font-weight:bold; font-size:14px;">📦 View All Inventory</button>
-        </div>
+        <input type="text" class="search" placeholder="Search Material or Name..." oninput="searchStock(this.value, currentMode)">
+        <table>
+            <thead><tr><th>Items</th><th>Stock</th><th style="text-align:right">Action</th></tr></thead>
+            <tbody id="data"></tbody>
+        </table>
     </div>
 
     <script src="js/app.js"></script>
     <script>
         let currentMode = 'withdraw';
-
-        // 1. ฟังก์ชันเริ่มต้นเมื่อโหลดหน้า
-        async function init() {
-            const user = sessionStorage.getItem('selectedUser');
-            
-            // ตรวจสอบความปลอดภัย: ถ้าไม่ได้เลือกพนักงาน หรือไม่ได้ล็อกอิน ให้เด้งกลับ
-            if (!user || sessionStorage.getItem('isLoggedIn') !== 'true') {
-                location.href = 'index.html';
-                return;
-            }
-
-            // แสดงชื่อผู้ใช้บน Header
-            document.getElementById('user_display').innerText = user;
-
-            // โหลดข้อมูลสต็อกเริ่มต้นในโหมด Withdraw
-            changeMode('withdraw');
+        function init() {
+            const u = sessionStorage.getItem('selectedUser');
+            if(!u) return location.href='user-select.html';
+            document.getElementById('user_display').innerText = u;
+            loadStockData('withdraw');
         }
-
-        // 2. ฟังก์ชันสลับโหมดเบิก-คืน
         function changeMode(m) {
             currentMode = m;
-            const btnWithdraw = document.getElementById('btn-withdraw');
-            const btnReturn = document.getElementById('btn-return');
-            const searchInput = document.getElementById('searchInput');
-
-            // ล้างค่าในช่องค้นหาเมื่อเปลี่ยนโหมด
-            searchInput.value = '';
-
-            // ปรับแต่ง UI ปุ่ม
-            if (m === 'withdraw') {
-                btnWithdraw.classList.add('active-withdraw');
-                btnReturn.classList.remove('active-return');
-                searchInput.placeholder = "🔍 Search items to WITHDRAW...";
-            } else {
-                btnReturn.classList.add('active-return');
-                btnWithdraw.classList.remove('active-withdraw');
-                searchInput.placeholder = "🔍 Search items to RETURN...";
-            }
-
-            // เรียกฟังก์ชันจาก app.js เพื่อโหลดข้อมูลลงตาราง
-            if (typeof loadStockData === 'function') {
-                loadStockData(m);
-            }
+            document.getElementById('bw').className = (m==='withdraw'?'btn-m active-w':'btn-m');
+            document.getElementById('br').className = (m==='return'?'btn-m active-r':'btn-m');
+            loadStockData(m);
         }
     </script>
 </body>
