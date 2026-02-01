@@ -4,12 +4,23 @@ const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 let rows = []; 
 
+/* รายชื่อพนักงานตามคอลัมน์ I, J, K, L, M, N ใน Google Sheets */
+const STAFF_NAMES = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+
 /* ===== 2. Authentication & Navigation ===== */
 window.login = () => {
     const v = document.getElementById('password')?.value.trim();
-    if (v === PASSWORD) { sessionStorage.setItem('isLoggedIn', 'true'); location.href = 'user-select.html'; }
-    else { alert('Incorrect Password!'); }
+    if (v === PASSWORD) { 
+        sessionStorage.setItem('isLoggedIn', 'true'); 
+        location.href = 'user-select.html'; 
+    } else { alert('Incorrect Password!'); }
 };
+
+window.loadUsers = async function() {
+    // ส่งรายชื่อพนักงานจากคอลัมน์ I-N ออกไปสร้างปุ่ม
+    return STAFF_NAMES.map(name => ({ header: name }));
+};
+
 window.goBack = () => { location.href = 'user-select.html'; };
 window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 
@@ -26,7 +37,7 @@ window.loadStockData = async function(type) {
     } catch (e) { if(tbody) tbody.innerHTML = '<tr><td colspan="3">Connection Error</td></tr>'; }
 };
 
-/* ===== 4. Rendering (Single Line Format) ===== */
+/* ===== 4. Rendering (Single Line UI) ===== */
 window.renderTable = function(data, type) {
     const tbody = document.getElementById('data');
     const currentUser = sessionStorage.getItem('selectedUser');
@@ -37,7 +48,7 @@ window.renderTable = function(data, type) {
         const userStock = Number(r[currentUser] || 0);
         const isOut = stock0243 <= 0;
         
-        // Single Line: [Code] | Name
+        // Single Line Format
         const itemInfo = `<strong>${r.Material}</strong> | <span style="font-size:12px; color:#64748b;">${r['Product Name']}</span>`;
 
         if (type === 'withdraw') {
@@ -61,13 +72,6 @@ window.renderTable = function(data, type) {
                 </td>
             </tr>`;
         }
-        if (type === 'all') {
-            return `<tr>
-                <td style="padding:10px;">${itemInfo}</td>
-                <td style="text-align:center; font-weight:bold;">${stock0243}</td>
-                <td style="text-align:right;"><span style="color:${isOut?'#ef4444':'#16a34a'}; font-weight:bold; font-size:11px; padding-right:10px;">${isOut?'OUT':'AVAILABLE'}</span></td>
-            </tr>`;
-        }
     }).join('');
 };
 
@@ -77,8 +81,10 @@ window.doAction = async function(mat, mode) {
     const qty = document.getElementById(`q_${mat}`).value;
     try {
         const res = await fetch(`${API}?action=${mode}&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}`).then(r=>r.json());
-        if (res.success) { alert("Success!"); await window.loadStockData(mode); }
-        else { alert("Error: " + res.msg); }
+        if (res.success) { 
+            alert("Success!"); 
+            await window.loadStockData(mode); 
+        } else { alert("Error: " + res.msg); }
     } catch (e) { alert("Network Error"); }
 };
 
