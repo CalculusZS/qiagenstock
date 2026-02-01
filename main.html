@@ -3,42 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qiagen Stock System</title>
+    <title>Qiagen Stock - Main</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; margin: 0; }
+        .header { background: #003366; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
+        
+        /* ปุ่มโหมดหลัก */
+        .mode-selector { display: flex; gap: 10px; margin-bottom: 20px; }
+        .btn-mode { 
+            flex: 1; padding: 15px; border: none; border-radius: 12px; font-weight: bold; 
+            font-size: 16px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: #ffffff; color: #64748b; border: 1px solid #e2e8f0;
+        }
+        /* สถานะเมื่อเลือกเบิก (น้ำเงิน) */
+        .btn-mode.active-withdraw { background: #003366 !important; color: white !important; box-shadow: 0 4px 12px rgba(0,51,102,0.3); }
+        /* สถานะเมื่อเลือกคืน (เขียว) */
+        .btn-mode.active-return { background: #16a34a !important; color: white !important; box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+
+        .search-box { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 15px; box-sizing: border-box; font-size: 16px; outline: none; }
+        .search-box:focus { border-color: #003366; }
+        
+        .card { background: white; border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f1f5f9; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #64748b; }
+    </style>
 </head>
-<body onload="initMain()">
-    <div style="background:#003366; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+<body onload="init()">
+    <div class="header">
         <b style="letter-spacing:1px;">QIAGEN INVENTORY</b>
-        <button onclick="logout()" style="background:#cc0000; border:none; color:white; padding:6px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">LOGOUT</button>
+        <button onclick="logout()" style="background:rgba(255,255,255,0.2); border:none; color:white; padding:6px 12px; border-radius:6px; cursor:pointer;">Logout</button>
     </div>
 
-    <div class="container" style="max-width:900px; margin:20px auto; padding:0 10px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:white; padding:15px; border-radius:12px; border:1px solid #e2e8f0;">
-            <div style="font-size:16px;">User: <strong id="user_display" style="color:#003366;">Loading...</strong></div>
-            <button onclick="goBack()" style="background:#64748b; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">BACK</button>
+    <div class="container">
+        <div style="background:white; padding:15px; border-radius:12px; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+            <span>User: <strong id="user_display" style="color:#003366;">-</strong></span>
+            <button onclick="goBack()" style="background:none; border:none; color:#64748b; font-weight:bold; cursor:pointer;">← Change User</button>
         </div>
 
-        <div style="display:flex; gap:12px; margin-bottom:20px;">
-            <button id="t-withdraw" onclick="setMode('withdraw')" 
-                style="flex:1; padding:18px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; transition:0.3s; font-size:16px; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
-                📥 WITHDRAW
-            </button>
-            <button id="t-return" onclick="setMode('return')" 
-                style="flex:1; padding:18px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; transition:0.3s; font-size:16px; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
-                📤 RETURN
-            </button>
+        <div class="mode-selector">
+            <button id="btn-withdraw" class="btn-mode" onclick="changeMode('withdraw')">📥 Withdraw</button>
+            <button id="btn-return" class="btn-mode" onclick="changeMode('return')">📤 Return</button>
         </div>
 
-        <input type="text" id="searchInput" placeholder="🔍 Search Material or Name..." oninput="searchStock(this.value, currentMode)" 
-               style="width:100%; padding:14px; border-radius:10px; border:1px solid #cbd5e1; margin-bottom:15px; box-sizing:border-box; font-size:16px;">
+        <input type="text" class="search-box" placeholder="Search material..." oninput="searchStock(this.value, currentMode)">
 
-        <div style="background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.05); overflow:hidden;">
-            <table style="width:100%; border-collapse:collapse;">
-                <thead style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+        <div class="card">
+            <table>
+                <thead>
                     <tr>
-                        <th style="text-align:left; padding:15px; color:#64748b; font-size:12px;">ITEM</th>
-                        <th style="text-align:center; padding:15px; color:#64748b; font-size:12px;">QTY</th>
-                        <th style="text-align:right; padding:15px; color:#64748b; font-size:12px;">ACTION</th>
+                        <th>Material</th>
+                        <th style="text-align:center;">Stock</th>
+                        <th style="text-align:right;">Action</th>
                     </tr>
                 </thead>
                 <tbody id="data"></tbody>
@@ -49,25 +66,25 @@
     <script src="js/app.js"></script>
     <script>
         let currentMode = 'withdraw';
-        async function initMain() {
+        function init() {
             const user = sessionStorage.getItem('selectedUser');
-            if(!user) { location.href = 'user-select.html'; return; }
-            document.getElementById('user_display').textContent = user;
-            await setMode('withdraw');
+            if(!user) return location.href='user-select.html';
+            document.getElementById('user_display').innerText = user;
+            changeMode('withdraw');
         }
 
-        async function setMode(m) {
+        function changeMode(m) {
             currentMode = m;
-            const btnW = document.getElementById('t-withdraw');
-            const btnR = document.getElementById('t-return');
-            if (m === 'withdraw') {
-                btnW.style.background = '#003366'; btnW.style.color = 'white';
-                btnR.style.background = '#f1f5f9'; btnR.style.color = '#64748b';
-            } else {
-                btnR.style.background = '#16a34a'; btnR.style.color = 'white';
-                btnW.style.background = '#f1f5f9'; btnW.style.color = '#64748b';
-            }
-            await window.loadStockData(m);
+            const bw = document.getElementById('btn-withdraw');
+            const br = document.getElementById('btn-return');
+            
+            bw.classList.remove('active-withdraw');
+            br.classList.remove('active-return');
+
+            if(m === 'withdraw') bw.classList.add('active-withdraw');
+            else br.classList.add('active-return');
+
+            loadStockData(m);
         }
     </script>
 </body>
