@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qiagen Stock</title>
+    <title>Qiagen Stock System</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body onload="initMain()">
-    <div style="background:#003366; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <b style="letter-spacing: 1px;">QIAGEN INVENTORY</b>
+    <div style="background:#003366; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+        <b style="letter-spacing:1px;">QIAGEN INVENTORY</b>
         <button onclick="logout()" style="background:#cc0000; border:none; color:white; padding:6px 12px; border-radius:4px; font-weight:bold;">LOGOUT</button>
     </div>
 
@@ -19,19 +19,19 @@
         </div>
 
         <div style="display:flex; gap:10px; margin-bottom:15px;">
-            <button id="t-withdraw" onclick="setMode('withdraw')" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer; transition: 0.3s;">WITHDRAW</button>
-            <button id="t-return" onclick="setMode('return')" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer; transition: 0.3s;">RETURN</button>
+            <button id="t-withdraw" onclick="setMode('withdraw')" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">WITHDRAW</button>
+            <button id="t-return" onclick="setMode('return')" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">RETURN</button>
         </div>
 
-        <input type="text" id="searchInput" placeholder="🔍 Search Material or Description..." oninput="searchStock(this.value, currentMode)" style="width:100%; padding:12px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:15px; box-sizing:border-box; font-size:14px;">
+        <input type="text" id="searchInput" placeholder="🔍 Search Material or Name..." oninput="searchStock(this.value, currentMode)" style="width:100%; padding:12px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:15px; box-sizing:border-box;">
 
         <div style="background:white; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); overflow:hidden;">
             <table style="width:100%; border-collapse:collapse;">
-                <thead style="background:#f1f5f9; border-bottom:2px solid #e2e8f0;">
+                <thead style="background:#f1f5f9;">
                     <tr>
-                        <th style="text-align:left; padding:12px; font-size:12px; color:#475569;">ITEM DESCRIPTION</th>
-                        <th style="text-align:center; font-size:12px; color:#475569;">QTY</th>
-                        <th style="text-align:right; padding-right:15px; font-size:12px; color:#475569;">ACTION</th>
+                        <th style="text-align:left; padding:12px; font-size:12px;">ITEM DESCRIPTION</th>
+                        <th style="text-align:center; font-size:12px;">STOCK</th>
+                        <th style="text-align:right; padding-right:15px; font-size:12px;">ACTION</th>
                     </tr>
                 </thead>
                 <tbody id="data"></tbody>
