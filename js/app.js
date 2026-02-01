@@ -3,14 +3,14 @@ const API = "https://script.google.com/macros/s/AKfycbwS2LWmnkCYE4eiP5MWMyGW9S4Q
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 
-let rows = []; 
+let rows = []; // เก็บข้อมูลสต็อกทั้งหมดเพื่อใช้ค้นหาชื่อสินค้า
 
 /* ===== 2. Data Loading ===== */
 window.loadUsers = async function() {
     try {
         const res = await fetch(`${API}?action=users&password=${PASSWORD}`).then(r => r.json());
         return res.success ? res.users : [];
-    } catch (e) { return []; }
+    } catch (e) { console.error("Load Users Error", e); return []; }
 };
 
 window.loadStockData = async function(type) {
@@ -20,13 +20,13 @@ window.loadStockData = async function(type) {
     try {
         const res = await fetch(`${API}?action=read&password=${PASSWORD}`).then(r => r.json());
         if (res.success) {
-            rows = res.data;
+            rows = res.data; // เก็บข้อมูลลงตัวแปร global
             window.renderTable(rows, type);
         }
     } catch (e) { tbody.innerHTML = 'Error loading data'; }
 };
 
-/* ===== 3. Render Engine ===== */
+/* ===== 3. Core Render Engine (โชว์บรรทัดเดียว) ===== */
 window.renderTable = function(data, type) {
     const tbody = document.getElementById('data');
     const currentUser = sessionStorage.getItem('selectedUser');
@@ -40,13 +40,13 @@ window.renderTable = function(data, type) {
             return `<tr>
                 <td style="padding:10px;">
                     <div style="font-weight:bold; ${isOut ? 'color:red;' : ''}">${r.Material}</div>
-                    <div style="font-size:11px; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">${r['Product Name']}</div>
+                    <div style="font-size:11px; color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">${r['Product Name']}</div>
                 </td>
                 <td style="text-align:center; font-weight:bold; ${isOut ? 'color:red;' : ''}">${stock0243}</td>
                 <td style="text-align:right;">
                     <div style="display:flex; gap:5px; justify-content:flex-end;">
-                        <input type="number" id="q_${r.Material}" value="1" min="1" class="qty-input-sm" style="width:40px;">
-                        <button onclick="doAction('${r.Material}', 'withdraw')" style="background:${isOut?'#ccc':'#ef4444'}; color:white; border:none; padding:8px; border-radius:6px;" ${isOut ? 'disabled' : ''}>OUT</button>
+                        <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; text-align:center;">
+                        <button onclick="doAction('${r.Material}', 'withdraw')" style="background:${isOut?'#ccc':'#ef4444'}; color:white; border:none; padding:8px; border-radius:5px;" ${isOut ? 'disabled' : ''}>OUT</button>
                     </div>
                 </td>
             </tr>`;
@@ -57,8 +57,8 @@ window.renderTable = function(data, type) {
                 <td><div style="font-weight:bold;">${r.Material}</div><div style="font-size:11px; color:#666;">${r['Product Name']}</div></td>
                 <td style="text-align:center; font-weight:bold;">${userStock}</td>
                 <td style="text-align:right;">
-                    <input type="number" id="q_${r.Material}" value="1" max="${userStock}" style="width:40px;">
-                    <button onclick="doAction('${r.Material}', 'return')" style="background:#22c55e; color:white; border:none; padding:8px; border-radius:6px;">IN</button>
+                    <input type="number" id="q_${r.Material}" value="1" max="${userStock}" style="width:40px; text-align:center;">
+                    <button onclick="doAction('${r.Material}', 'return')" style="background:#22c55e; color:white; border:none; padding:8px; border-radius:5px;">IN</button>
                 </td>
             </tr>`;
         }
@@ -72,7 +72,12 @@ window.renderTable = function(data, type) {
     }).join('');
 };
 
-/* ===== 4. Action Functions ===== */
+/* ===== 4. Helper & Action Functions ===== */
+window.searchStock = (keyword, type) => {
+    const filtered = rows.filter(r => String(r.Material + r['Product Name']).toLowerCase().includes(keyword.toLowerCase()));
+    window.renderTable(filtered, type);
+};
+
 window.doAction = async function(mat, mode) {
     const user = sessionStorage.getItem('selectedUser');
     const input = document.getElementById(`q_${mat}`);
@@ -88,11 +93,6 @@ window.doAction = async function(mat, mode) {
 window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 window.goBack = () => { location.href = 'user-select.html'; };
 
-/* ===== 5. Supervisor Actions ===== */
+/* ===== 5. Supervisor Actions (ครบถ้วน) ===== */
 window.supAddStock = async (mat, qty) => fetch(`${API}?action=addstock&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}`).then(r=>r.json());
-window.supDeductUser = async (mat, user, qty) => fetch(`${API}?action=return&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}&status=USED&admin=Supervisor`).then(r=>r.json());
-
-// ฟังก์ชันหาชื่อสินค้าจาก Material Code
-window.findProductByMat = function(matCode) {
-    return rows.find(r => String(r.Material).trim() === String(matCode).trim());
-};
+window.supDeductUser = async (mat, user, qty) => fetch(`${API}?action=return&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}&status=USED&admin=Supervisor`).then(r=>r.json());;
