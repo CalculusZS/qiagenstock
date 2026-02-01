@@ -3,30 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Parts Inventory - Qiagen</title>
+    <title>All Inventory - Qiagen Stock</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body onload="loadStockData('all')">
-    <div style="background:#003366; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
-        <b style="letter-spacing:1px;">📦 ALL PARTS (0243)</b>
-        <button onclick="goBack()" style="background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:4px; cursor:pointer;">BACK</button>
-    </div>
+    <div class="container" style="max-width: 100%; width: 95%; margin: 20px auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <button onclick="window.goBack()" style="padding:10px 15px; background:#f1f5f9; border:1px solid #ccc; border-radius:8px; cursor:pointer;">◀ Back</button>
+            <h2 style="color:#003366; margin:0;">All Inventory (0243)</h2>
+            <div style="width:60px;"></div>
+        </div>
 
-    <div class="container" style="max-width:900px; margin:20px auto; padding:0 10px;">
-        <input type="text" id="searchInput" placeholder="🔍 Search Material or Name..." oninput="searchStock(this.value, 'all')" 
-               style="width:100%; padding:14px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:15px; box-sizing:border-box;">
+        <input type="text" placeholder="Search Material or Product Name..." 
+               oninput="window.searchStock(this.value, 'all')" 
+               style="width:100%; padding:12px; margin-bottom:20px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box;">
 
-        <div style="background:white; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); overflow:hidden;">
-            <table style="width:100%; border-collapse:collapse;">
-                <thead style="background:#f1f5f9;">
-                    <tr>
-                        <th style="text-align:left; padding:12px; font-size:12px; color:#64748b;">ITEM DESCRIPTION</th>
-                        <th style="text-align:center; font-size:12px; color:#64748b;">STOCK</th>
-                        <th style="text-align:right; padding-right:15px; font-size:12px; color:#64748b;">STATUS</th>
+        <div class="card">
+            <table style="width:100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #eee;">
+                        <th style="text-align:left; padding:12px;">Material & Product</th>
+                        <th style="text-align:center; padding:12px;">Stock 0243</th>
+                        <th style="text-align:right; padding:12px;">Status</th>
                     </tr>
                 </thead>
-                <tbody id="data">
-                    </tbody>
+                <tbody id="data"></tbody>
             </table>
         </div>
     </div>
