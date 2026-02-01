@@ -1,102 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Qiagen Admin Console</title>
-  <link rel="stylesheet" href="css/style.css">
-  <style>
-    .admin-card { background:white; padding:20px; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom:25px; }
-    .admin-h3 { margin-top:0; color:#003366; font-size:16px; border-left:4px solid #003366; padding-left:10px; margin-bottom:15px; text-transform:uppercase; }
-    .staff-row td { padding: 12px 8px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
-    .input-sup { padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supervisor - Stock Management</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Full Width Enhancements */
+        .container { max-width: 100% !important; width: 95%; margin: 20px auto; }
+        .admin-section { display: flex; flex-direction: column; gap: 20px; }
+        .admin-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .admin-h3 { margin-top: 0; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: #f8fafc; color: #64748b; text-align: left; padding: 12px; font-size: 13px; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        
+        /* Input & Button Styling */
+        .input-sup { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+        .badge-user { background: #e2e8f0; color: #475569; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .staff-row:hover { background-color: #f8fafc; }
+        
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-back { background: #64748b; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    </style>
 </head>
-<body onload="initSup()" style="background:#f1f5f9;">
-  <div style="background:#003366; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
-    <b style="font-size:18px;">🛠 SUPERVISOR CONSOLE</b>
-    <button onclick="location.href='user-select.html'" style="color:white; background:transparent; border:1px solid white; border-radius:4px; padding:5px 15px; cursor:pointer;">EXIT</button>
-  </div>
+<body onload="loadStockData()">
 
-  <div class="container" style="max-width:1000px; margin:25px auto; padding:0 15px;">
-    
-    <div class="admin-card">
-      <h3 class="admin-h3">Add Stock to Central (0243)</h3>
-      <div style="display:flex; gap:10px;">
-        <input type="text" id="s_mat" placeholder="Material Code" oninput="showPName(this.value)" class="input-sup" style="flex:2;">
-        <input type="number" id="s_qty" value="1" class="input-sup" style="flex:0.5; text-align:center;">
-        <button onclick="doAdd()" style="background:#003366; color:white; border:none; padding:10px 25px; border-radius:6px; cursor:pointer; font-weight:bold;">ADD STOCK</button>
-      </div>
-      <div id="pname_hint" style="margin-top:8px; font-size:12px; color:#64748b;"></div>
+    <div class="container">
+        <div class="header-actions">
+            <button onclick="location.href='user-select.html'" class="btn-back">◀ Back to User Selection</button>
+            <h2 style="margin: 0; color: #003366;">Supervisor Control Panel</h2>
+            <button onclick="logout()" style="background:#ef4444; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Logout</button>
+        </div>
+
+        <div class="admin-section">
+            
+            <div class="admin-card">
+                <h3 class="admin-h3">Add Stock to Central (0243)</h3>
+                <div style="display:flex; gap:10px; flex-wrap: wrap;">
+                    <input type="text" id="s_mat" class="input-sup" placeholder="Enter Material Code (e.g. 1018250)" style="flex:3; min-width: 200px;">
+                    <input type="number" id="s_qty" class="input-sup" value="1" min="1" style="flex:1; min-width: 80px;">
+                    <button onclick="doSupAdd()" style="background:#003366; color:white; border:none; padding:10px 25px; border-radius:8px; font-weight:bold; cursor:pointer; flex:1;">ADD STOCK</button>
+                </div>
+                <p style="font-size: 12px; color: #94a3b8; margin-top: 8px;">* The system will automatically fetch the Product Name for confirmation.</p>
+            </div>
+
+            <div class="admin-card">
+                <h3 class="admin-h3">Staff Inventory List</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Material & Product Description</th>
+                                <th>Staff Name</th>
+                                <th style="text-align: center;">Qty</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staff-data">
+                            <tr><td colspan="4" align="center">Loading staff data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
     </div>
 
-    <div class="admin-card">
-      <h3 class="admin-h3">Staff Current Inventory</h3>
-      <div style="overflow-x:auto;">
-        <table style="width:100%; border-collapse:collapse;">
-          <thead>
-            <tr style="background:#f8fafc; text-align:left;">
-              <th style="padding:12px; font-size:11px; color:#64748b;">STAFF</th>
-              <th style="padding:12px; font-size:11px; color:#64748b;">ITEM (CODE | NAME)</th>
-              <th style="padding:12px; font-size:11px; color:#64748b; text-align:center;">QTY</th>
-              <th style="padding:12px; font-size:11px; color:#64748b; text-align:right;">ACTION</th>
-            </tr>
-          </thead>
-          <tbody id="staff_tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+    <script src="js/app.js"></script>
+    <script>
+        // Security check: Ensure only supervisors can access
+        if (sessionStorage.getItem('isSupervisor') !== 'true') {
+            alert("Unauthorized Access!");
+            window.location.href = 'index.html';
+        }
 
-  <script src="js/app.js"></script>
-  <script>
-    async function initSup() {
-      if(sessionStorage.getItem('isSupervisor') !== 'true') { location.href='index.html'; return; }
-      await window.loadStockData('all');
-      renderStaffStock();
-    }
-
-    function renderStaffStock() {
-      const tbody = document.getElementById('staff_tbody');
-      const USERS = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
-      let html = '';
-      
-      rows.forEach(row => {
-        USERS.forEach(user => {
-          const val = Number(row[user] || 0);
-          if (val > 0) {
-            const tid = `id_${row.Material}_${user}`;
-            // Single Line Display
-            html += `<tr class="staff-row">
-              <td style="font-weight:bold; color:#003366;">${user}</td>
-              <td><strong>${row.Material}</strong> | <span style="color:#64748b;">${row['Product Name']}</span></td>
-              <td style="text-align:center;"><input type="number" id="${tid}" value="${val}" style="width:45px; text-align:center; border:1px solid #ddd; border-radius:4px;"></td>
-              <td style="text-align:right;"><button onclick="doDeduct('${row.Material}','${user}','${tid}')" style="background:#cc0000; color:white; border:none; border-radius:4px; padding:6px 12px; cursor:pointer;">Deduct</button></td>
-            </tr>`;
-          }
-        });
-      });
-      tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No staff inventory found</td></tr>';
-    }
-
-    async function doAdd() {
-      const m = document.getElementById('s_mat').value;
-      const q = document.getElementById('s_qty').value;
-      if(!m) return alert("Please enter Material Code");
-      const res = await window.supAddStock(m, q);
-      if(res.success) { alert("Stock Added Successfully!"); location.reload(); }
-    }
-
-    async function doDeduct(mat, user, tid) {
-      const q = document.getElementById(tid).value;
-      if(!confirm(`Deduct ${q} units from ${user}?`)) return;
-      const res = await window.supDeductUser(mat, user, q);
-      if(res.success) { alert("Deducted Successfully!"); location.reload(); }
-    }
-
-    function showPName(m) {
-      const p = window.findProductByMat(m);
-      document.getElementById('pname_hint').textContent = p ? "Product: " + p['Product Name'] : "Product not found";
-    }
-  </script>
+        // Keep session alive or logout after 5 mins inactivity
+        setInterval(() => {
+            if (window.checkAuth) window.checkAuth();
+        }, 60000);
+    </script>
 </body>
 </html>
