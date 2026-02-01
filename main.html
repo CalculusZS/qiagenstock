@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qiagen Stock System</title>
+    <title>Inventory - Qiagen</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body onload="initMain()">
@@ -14,24 +14,24 @@
 
     <div class="container" style="max-width:900px; margin:20px auto; padding:0 10px;">
         <div style="display:flex; justify-content:space-between; margin-bottom:15px; background:white; padding:15px; border-radius:8px; border:1px solid #e2e8f0; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-            <div style="font-size:16px;">Current User: <strong id="user_display" style="color:#003366;"></strong></div>
-            <button onclick="goBack()" style="background:none; border:1px solid #cbd5e1; padding:4px 10px; border-radius:4px; font-size:12px; cursor:pointer;">Switch User</button>
+            <div style="font-size:16px;">Current User: <strong id="user_display" style="color:#003366;">-</strong></div>
+            <button onclick="goBack()" style="background:none; border:1px solid #cbd5e1; padding:4px 10px; border-radius:4px; font-size:12px; cursor:pointer; color:#64748b;">Change User</button>
         </div>
 
         <div style="display:flex; gap:10px; margin-bottom:15px;">
-            <button id="t-withdraw" onclick="setMode('withdraw')" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">WITHDRAW</button>
-            <button id="t-return" onclick="setMode('return')" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">RETURN</button>
+            <button id="t-withdraw" onclick="setMode('withdraw')" style="flex:1; padding:15px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">WITHDRAW</button>
+            <button id="t-return" onclick="setMode('return')" style="flex:1; padding:15px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">RETURN</button>
         </div>
 
-        <input type="text" id="searchInput" placeholder="🔍 Search Material or Name..." oninput="searchStock(this.value, currentMode)" style="width:100%; padding:12px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:15px; box-sizing:border-box;">
+        <input type="text" id="searchInput" placeholder="🔍 Search Material or Name..." oninput="searchStock(this.value, currentMode)" style="width:100%; padding:14px; border-radius:8px; border:1px solid #cbd5e1; margin-bottom:15px; box-sizing:border-box; font-size:14px;">
 
-        <div style="background:white; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <div style="background:white; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); overflow:hidden;">
             <table style="width:100%; border-collapse:collapse;">
                 <thead style="background:#f1f5f9;">
                     <tr>
-                        <th style="text-align:left; padding:12px; font-size:12px;">ITEM DESCRIPTION</th>
-                        <th style="text-align:center; font-size:12px;">STOCK</th>
-                        <th style="text-align:right; padding-right:15px; font-size:12px;">ACTION</th>
+                        <th style="text-align:left; padding:12px; font-size:12px; color:#64748b;">ITEM DESCRIPTION</th>
+                        <th style="text-align:center; font-size:12px; color:#64748b;">STOCK</th>
+                        <th style="text-align:right; padding-right:15px; font-size:12px; color:#64748b;">ACTION</th>
                     </tr>
                 </thead>
                 <tbody id="data"></tbody>
@@ -44,17 +44,17 @@
         let currentMode = 'withdraw';
 
         async function initMain() {
-            // 1. ดึงชื่อจาก Session ทันทีที่โหลดหน้า
+            // ดึงชื่อพนักงานจากหน้าก่อนหน้า
             const user = sessionStorage.getItem('selectedUser');
             if(!user) { 
                 location.href = 'user-select.html'; 
                 return; 
             }
             
-            // 2. แปะชื่อลงในหน้าจอทันที
+            // แสดงชื่อบนหน้าจอทันที
             document.getElementById('user_display').textContent = user;
             
-            // 3. เริ่มโหลดข้อมูลสต็อก
+            // เริ่มต้นที่โหมดเบิก (Withdraw)
             await setMode('withdraw');
         }
 
@@ -63,12 +63,23 @@
             const btnW = document.getElementById('t-withdraw');
             const btnR = document.getElementById('t-return');
             
-            btnW.style.background = (m === 'withdraw' ? '#003366' : '#e2e8f0');
-            btnW.style.color = (m === 'withdraw' ? 'white' : '#475569');
-            btnR.style.background = (m === 'return' ? '#16a34a' : '#e2e8f0');
-            btnR.style.color = (m === 'return' ? 'white' : '#475569');
+            // เปลี่ยนสีปุ่มตามโหมดที่เลือก
+            if (m === 'withdraw') {
+                btnW.style.background = '#003366';
+                btnW.style.color = 'white';
+                btnR.style.background = '#e2e8f0';
+                btnR.style.color = '#475569';
+            } else {
+                btnR.style.background = '#16a34a';
+                btnR.style.color = 'white';
+                btnW.style.background = '#e2e8f0';
+                btnW.style.color = '#475569';
+            }
             
-            await window.loadStockData(m);
+            // โหลดข้อมูลสต็อก (ฟังก์ชันอยู่ใน app.js)
+            if(window.loadStockData) {
+                await window.loadStockData(m);
+            }
         }
     </script>
 </body>
