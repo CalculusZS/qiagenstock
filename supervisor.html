@@ -6,21 +6,21 @@
   <link rel="stylesheet" href="css/style.css">
   <style>
     .admin-card { background:white; padding:20px; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom:25px; }
-    .admin-h3 { margin-top:0; color:#003366; font-size:16px; border-left:4px solid #003366; padding-left:10px; margin-bottom:15px; }
-    .staff-row td { padding: 10px 8px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+    .admin-h3 { margin-top:0; color:#003366; font-size:16px; border-left:4px solid #003366; padding-left:10px; margin-bottom:15px; text-transform:uppercase; }
+    .staff-row td { padding: 12px 8px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
     .input-sup { padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; }
   </style>
 </head>
 <body onload="initSup()" style="background:#f1f5f9;">
   <div style="background:#003366; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
     <b style="font-size:18px;">🛠 SUPERVISOR CONSOLE</b>
-    <button onclick="location.href='user-select.html'" style="color:white; background:transparent; border:1px solid white; border-radius:4px; padding:5px 15px; cursor:pointer;">Exit</button>
+    <button onclick="location.href='user-select.html'" style="color:white; background:transparent; border:1px solid white; border-radius:4px; padding:5px 15px; cursor:pointer;">EXIT</button>
   </div>
 
   <div class="container" style="max-width:1000px; margin:25px auto; padding:0 15px;">
     
     <div class="admin-card">
-      <h3 class="admin-h3">ADD STOCK TO CENTRAL (0243)</h3>
+      <h3 class="admin-h3">Add Stock to Central (0243)</h3>
       <div style="display:flex; gap:10px;">
         <input type="text" id="s_mat" placeholder="Material Code" oninput="showPName(this.value)" class="input-sup" style="flex:2;">
         <input type="number" id="s_qty" value="1" class="input-sup" style="flex:0.5; text-align:center;">
@@ -30,13 +30,13 @@
     </div>
 
     <div class="admin-card">
-      <h3 class="admin-h3">STAFF CURRENT INVENTORY</h3>
+      <h3 class="admin-h3">Staff Current Inventory</h3>
       <div style="overflow-x:auto;">
         <table style="width:100%; border-collapse:collapse;">
           <thead>
             <tr style="background:#f8fafc; text-align:left;">
               <th style="padding:12px; font-size:11px; color:#64748b;">STAFF</th>
-              <th style="padding:12px; font-size:11px; color:#64748b;">ITEM (MATERIAL | NAME)</th>
+              <th style="padding:12px; font-size:11px; color:#64748b;">ITEM (CODE | NAME)</th>
               <th style="padding:12px; font-size:11px; color:#64748b; text-align:center;">QTY</th>
               <th style="padding:12px; font-size:11px; color:#64748b; text-align:right;">ACTION</th>
             </tr>
@@ -65,16 +65,17 @@
           const val = Number(row[user] || 0);
           if (val > 0) {
             const tid = `id_${row.Material}_${user}`;
+            // Single Line Display
             html += `<tr class="staff-row">
               <td style="font-weight:bold; color:#003366;">${user}</td>
-              <td><span style="font-weight:600;">${row.Material}</span> <span style="color:#64748b;">| ${row['Product Name']}</span></td>
+              <td><strong>${row.Material}</strong> | <span style="color:#64748b;">${row['Product Name']}</span></td>
               <td style="text-align:center;"><input type="number" id="${tid}" value="${val}" style="width:45px; text-align:center; border:1px solid #ddd; border-radius:4px;"></td>
-              <td style="text-align:right;"><button onclick="doDeduct('${row.Material}','${user}','${tid}')" style="background:#cc0000; color:white; border:none; border-radius:4px; padding:5px 10px; cursor:pointer; font-size:12px;">Deduct</button></td>
+              <td style="text-align:right;"><button onclick="doDeduct('${row.Material}','${user}','${tid}')" style="background:#cc0000; color:white; border:none; border-radius:4px; padding:6px 12px; cursor:pointer;">Deduct</button></td>
             </tr>`;
           }
         });
       });
-      tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No Staff Inventory Found</td></tr>';
+      tbody.innerHTML = html || '<tr><td colspan="4" style="text-align:center; padding:30px; color:#94a3b8;">No staff inventory found</td></tr>';
     }
 
     async function doAdd() {
@@ -82,14 +83,14 @@
       const q = document.getElementById('s_qty').value;
       if(!m) return alert("Please enter Material Code");
       const res = await window.supAddStock(m, q);
-      if(res.success) { alert("Stock Added!"); location.reload(); }
+      if(res.success) { alert("Stock Added Successfully!"); location.reload(); }
     }
 
     async function doDeduct(mat, user, tid) {
       const q = document.getElementById(tid).value;
       if(!confirm(`Deduct ${q} units from ${user}?`)) return;
       const res = await window.supDeductUser(mat, user, q);
-      if(res.success) { alert("Deducted!"); location.reload(); }
+      if(res.success) { alert("Deducted Successfully!"); location.reload(); }
     }
 
     function showPName(m) {
