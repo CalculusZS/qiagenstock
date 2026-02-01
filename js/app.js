@@ -1,6 +1,6 @@
 /* ===== 1. Configuration ===== */
 const API = "https://script.google.com/macros/s/AKfycbwd2Db27tpGfv1STLX8N6I6tBv5CDYkAM4bHbsxQDJ8wgRLqP_f3kvwkleemCH9DrEf/exec";           
-            
+          
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 const TIMEOUT_MS = 5 * 60 * 1000; 
@@ -75,7 +75,7 @@ window.searchStock = (keyword, type) => {
     window.renderTable(filtered, type);
 };
 
-/* ===== 4. Rendering ===== */
+/* ===== 4. Rendering (Updated for Responsive) ===== */
 window.loadStockData = async function(type) {
     if (!window.checkAuth()) return;
     const tbody = document.getElementById('data');
@@ -110,26 +110,27 @@ window.renderTable = function(data, type) {
         const name = r['Product Name'] || '';
         const stockStyle = s0243 === 0 ? 'color: #ef4444; font-weight: bold;' : 'font-weight: bold;';
 
-        const info = `<div style="display:flex; align-items:center; gap:12px;">
-                        <b style="color:#003366; min-width:85px;">${mat}</b>
-                        <span style="color:#64748b; font-size:14px;">${name}</span>
+        // ปรับชื่อคลาสเพื่อให้ CSS ควบคุมการจัดวางในมือถือได้ (Stacking)
+        const info = `<div class="p-info" style="display:flex; align-items:center; gap:12px;">
+                        <b class="p-mat" style="color:#003366; min-width:85px;">${mat}</b>
+                        <span class="p-name" style="color:#64748b; font-size:13px;">${name}</span>
                       </div>`;
 
         if (type === 'withdraw') {
-            return `<tr><td style="width:65%;">${info}</td><td align="center"><span style="${stockStyle}">${s0243}</span></td>
-                <td align="right"><div style="display:flex; gap:6px; justify-content:flex-end;">
-                    <input type="number" id="q_${mat}" value="1" style="width:35px; text-align:center;">
+            return `<tr><td class="td-product">${info}</td><td align="center"><span style="${stockStyle}">${s0243}</span></td>
+                <td align="right"><div class="action-box" style="display:flex; gap:6px; justify-content:flex-end;">
+                    <input type="number" id="q_${mat}" value="1" style="width:40px; text-align:center;">
                     <button onclick="window.doAction('${mat}','withdraw')" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Withdraw</button>
                 </div></td></tr>`;
         }
         if (type === 'return') {
-            return `<tr><td style="width:65%;">${info}</td><td align="center"><b>${sUser}</b></td>
-                <td align="right"><div style="display:flex; gap:6px; justify-content:flex-end;">
-                    <input type="number" id="q_${mat}" value="1" style="width:35px; text-align:center;">
+            return `<tr><td class="td-product">${info}</td><td align="center"><b>${sUser}</b></td>
+                <td align="right"><div class="action-box" style="display:flex; gap:6px; justify-content:flex-end;">
+                    <input type="number" id="q_${mat}" value="1" style="width:40px; text-align:center;">
                     <button onclick="window.doAction('${mat}','return')" style="background:#22c55e; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Return</button>
                 </div></td></tr>`;
         }
-        return `<tr><td style="width:75%;">${info}</td><td align="center"><span style="${stockStyle}">${s0243}</span></td><td align="right">${s0243 > 0 ? '✅' : '❌'}</td></tr>`;
+        return `<tr><td class="td-product">${info}</td><td align="center"><span style="${stockStyle}">${s0243}</span></td><td align="right">${s0243 > 0 ? '✅' : '❌'}</td></tr>`;
     }).join('');
 };
 
@@ -178,7 +179,5 @@ window.doSupDeduct = async function(mat, user, tid) {
     try {
         const res = await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}`).then(r => r.json());
         if (res.success) { alert("✅ Success!"); location.reload(); } else { alert("❌ Error"); }
-    } catch (e) { alert("Error"); }
-};
     } catch (e) { alert("Error"); }
 };
