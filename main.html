@@ -69,5 +69,37 @@
         await window.loadStockData(m); // โหลดข้อมูลสต็อกตามโหมด
     }
 </script>
+    <script src="js/app.js"></script>
+
+<script>
+    let currentMode = 'withdraw';
+
+    async function initMain() {
+        const u = sessionStorage.getItem('selectedUser');
+        if(!u) { location.href='user-select.html'; return; }
+        document.getElementById('user_display').textContent = u;
+        
+        // รอให้โหลดข้อมูลเบื้องต้นเสร็จ
+        await setMode('withdraw');
+    }
+    
+    async function setMode(m) {
+        currentMode = m;
+        // เปลี่ยนสีปุ่มเมนู
+        const btnW = document.getElementById('t-withdraw');
+        const btnR = document.getElementById('t-return');
+        if(btnW) {
+            btnW.style.background = (m==='withdraw'?'#2563eb':'#e2e8f0');
+            btnW.style.color = (m==='withdraw'?'white':'#000');
+        }
+        if(btnR) {
+            btnR.style.background = (m==='return'?'#22c55e':'#e2e8f0');
+            btnR.style.color = (m==='return'?'white':'#000');
+        }
+        
+        // เรียกโหลดข้อมูลจาก Google Sheets (ต้องมี await)
+        await window.loadStockData(m);
+    }
+</script>
 </body>
 </html>
