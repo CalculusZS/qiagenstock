@@ -1,6 +1,5 @@
 /* ===== 1. Configuration ===== */
-// สำคัญ: นำ URL ที่ได้จากการ Deploy Apps Script มาวางที่นี่
-const API = "https://script.google.com/macros/s/AKfycbzTeYhQQadjV74n3tLZvX4Hmxhp_0vJRUSy7H_866kGXxmh1aGGhSiMV82Hc5fIVvVVGg/exec";           
+const API = "https://script.google.com/macros/s/AKfycbz4N1gAk0h_lf0qiPdnFpL18jwKz5gvNmEVl31Bg7YmdM6gFdvpvpOl4BWeQ0aAObizVg/exec";           
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 const STAFF_NAMES = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
@@ -16,10 +15,9 @@ window.login = function() {
         sessionStorage.setItem('isLoggedIn', 'true');
         sessionStorage.setItem('isSupervisor', 'true');
         location.href = 'supervisor.html';
-    } else {
-        alert('Incorrect Password!');
-    }
+    } else { alert('Incorrect Password!'); }
 };
+
 window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 window.goBack = () => { location.href = 'user-select.html'; };
 
@@ -49,10 +47,10 @@ window.renderTable = function(data, type) {
         const userStock = Number(r[currentUser] || 0);
         const isOut = stock0243 <= 0;
         
-        // ข้อมูลสินค้าแสดงบรรทัดเดียว (Material | Name)
+        // ข้อมูลบรรทัดเดียวตามต้องการ
         const itemInfo = `<div style="font-weight:bold;">${r.Material} <span style="font-weight:normal; font-size:12px; color:#64748b;">| ${r['Product Name']}</span></div>`;
 
-        // เงื่อนไขสำหรับหน้า showall.html (type === 'all')
+        // หน้า showall.html
         if (type === 'all') {
             return `<tr>
                 <td style="padding:12px;">${itemInfo}</td>
@@ -61,30 +59,29 @@ window.renderTable = function(data, type) {
             </tr>`;
         }
 
-        // เงื่อนไขสำหรับหน้า main.html (type === 'withdraw')
+        // หน้า main.html - Withdraw (สีน้ำเงิน)
         if (type === 'withdraw') {
             return `<tr>
                 <td style="padding:12px;">${itemInfo}</td>
                 <td style="text-align:center; font-weight:bold;">${stock0243}</td>
                 <td style="text-align:right; white-space:nowrap;">
-                    <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; text-align:center;">
+                    <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; text-align:center; border-radius:4px; border:1px solid #ddd;">
                     <button onclick="doAction('${r.Material}', 'withdraw')" 
-                        style="background:${isOut?'#cbd5e1':'#003366'}; color:white; border:none; padding:8px 12px; border-radius:6px;" 
-                        ${isOut ? 'disabled' : ''}>Withdraw</button>
+                        style="background:${isOut?'#cbd5e1':'#003366'}; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer;">Withdraw</button>
                 </td>
             </tr>`;
         }
 
-        // เงื่อนไขสำหรับหน้า main.html (type === 'return')
+        // หน้า main.html - Return (สีเขียว)
         if (type === 'return') {
             if (userStock <= 0) return '';
             return `<tr>
                 <td style="padding:12px;">${itemInfo}</td>
                 <td style="text-align:center; font-weight:bold;">${userStock}</td>
                 <td style="text-align:right; white-space:nowrap;">
-                    <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; text-align:center;">
+                    <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; text-align:center; border-radius:4px; border:1px solid #ddd;">
                     <button onclick="doAction('${r.Material}', 'return')" 
-                        style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:6px;">Return</button>
+                        style="background:#16a34a; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer;">Return</button>
                 </td>
             </tr>`;
         }
@@ -102,17 +99,19 @@ window.doAction = async function(mat, mode) {
     } catch (e) { alert("Network Error"); }
 };
 
-/* ===== 5. Helpers ===== */
-window.findProductByMat = (m) => rows.find(r => String(r.Material) === String(m));
-window.searchStock = (keyword, type) => {
-    const filtered = rows.filter(r => String(r.Material + r['Product Name']).toLowerCase().includes(keyword.toLowerCase()));
-    window.renderTable(filtered, type);
-};
-
-// ฟังก์ชันเดิมของ Supervisor
+/* ===== 5. Supervisor Actions ===== */
 window.supAddStock = async function(mat, qty) {
     return await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}`).then(r => r.json());
 };
+
 window.supDeductUser = async function(mat, user, qty) {
+    // ส่งข้อมูลไป Script โดย Script จะบันทึก log เป็น Supervisor อัตโนมัติ
     return await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}`).then(r => r.json());
+};
+
+window.findProductByMat = (m) => rows.find(r => String(r.Material) === String(m));
+
+window.searchStock = (keyword, type) => {
+    const filtered = rows.filter(r => String(r.Material + r['Product Name']).toLowerCase().includes(keyword.toLowerCase()));
+    window.renderTable(filtered, type);
 };
