@@ -73,7 +73,7 @@ window.renderTable = function(data, type) {
     }
 
     if (displayData.length === 0 && type === 'return') {
-        tbody.innerHTML = '<tr><td colspan="3" align="center" style="padding:40px; color:#94a3b8;">❌ ไม่มีอะไหล่ในสต็อกของคุณ</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" align="center" style="padding:40px; color:#94a3b8;">❌ There are no spare parts in your stock</td></tr>';
         return;
     }
 
