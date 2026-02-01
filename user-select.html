@@ -2,56 +2,232 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Select User - Qiagen</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select User - Qiagen Inventory</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f1f5f9;
+            margin: 0;
+        }
+        .navbar {
+            background: #1e293b;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .container {
+            max-width: 450px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        .card-container {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h3 {
+            text-align: center;
+            color: #334155;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .user-btn {
+            width: 100%;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .user-btn:hover {
+            background: #f8fafc;
+            border-color: #2563eb;
+            color: #2563eb;
+            transform: translateY(-1px);
+        }
+        /* ปุ่ม View All Parts แบบใหม่ตามโจทย์ */
+        .btn-view-all {
+            width: 100%;
+            padding: 15px;
+            background: #e0f2fe; /* พื้นหลังสีฟ้าอ่อน */
+            border: 2px solid #7dd3fc;
+            color: #0369a1;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 20px 0 12px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: 0.3s;
+        }
+        .btn-view-all:hover {
+            background: #bae6fd;
+            transform: scale(1.02);
+        }
+        .btn-supervisor {
+            width: 100%;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            color: #64748b;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        /* Modal สำหรับ Login Supervisor */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 320px;
+            text-align: center;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-size: 16px;
+            text-align: center;
+        }
+        .modal-btns {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-submit {
+            flex: 2;
+            background: #1e293b;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-cancel {
+            flex: 1;
+            background: #f1f5f9;
+            color: #64748b;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body onload="init()">
-    <div style="background:#1e293b; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
-        <b>Qiagen Inventory</b>
-        <button onclick="logout()" style="background:#ef4444; border:none; color:white; padding:5px 12px; border-radius:5px; cursor:pointer;">Logout</button>
+
+    <div class="navbar">
+        <b style="font-size: 18px;">Qiagen Inventory</b>
+        <button onclick="logout()" style="background:#ef4444; border:none; color:white; padding:7px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">Logout</button>
     </div>
 
-    <div class="container" style="max-width:400px; margin:30px auto; padding:0 20px;">
-        <h3 style="text-align:center;">👤 Select Staff Name</h3>
-        <div id="user_list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
-            Loading Staff List...
+    <div class="container">
+        <div class="card-container">
+            <h3>👤 Select Staff Name</h3>
+            
+            <div id="user_list">
+                <div style="text-align:center; color:#64748b; padding:20px;">Loading Staff List...</div>
+            </div>
+
+            <button class="btn-view-all" onclick="location.href='showall.html'">
+                📦 View All Parts (Inventory)
+            </button>
+
+            <button class="btn-supervisor" onclick="openSupModal()">
+                🔒 Supervisor Login
+            </button>
         </div>
-        <hr>
-        <button onclick="location.href='showall.html'" style="width:100%; padding:15px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:12px;">
-            🔍 View All Parts (0243)
-        </button>
-        <button onclick="openSupModal()" style="width:100%; padding:15px; background:#1e293b; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">
-            🛡️ Supervisor Login
-        </button>
     </div>
 
-    <div id="supModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
-        <div style="background:white; padding:20px; border-radius:10px; text-align:center;">
-            <h3>Supervisor Login</h3>
-            <input type="password" id="sup_pass_input" placeholder="Password" style="padding:10px; margin-bottom:10px;">
-            <br>
-            <button onclick="closeSupModal()">Cancel</button>
-            <button onclick="submitSupLogin()" style="background:#1e293b; color:white; border:none; padding:5px 15px; border-radius:5px; cursor:pointer;">Submit</button>
+    <div id="sup_modal" class="modal">
+        <div class="modal-content">
+            <div style="font-size: 40px; margin-bottom: 10px;">🔐</div>
+            <h3 style="margin-bottom: 5px;">Admin Access</h3>
+            <p style="font-size: 13px; color: #64748b; margin-top: 0;">กรุณาใส่รหัสผ่านผู้ดูแลระบบ</p>
+            <input type="password" id="sup_pass_input" placeholder="Enter Password">
+            <div class="modal-btns">
+                <button class="btn-cancel" onclick="closeSupModal()">Back</button>
+                <button class="btn-submit" onclick="submitSupLogin()">Login</button>
+            </div>
         </div>
     </div>
 
     <script src="js/app.js"></script>
     <script>
+        // ดึงรายชื่อพนักงานจาก Google Sheets
         async function init() {
-            const users = await window.loadUsers();
-            const container = document.getElementById('user_list');
-            if (users && users.length > 0) {
-                container.innerHTML = users.map(u => `
-                    <button style="width:100%; background:white; border:1px solid #e2e8f0; padding:15px; border-radius:10px; font-weight:bold; cursor:pointer;" 
-                            onclick="selectUser('${u.header}')">
-                        👤 ${u.header}
-                    </button>`).join('');
-            } else { container.innerHTML = 'Staff List Empty'; }
+            try {
+                const users = await window.loadUsers();
+                const container = document.getElementById('user_list');
+                if (users && users.length > 0) {
+                    container.innerHTML = users.map(u => `
+                        <button class="user-btn" onclick="selectUser('${u.header}')">
+                            <span style="background:#e2e8f0; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:14px;">👤</span>
+                            ${u.header}
+                        </button>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div style="text-align:center; color:red;">ไม่สามารถโหลดรายชื่อได้</div>';
+                }
+            } catch (error) {
+                console.error(error);
+            }
         }
+
+        // เมื่อเลือกชื่อพนักงาน
         function selectUser(name) {
             sessionStorage.setItem('selectedUser', name);
-            location.href = 'main.html';
+            location.href = 'main.html'; // หรือหน้า menu.html ตามที่คุณตั้งไว้
         }
+
+        // ฟังก์ชันควบคุม Modal
+        function openSupModal() {
+            document.getElementById('sup_modal').style.display = 'flex';
+            document.getElementById('sup_pass_input').focus();
+        }
+
+        function closeSupModal() {
+            document.getElementById('sup_modal').style.display = 'none';
+            document.getElementById('sup_pass_input').value = '';
+        }
+
+        // ตรวจสอบการกด Enter ในช่องรหัสผ่าน
+        document.getElementById('sup_pass_input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                submitSupLogin();
+            }
+        });
     </script>
 </body>
 </html>
