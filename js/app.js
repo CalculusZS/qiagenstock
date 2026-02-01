@@ -1,5 +1,5 @@
 /* ===== 1. Configuration ===== */
-const API = "https://script.google.com/macros/s/AKfycbwS2LWmnkCYE4eiP5MWMyGW9S4QqpG9sITJis0WJOqkguiMPjEApOBF7dQYSHbz8SnfeQ/exec";   
+const API = "https://script.google.com/macros/s/AKfycbwS2LWmnkCYE4eiP5MWMyGW9S4QqpG9sITJis0WJOqkguiMPjEApOBF7dQYSHbz8SnfeQ/exec";     
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 
@@ -41,7 +41,6 @@ window.loadUsers = async function() {
         const res = await fetch(`${API}?action=users&password=${PASSWORD}`).then(r => r.json());
         return res.success ? res.users : [];
     } catch (e) {
-        console.error("Load users failed", e);
         return [];
     }
 };
@@ -56,13 +55,14 @@ window.loadStockData = async function(type) {
         if (res.success) {
             rows = res.data; // เก็บข้อมูลลงตัวแปร global
             window.renderTable(rows, type);
+            return res.data; // คืนค่าเพื่อให้หน้า Supervisor ใช้ได้
         }
     } catch (e) { 
         tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Error loading data</td></tr>'; 
     }
 };
 
-/* ===== 4. Rendering Engine (โชว์ Product Name บรรทัดเดียว) ===== */
+/* ===== 4. Rendering Engine (คงรูปแบบเดิมของคุณไว้) ===== */
 window.renderTable = function(data, type) {
     const tbody = document.getElementById('data');
     const currentUser = sessionStorage.getItem('selectedUser');
@@ -77,7 +77,7 @@ window.renderTable = function(data, type) {
             return `<tr>
                 <td style="padding:10px;">
                     <div style="font-weight:bold; ${isOut ? 'color:red;' : ''}">${r.Material}</div>
-                    <div style="font-size:11px; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">${r['Product Name']}</div>
+                    <div style="font-size:11px; color:#666;">${r['Product Name']}</div>
                 </td>
                 <td style="text-align:center; font-weight:bold;">${stock0243}</td>
                 <td style="text-align:right;">
@@ -116,31 +116,24 @@ window.doAction = async function(mat, mode) {
     const qty = input.value;
     const url = `${API}?action=${mode}&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}`;
     
-    input.disabled = true;
     try {
         const res = await fetch(url).then(r => r.json());
         if (res.success) { 
             alert("Success!"); 
             window.loadStockData(mode); 
-        } else { 
-            alert("Error: " + res.msg); 
-            input.disabled = false;
-        }
-    } catch (e) { 
-        alert("Network Error"); 
-        input.disabled = false;
-    }
+        } else { alert("Error: " + res.msg); }
+    } catch (e) { alert("Network Error"); }
 };
 
-/* ===== 6. Search Function ===== */
+/* ===== 6. Search Function (ค้นหาได้ทุกอย่าง) ===== */
 window.searchStock = (keyword, type) => {
     const filtered = rows.filter(r => 
-        String(r.Material + r['Product Name']).toLowerCase().includes(keyword.toLowerCase())
+        Object.values(r).some(v => String(v).toLowerCase().includes(keyword.toLowerCase()))
     );
     window.renderTable(filtered, type);
 };
 
-/* ===== 7. Supervisor Logic (ดึงข้อมูลรายชิ้น) ===== */
+/* ===== 7. Supervisor Exclusive ===== */
 window.findProductByMat = function(mat) {
     return rows.find(r => String(r.Material).trim() === String(mat).trim());
 };
