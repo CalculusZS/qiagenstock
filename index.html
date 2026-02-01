@@ -1,117 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stock System Login - Qiagen</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <style>
-    /* สไตล์เฉพาะหน้า Login */
-    body.login-page { 
-      display: grid; 
-      place-items: center; 
-      min-height: 100vh; 
-      background: #0f172a; 
-      margin: 0; 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-    .login-box { 
-      width: min(90vw, 360px); 
-      background: #fff; 
-      border-radius: 20px; 
-      padding: 40px 30px; 
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); 
-      text-align: center;
-    }
-    .logo-area {
-      font-size: 28px;
-      font-weight: bold;
-      color: #003366;
-      margin-bottom: 10px;
-      letter-spacing: 2px;
-    }
-    .sub-title {
-      color: #64748b;
-      font-size: 14px;
-      margin-bottom: 30px;
-    }
-    .input-group {
-      text-align: left;
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: #475569;
-      margin-bottom: 8px;
-    }
-    input { 
-      width: 100%; 
-      padding: 14px; 
-      border: 2px solid #e2e8f0; 
-      border-radius: 12px; 
-      font-size: 16px; 
-      box-sizing: border-box; 
-      outline: none;
-      transition: all 0.3s;
-    }
-    input:focus {
-      border-color: #003366;
-      box-shadow: 0 0 0 4px rgba(0, 51, 102, 0.1);
-    }
-    .btn-login { 
-      width: 100%; 
-      background: #003366; 
-      color: #fff; 
-      border: none; 
-      padding: 15px; 
-      border-radius: 12px; 
-      font-weight: bold; 
-      font-size: 16px;
-      cursor: pointer; 
-      transition: background 0.3s;
-      margin-top: 10px;
-    }
-    .btn-login:hover {
-      background: #002244;
-    }
-    .footer-text {
-      margin-top: 25px;
-      font-size: 12px;
-      color: #94a3b8;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qiagen Stock - Login</title>
+    <style>
+        body { background:#0f172a; display:grid; place-items:center; min-height:100vh; font-family:sans-serif; margin:0; }
+        .box { background:white; padding:40px; border-radius:15px; text-align:center; width:300px; box-shadow:0 10px 20px rgba(0,0,0,0.5); }
+        input { width:100%; padding:12px; margin:20px 0; border:1px solid #ddd; border-radius:8px; box-sizing:border-box; font-size:16px; }
+        button { width:100%; padding:12px; background:#003366; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
+    </style>
 </head>
-<body class="login-page">
-
-  <div class="login-box">
-    <div class="logo-area">QIAGEN</div>
-    <div class="sub-title">Inventory Control System</div>
-
-    <div class="input-group">
-      <label for="password">SERVICE PASSWORD</label>
-      <input type="password" id="password" placeholder="Enter password..." 
-             onkeypress="if(event.key === 'Enter') login()">
+<body>
+    <div class="box">
+        <h2 style="color:#003366;margin:0">QIAGEN</h2>
+        <p style="color:#64748b;font-size:12px">Stock Management System</p>
+        <input type="password" id="password" placeholder="Enter Service Password" onkeypress="if(event.key==='Enter') login()">
+        <button onclick="login()">LOGIN</button>
     </div>
-
-    <button class="btn-login" onclick="login()">LOGIN</button>
-
-    <div class="footer-text">
-      Authorized Personnel Only
-    </div>
-  </div>
-
-  <script src="js/app.js"></script>
-  
-  <script>
-    // ตรวจสอบเบื้องต้นว่าถ้าโหลดไฟล์ app.js ไม่สำเร็จ จะแจ้งเตือน
-    window.addEventListener('error', function(e) {
-      if (e.target.tagName === 'SCRIPT') {
-        alert('Error: Cannot load js/app.js. Please check your file path.');
-      }
-    }, true);
-  </script>
-
+    <script src="js/app.js"></script>
 </body>
 </html>
