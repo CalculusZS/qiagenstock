@@ -1,40 +1,40 @@
 /* ===== 1. Configuration ===== */
-const API = "https://script.google.com/macros/s/AKfycbwS2LWmnkCYE4eiP5MWMyGW9S4QqpG9sITJis0WJOqkguiMPjEApOBF7dQYSHbz8SnfeQ/exec";     
-  const PASSWORD = "Service";
+const API = "https://script.google.com/macros/s/AKfycbyL887e7XHftaD8e8lIRIxN3MA90t1GFvka0GiIa4hZQ-Jh5zGlHZG5QKkqa9NqmfeWIA/exec";     
+const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
-
 let rows = []; 
 
 /* ===== 2. Authentication & Navigation ===== */
 window.login = function() {
-    const passValue = document.getElementById('password')?.value.trim();
-    if (passValue === PASSWORD) {
-        sessionStorage.setItem('isLoggedIn', 'true');
-        location.href = 'user-select.html';
-    } else { alert('Invalid Password!'); }
+    const v = document.getElementById('password')?.value.trim();
+    if (v === PASSWORD) { sessionStorage.setItem('isLoggedIn', 'true'); location.href = 'user-select.html'; }
+    else { alert('Invalid Password!'); }
 };
-window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 window.goBack = () => { location.href = 'user-select.html'; };
+window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 
-/* ===== 3. Data Loader (Ensures data is loaded) ===== */
+/* ===== 3. Data Loader (Fixed) ===== */
+window.loadUsers = async function() {
+    try {
+        const res = await fetch(`${API}?action=users&password=${PASSWORD}`).then(r=>r.json());
+        return res.users;
+    } catch(e) { return []; }
+};
+
 window.loadStockData = async function(type) {
     const tbody = document.getElementById('data');
-    if(tbody) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">⌛ Loading Data...</td></tr>';
-    
+    if(tbody) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">⌛ Loading...</td></tr>';
     try {
-        const response = await fetch(`${API}?action=read&password=${PASSWORD}`);
-        const res = await response.json();
+        const res = await fetch(`${API}?action=read&password=${PASSWORD}`).then(r=>r.json());
         if (res.success) {
             rows = res.data; 
             window.renderTable(rows, type);
-            return res.data;
+            return rows;
         }
-    } catch (e) { 
-        if(tbody) tbody.innerHTML = '<tr><td colspan="3">Connection Failed</td></tr>'; 
-    }
+    } catch (e) { if(tbody) tbody.innerHTML = '<tr><td colspan="3">Load Failed</td></tr>'; }
 };
 
-/* ===== 4. Rendering Table (English) ===== */
+/* ===== 4. Rendering ===== */
 window.renderTable = function(data, type) {
     const tbody = document.getElementById('data');
     const currentUser = sessionStorage.getItem('selectedUser');
@@ -54,7 +54,7 @@ window.renderTable = function(data, type) {
                 <td style="text-align:center; font-weight:bold;">${stock0243}</td>
                 <td style="text-align:right;">
                     <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; text-align:center;">
-                    <button onclick="doAction('${r.Material}', 'withdraw')" style="background:${isOut?'#ccc':'#ef4444'}; color:white; border:none; padding:8px; border-radius:6px;" ${isOut ? 'disabled' : ''}>OUT</button>
+                    <button onclick="doAction('${r.Material}', 'withdraw')" style="background:${isOut?'#ccc':'#2563eb'}; color:white; border:none; padding:8px; border-radius:6px;" ${isOut ? 'disabled' : ''}>OUT</button>
                 </td>
             </tr>`;
         }
@@ -69,6 +69,13 @@ window.renderTable = function(data, type) {
                 </td>
             </tr>`;
         }
+        if (type === 'all') {
+            return `<tr>
+                <td><div style="font-weight:bold;">${r.Material}</div><div style="font-size:11px;">${r['Product Name']}</div></td>
+                <td style="text-align:center;">${stock0243}</td>
+                <td style="text-align:right;"><span style="color:${isOut?'red':'green'}">${isOut?'Out':'In Stock'}</span></td>
+            </tr>`;
+        }
     }).join('');
 };
 
@@ -77,17 +84,19 @@ window.doAction = async function(mat, mode) {
     const user = sessionStorage.getItem('selectedUser');
     const input = document.getElementById(`q_${mat}`);
     const qty = input.value;
-    const url = `${API}?action=${mode}&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}`;
     try {
-        const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("Successfully Updated!"); await window.loadStockData(mode); }
+        const res = await fetch(`${API}?action=${mode}&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}`).then(r=>r.json());
+        if (res.success) { alert("Successfully!"); await window.loadStockData(mode); }
         else { alert("Error: " + res.msg); }
     } catch (e) { alert("Network Error"); }
 };
 
 window.searchStock = (keyword, type) => {
-    const filtered = rows.filter(r => 
-        String(r.Material + r['Product Name']).toLowerCase().includes(keyword.toLowerCase())
-    );
+    const filtered = rows.filter(r => String(r.Material + r['Product Name']).toLowerCase().includes(keyword.toLowerCase()));
     window.renderTable(filtered, type);
 };
+
+/* ===== 6. Supervisor Functions (คงไว้เหมือนเดิม) ===== */
+window.findProductByMat = (mat) => rows.find(r => String(r.Material).trim() === String(mat).trim());
+window.supAddStock = async (mat, qty) => fetch(`${API}?action=addstock&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}`).then(r=>r.json());
+window.supDeductUser = async (mat, user, qty) => fetch(`${API}?action=return&status=USED&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}`).then(r=>r.json());
