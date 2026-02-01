@@ -25,18 +25,17 @@ window.goBack = () => { location.href = 'user-select.html'; };
 
 /* ===== 3. Data Loading & Rendering ===== */
 window.loadStockData = async function(type) {
-    const tbody = document.getElementById('data') || document.getElementById('staff_tbody');
-    if(tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#64748b;">⌛ Loading Inventory...</td></tr>';
+    const tbody = document.getElementById('data');
+    if(tbody) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">⌛ Loading...</td></tr>';
     
     try {
         const res = await fetch(`${API}?action=read&password=${PASSWORD}`).then(r => r.json());
         if (res.success) {
             rows = res.data; 
-            if (document.getElementById('data')) window.renderTable(rows, type);
-            if (typeof renderStaffStock === 'function') renderStaffStock(); 
+            window.renderTable(rows, type);
         }
     } catch (e) { 
-        if(tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">❌ Connection Error</td></tr>'; 
+        if(tbody) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:red;">❌ Connection Error</td></tr>'; 
     }
 };
 
@@ -49,29 +48,43 @@ window.renderTable = function(data, type) {
         const stock0243 = Number(r['0243'] || 0);
         const userStock = Number(r[currentUser] || 0);
         const isOut = stock0243 <= 0;
-        const itemInfo = `<strong>${r.Material}</strong><br><span style="font-size:12px; color:#64748b;">${r['Product Name']}</span>`;
+        
+        // ข้อมูลสินค้าแสดงบรรทัดเดียว (Material | Name)
+        const itemInfo = `<div style="font-weight:bold;">${r.Material} <span style="font-weight:normal; font-size:12px; color:#64748b;">| ${r['Product Name']}</span></div>`;
 
+        // เงื่อนไขสำหรับหน้า showall.html (type === 'all')
+        if (type === 'all') {
+            return `<tr>
+                <td style="padding:12px;">${itemInfo}</td>
+                <td style="text-align:center; font-weight:bold;">${stock0243}</td>
+                <td style="text-align:center;"><span style="color:${isOut?'#ef4444':'#16a34a'}">${isOut?'OUT':'IN STOCK'}</span></td>
+            </tr>`;
+        }
+
+        // เงื่อนไขสำหรับหน้า main.html (type === 'withdraw')
         if (type === 'withdraw') {
             return `<tr>
                 <td style="padding:12px;">${itemInfo}</td>
                 <td style="text-align:center; font-weight:bold;">${stock0243}</td>
                 <td style="text-align:right; white-space:nowrap;">
-                    <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; text-align:center;">
+                    <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; text-align:center;">
                     <button onclick="doAction('${r.Material}', 'withdraw')" 
-                        style="background:${isOut?'#cbd5e1':'#003366'}; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer;" 
+                        style="background:${isOut?'#cbd5e1':'#003366'}; color:white; border:none; padding:8px 12px; border-radius:6px;" 
                         ${isOut ? 'disabled' : ''}>Withdraw</button>
                 </td>
             </tr>`;
         }
 
-        if (type === 'return' && userStock > 0) {
+        // เงื่อนไขสำหรับหน้า main.html (type === 'return')
+        if (type === 'return') {
+            if (userStock <= 0) return '';
             return `<tr>
                 <td style="padding:12px;">${itemInfo}</td>
                 <td style="text-align:center; font-weight:bold;">${userStock}</td>
                 <td style="text-align:right; white-space:nowrap;">
-                    <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; text-align:center;">
+                    <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; text-align:center;">
                     <button onclick="doAction('${r.Material}', 'return')" 
-                        style="background:#16a34a; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer;">Return</button>
+                        style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:6px;">Return</button>
                 </td>
             </tr>`;
         }
@@ -89,24 +102,17 @@ window.doAction = async function(mat, mode) {
     } catch (e) { alert("Network Error"); }
 };
 
-/* ===== 5. Supervisor Actions ===== */
+/* ===== 5. Helpers ===== */
 window.findProductByMat = (m) => rows.find(r => String(r.Material) === String(m));
-
-window.supAddStock = async function(mat, qty) {
-    try {
-        const res = await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}`).then(r => r.json());
-        return res;
-    } catch (e) { return {success: false, msg: "Network Error"}; }
-};
-
-window.supDeductUser = async function(mat, user, qty) {
-    try {
-        const res = await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}`).then(r => r.json());
-        return res;
-    } catch (e) { return {success: false, msg: "Network Error"}; }
-};
-
 window.searchStock = (keyword, type) => {
     const filtered = rows.filter(r => String(r.Material + r['Product Name']).toLowerCase().includes(keyword.toLowerCase()));
     window.renderTable(filtered, type);
+};
+
+// ฟังก์ชันเดิมของ Supervisor
+window.supAddStock = async function(mat, qty) {
+    return await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}`).then(r => r.json());
+};
+window.supDeductUser = async function(mat, user, qty) {
+    return await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}`).then(r => r.json());
 };
