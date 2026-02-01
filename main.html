@@ -1,37 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qiagen Stock System</title>
+    <title>Qiagen Stock Management</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body onload="initMain()">
-
     <div style="background:#1e293b; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
         <div style="font-weight:bold;">🧬 QIAGEN STOCK</div>
-        <button onclick="logout()" style="background:#ef4444; border:none; color:white; padding:8px 16px; border-radius:8px; cursor:pointer;">Logout</button>
+        <button onclick="logout()" style="background:#ef4444; border:none; color:white; padding:6px 12px; border-radius:6px; cursor:pointer;">Logout</button>
     </div>
 
     <div class="container" style="max-width:900px; margin:20px auto; padding:0 15px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px; background:white; padding:12px; border-radius:10px; border:1px solid #e2e8f0;">
-            <div>User: <strong id="user_display" style="color:#2563eb;">-</strong></div>
-            <button onclick="goBack()" style="background:#f1f5f9; border:1px solid #cbd5e1; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:12px;">Change User</button>
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px; background:white; padding:12px; border-radius:10px; border:1px solid #ddd;">
+            <div>User: <strong id="user_display"></strong></div>
+            <button onclick="goBack()" style="background:none; border:1px solid #ddd; padding:4px 8px; border-radius:5px; font-size:12px;">Change User</button>
         </div>
 
         <div style="display:flex; gap:10px; margin-bottom:15px;">
-            <button id="t-withdraw" onclick="setMode('withdraw')" style="flex:1; padding:15px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:16px;">📤 WITHDRAW</button>
-            <button id="t-return" onclick="setMode('return')" style="flex:1; padding:15px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:16px;">📥 RETURN</button>
+            <button id="t-withdraw" onclick="setMode('withdraw')" style="flex:1; padding:15px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">📤 WITHDRAW</button>
+            <button id="t-return" onclick="setMode('return')" style="flex:1; padding:15px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">📥 RETURN</button>
         </div>
 
-        <input type="text" id="searchInput" placeholder="🔍 Search Material Code or Name..." oninput="searchStock(this.value, currentMode)" style="width:100%; padding:15px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px; box-sizing:border-box; font-size:16px;">
+        <button onclick="location.href='showall.html'" style="width:100%; padding:10px; margin-bottom:15px; border-radius:10px; border:1px solid #2563eb; background:none; color:#2563eb; font-weight:bold;">VIEW ALL PARTS</button>
 
-        <table style="width:100%; border-collapse:collapse; background:white; border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <input type="text" id="searchInput" placeholder="🔍 Search Material or Name..." oninput="searchStock(this.value, currentMode)" style="width:100%; padding:15px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px; box-sizing:border-box;">
+
+        <table style="width:100%; border-collapse:collapse; background:white; border-radius:10px; overflow:hidden;">
             <thead style="background:#f1f5f9;">
                 <tr>
-                    <th style="text-align:left; padding:12px; font-size:14px; color:#64748b;">PART DETAILS</th>
-                    <th style="text-align:center; padding:12px; font-size:14px; color:#64748b;">STOCK</th>
-                    <th style="text-align:right; padding:12px; font-size:14px; color:#64748b;">ACTION</th>
+                    <th style="text-align:left; padding:10px;">DETAILS</th>
+                    <th style="text-align:center;">STOCK</th>
+                    <th style="text-align:right; padding-right:15px;">ACTION</th>
                 </tr>
             </thead>
             <tbody id="data"></tbody>
@@ -39,40 +39,21 @@
     </div>
 
     <script src="js/app.js"></script>
-    
     <script>
         let currentMode = 'withdraw';
-
         async function initMain() {
-            // Check Session
-            const selectedUser = sessionStorage.getItem('selectedUser');
-            if (!selectedUser) {
-                location.href = 'user-select.html';
-                return;
-            }
-            document.getElementById('user_display').textContent = selectedUser;
-            
-            // Set Default Mode and LOAD DATA
-            await setMode('withdraw'); 
+            const u = sessionStorage.getItem('selectedUser');
+            if(!u) { location.href='user-select.html'; return; }
+            document.getElementById('user_display').textContent = u;
+            await setMode('withdraw');
         }
-
-        async function setMode(mode) {
-            currentMode = mode;
-            document.getElementById('searchInput').value = '';
-
-            const btnW = document.getElementById('t-withdraw');
-            const btnR = document.getElementById('t-return');
-
-            if (mode === 'withdraw') {
-                btnW.style.background = '#2563eb'; btnW.style.color = 'white';
-                btnR.style.background = '#e2e8f0'; btnR.style.color = '#475569';
-            } else {
-                btnW.style.background = '#e2e8f0'; btnW.style.color = '#475569';
-                btnR.style.background = '#22c55e'; btnR.style.color = 'white';
-            }
-
-            // Await to ensure data displays correctly
-            await window.loadStockData(mode);
+        async function setMode(m) {
+            currentMode = m;
+            document.getElementById('t-withdraw').style.background = (m==='withdraw'?'#2563eb':'#e2e8f0');
+            document.getElementById('t-withdraw').style.color = (m==='withdraw'?'white':'#475569');
+            document.getElementById('t-return').style.background = (m==='return'?'#22c55e':'#e2e8f0');
+            document.getElementById('t-return').style.color = (m==='return'?'white':'#475569');
+            await window.loadStockData(m);
         }
     </script>
 </body>
