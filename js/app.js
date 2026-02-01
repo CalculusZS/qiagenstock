@@ -37,17 +37,12 @@ window.checkAuth = function() {
 
 window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 
-// ปุ่มย้อนกลับที่ฉลาดขึ้น
-window.goBack = () => {
+window.goBack = () => { 
     const isSup = sessionStorage.getItem('isSupervisor');
-    if (isSup === 'true') {
-        location.href = 'supervisor.html';
-    } else {
-        location.href = 'user-select.html';
-    }
+    location.href = (isSup === 'true') ? 'supervisor.html' : 'user-select.html';
 };
 
-/* ===== 3. Rendering Logic (Full Width & Single Line) ===== */
+/* ===== 3. Rendering Logic (Full Width + Filter Logic) ===== */
 window.loadStockData = async function(type) {
     if (!window.checkAuth()) return;
     const tbody = document.getElementById('data');
@@ -68,18 +63,30 @@ window.renderTable = function(data, type) {
     const user = sessionStorage.getItem('selectedUser');
     if(!tbody) return;
 
-    // ขยาย Container ให้กว้างขึ้นผ่าน JS (ถ้า CSS เดิมล็อคความกว้างไว้)
+    // ตั้งค่าหน้ากว้างเต็มจอ
     const container = document.querySelector('.container');
     if(container) container.style.maxWidth = '100%';
 
-    tbody.innerHTML = data.map(r => {
+    // --- กรองข้อมูลเฉพาะหน้า Return ---
+    let displayData = data;
+    if (type === 'return') {
+        // โชว์เฉพาะรายการที่จำนวนของ User คนนั้น > 0
+        displayData = data.filter(r => Number(r[user] || 0) > 0);
+    }
+
+    if (displayData.length === 0 && type === 'return') {
+        tbody.innerHTML = '<tr><td colspan="3" align="center" style="padding:40px; color:#94a3b8;">❌ ไม่มีอะไหล่ในสต็อกของคุณที่ต้องคืน</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = displayData.map(r => {
         const s0243 = Number(r['0243'] || 0);
         const sUser = Number(r[user] || 0);
         const mat = r.Material;
         const name = r['Product Name'] || '';
 
-        // UI บรรทัดเดียวแบบ Full Width: Material | Product Name
-        const info = `<div style="display:flex; align-items:center; gap:15px; white-space:nowrap; overflow:hidden;">
+        // UI บรรทัดเดียว (Material | Name)
+        const info = `<div style="display:flex; align-items:center; gap:12px; white-space:nowrap; overflow:hidden;">
                         <b style="color:#003366; min-width:85px; font-size:15px;">${mat}</b>
                         <span style="color:#64748b; font-size:14px; text-overflow:ellipsis; overflow:hidden;">${name}</span>
                       </div>`;
@@ -98,8 +105,8 @@ window.renderTable = function(data, type) {
                 <td align="center"><b>${s0243}</b></td>
                 <td align="right">
                     <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
-                        <input type="number" id="q_${mat}" value="1" style="width:35px; height:32px; padding:2px; border:1px solid #cbd5e1; border-radius:6px; text-align:center;">
-                        <button onclick="doAction('${mat}','withdraw')" style="background:#003366; color:white; border:none; padding:10px 16px; border-radius:8px; font-weight:bold; cursor:pointer; min-width:100px;">Withdraw</button>
+                        <input type="number" id="q_${mat}" value="1" style="width:35px; height:32px; border:1px solid #cbd5e1; border-radius:6px; text-align:center;">
+                        <button onclick="doAction('${mat}','withdraw')" style="background:#003366; color:white; border:none; padding:10px 16px; border-radius:8px; font-weight:bold; cursor:pointer; min-width:105px;">Withdraw</button>
                     </div>
                 </td>
             </tr>`;
@@ -111,7 +118,7 @@ window.renderTable = function(data, type) {
                 <td align="center"><b>${sUser}</b></td>
                 <td align="right">
                     <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
-                        <input type="number" id="q_${mat}" value="1" style="width:35px; height:32px; padding:2px; border:1px solid #cbd5e1; border-radius:6px; text-align:center;">
+                        <input type="number" id="q_${mat}" value="1" style="width:35px; height:32px; border:1px solid #cbd5e1; border-radius:6px; text-align:center;">
                         <button onclick="doAction('${mat}','return')" style="background:#22c55e; color:white; border:none; padding:10px 16px; border-radius:8px; font-weight:bold; cursor:pointer; min-width:90px;">Return</button>
                     </div>
                 </td>
