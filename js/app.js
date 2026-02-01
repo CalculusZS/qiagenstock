@@ -1,13 +1,13 @@
 /* ===== 1. Configuration ===== */
 const API = "https://script.google.com/macros/s/AKfycbwd2Db27tpGfv1STLX8N6I6tBv5CDYkAM4bHbsxQDJ8wgRLqP_f3kvwkleemCH9DrEf/exec";           
-          
+            
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 const TIMEOUT_MS = 5 * 60 * 1000; 
 
 let rows = []; 
 
-/* ===== 2. Auth & Navigation (แก้ปัญหา login is not defined) ===== */
+/* ===== 2. Auth & Navigation ===== */
 window.login = function() {
     const passInput = document.getElementById('password');
     if (!passInput) return;
@@ -39,10 +39,13 @@ window.checkAuth = function() {
 
 window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 
-// แก้ปุ่ม Back ให้ทำงาน (เรียกใช้ได้ทุกหน้า)
 window.goBack = () => { 
     const isSup = sessionStorage.getItem('isSupervisor');
-    location.href = (isSup === 'true') ? 'supervisor.html' : 'user-select.html';
+    if (isSup === 'true') {
+        location.href = 'supervisor.html';
+    } else {
+        location.href = 'user-select.html';
+    }
 };
 
 /* ===== 3. Product Lookup & Search ===== */
@@ -72,7 +75,7 @@ window.searchStock = (keyword, type) => {
     window.renderTable(filtered, type);
 };
 
-/* ===== 4. Rendering (หน้าจอกว้าง + สต็อก 0 สีแดง) ===== */
+/* ===== 4. Rendering ===== */
 window.loadStockData = async function(type) {
     if (!window.checkAuth()) return;
     const tbody = document.getElementById('data');
@@ -95,7 +98,6 @@ window.renderTable = function(data, type) {
     const user = sessionStorage.getItem('selectedUser');
     if(!tbody) return;
 
-    // ทำให้ Container กว้าง 100%
     const container = document.querySelector('.container');
     if(container) container.style.maxWidth = '100%';
 
@@ -124,7 +126,7 @@ window.renderTable = function(data, type) {
             return `<tr><td style="width:65%;">${info}</td><td align="center"><b>${sUser}</b></td>
                 <td align="right"><div style="display:flex; gap:6px; justify-content:flex-end;">
                     <input type="number" id="q_${mat}" value="1" style="width:35px; text-align:center;">
-                    <button onclick="window.window.doAction('${mat}','return')" style="background:#22c55e; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Return</button>
+                    <button onclick="window.doAction('${mat}','return')" style="background:#22c55e; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Return</button>
                 </div></td></tr>`;
         }
         return `<tr><td style="width:75%;">${info}</td><td align="center"><span style="${stockStyle}">${s0243}</span></td><td align="right">${s0243 > 0 ? '✅' : '❌'}</td></tr>`;
@@ -135,7 +137,8 @@ window.renderTable = function(data, type) {
 window.doAction = async function(mat, mode) {
     if (!window.checkAuth()) return;
     const user = sessionStorage.getItem('selectedUser');
-    const qty = document.getElementById(`q_${mat}`).value;
+    const qtyInput = document.getElementById(`q_${mat}`);
+    const qty = qtyInput ? qtyInput.value : 1;
     try {
         const res = await fetch(`${API}?action=${mode}&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}`).then(r=>r.json());
         if (res.success) { alert("✅ Success!"); await window.loadStockData(mode); } else { alert("❌ Error"); }
@@ -175,5 +178,7 @@ window.doSupDeduct = async function(mat, user, tid) {
     try {
         const res = await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}`).then(r => r.json());
         if (res.success) { alert("✅ Success!"); location.reload(); } else { alert("❌ Error"); }
+    } catch (e) { alert("Error"); }
+};
     } catch (e) { alert("Error"); }
 };
