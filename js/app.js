@@ -1,5 +1,6 @@
 /* ===== 1. Configuration ===== */
 const API = "https://script.google.com/macros/s/AKfycbwd2Db27tpGfv1STLX8N6I6tBv5CDYkAM4bHbsxQDJ8wgRLqP_f3kvwkleemCH9DrEf/exec";           
+     
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 const TIMEOUT_MS = 5 * 60 * 1000; 
@@ -40,7 +41,7 @@ window.goBack = () => {
     location.href = (isSup === 'true') ? 'supervisor.html' : 'user-select.html';
 };
 
-/* ===== 3. Auto-Lookup Product Name (New!) ===== */
+/* ===== 3. Product Lookup & Search ===== */
 window.setupAdminLookup = function() {
     const matInput = document.getElementById('s_mat');
     const nameDisplay = document.getElementById('s_name_display');
@@ -53,10 +54,18 @@ window.setupAdminLookup = function() {
                 nameDisplay.style.color = "#003366";
             } else {
                 nameDisplay.innerText = val === "" ? "" : "❌ Material not found";
-                nameDisplay.style.color = "red";
+                nameDisplay.style.color = "#ef4444";
             }
         });
     }
+};
+
+window.searchStock = (keyword, type) => {
+    const filtered = rows.filter(r => 
+        String(r.Material).toLowerCase().includes(keyword.toLowerCase()) || 
+        String(r['Product Name']).toLowerCase().includes(keyword.toLowerCase())
+    );
+    window.renderTable(filtered, type);
 };
 
 /* ===== 4. Core Rendering ===== */
@@ -117,8 +126,6 @@ window.renderTable = function(data, type) {
                     <button onclick="doAction('${mat}','return')" style="background:#22c55e; color:white; border:none; padding:8px 14px; border-radius:8px; font-weight:bold; cursor:pointer;">Return</button>
                 </div></td></tr>`;
         }
-        
-        // Default View (All)
         return `<tr><td style="width:75%;">${info}</td><td align="center"><span style="${stockStyle}">${s0243}</span></td><td align="right">${s0243 > 0 ? '✅' : '❌'}</td></tr>`;
     }).join('');
 };
@@ -136,7 +143,7 @@ window.renderStaffInventory = function(data) {
                 const tid = `ed_${row.Material}_${user}`;
                 html += `<tr><td><div style="display:flex; flex-direction:column;"><b style="color:#003366;">${row.Material}</b><span style="font-size:11px; color:#64748b;">${row['Product Name'] || ''}</span></div></td>
                     <td><span class="badge-user">${user}</span></td>
-                    <td align="center"><input type="number" id="${tid}" value="${val}" style="width:40px; text-align:center;"></td>
+                    <td align="center"><input type="number" id="${tid}" value="${val}" style="width:40px; text-align:center; border:1px solid #ccc; border-radius:4px;"></td>
                     <td align="right"><button onclick="doSupDeduct('${row.Material}','${user}','${tid}')" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">Deduct</button></td></tr>`;
             }
         });
@@ -171,7 +178,7 @@ window.doAction = async function(mat, mode) {
     const qty = document.getElementById(`q_${mat}`).value;
     try {
         const res = await fetch(`${API}?action=${mode}&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}`).then(r=>r.json());
-        if (res.success) { alert("✅ Success!"); await window.loadStockData(mode); } else { alert("❌ " + res.msg); }
+        if (res.success) { alert("✅ Success!"); await window.loadStockData(mode); } else { alert("❌ Error"); }
     } catch (e) { alert("Network Error"); }
 };
     window.renderTable(filtered, type);
