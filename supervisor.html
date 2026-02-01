@@ -1,109 +1,120 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Supervisor Management</title>
+  <title>Supervisor Panel</title>
+  <link rel="stylesheet" href="css/style.css">
   <style>
-    body { font-family: sans-serif; background: #f8fafc; margin: 0; padding-bottom: 30px; }
-    .header { background: #1e293b; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-    .container { padding: 15px; max-width: 700px; margin: auto; }
-    .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    .input-group { display: flex; gap: 8px; margin-top: 10px; }
-    input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; flex: 1; }
-    #prod_name_display { background: #e0f2fe; color: #0369a1; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 13px; font-weight: bold; display: none; border-left: 4px solid #0369a1; }
-    .btn-add { background: #2563eb; color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-    .staff-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-    .badge { background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 14px; }
+    :root { --primary: #1e293b; --accent: #2563eb; --success: #10b981; }
+    body { background: #f8fafc; font-family: sans-serif; margin: 0; }
+    .header-panel { background: var(--primary); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+    .container { max-width: 1100px; margin: 20px auto; padding: 0 20px; }
+    .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    #display_prod_name { margin-top: 10px; font-weight: bold; color: #2563eb; font-size: 14px; min-height: 20px; padding: 10px; background: #eff6ff; border-radius: 8px; display: none; }
+    .qty-input { width: 60px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; }
+    .btn-main { background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; }
   </style>
 </head>
 <body onload="initSup()">
-  <div class="header">
-    <b>🛠 Supervisor Panel</b>
-    <button onclick="location.href='user-select.html'" style="background:none; border:1px solid white; color:white; padding:5px 12px; border-radius:8px; cursor:pointer;">Exit</button>
+  <div class="header-panel">
+    <div style="font-size: 20px; font-weight: bold;">🛠 Supervisor Control</div>
+    <button onclick="location.href='user-select.html'" style="background:transparent; border:1px solid white; color:white; padding:8px 16px; border-radius:8px; cursor:pointer;">Exit</button>
   </div>
 
   <div class="container">
     <div class="card">
-      <h3 style="margin:0; font-size:16px;">➕ Add Stock (Column 0243)</h3>
-      <div class="input-group">
-        <input type="text" id="sup_mat_add" placeholder="Material Code" oninput="checkProduct(this.value)">
-        <input type="number" id="sup_qty_add" value="1" style="max-width:80px; text-align:center;">
-        <button class="btn-add" onclick="doAdd()">ADD</button>
+      <h3 style="margin-top:0; color:var(--primary);">➕ Add Stock to 0243</h3>
+      <div style="display:flex; gap:15px; align-items: flex-start;">
+        <div style="flex:2;">
+          <input type="text" id="sup_mat_add" placeholder="Material Code" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px;" oninput="updateName(this.value)">
+          <div id="display_prod_name"></div>
+        </div>
+        <input type="number" id="sup_qty_add" value="1" style="flex:0.5; padding:12px; border:1px solid #cbd5e1; border-radius:8px; text-align:center;">
+        <button class="btn-main" onclick="doAdd()">Update Stock</button>
       </div>
-      <div id="prod_name_display"></div>
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 10px 0; font-size:16px;">👤 Staff Stock Control</h3>
-      <div id="staff_list">Loading staff data...</div>
+      <h3 style="margin-top:0; color:var(--primary);">👤 Staff Current Inventory</h3>
+      <table style="width:100%; border-collapse: collapse;">
+        <thead>
+          <tr style="border-bottom: 2px solid #f1f5f9;">
+            <th style="text-align:left; padding:12px;">Staff Name</th>
+            <th style="text-align:left; padding:12px;">Material</th>
+            <th style="text-align:left; padding:12px;">Product Name</th>
+            <th style="text-align:center; padding:12px;">Qty</th>
+            <th style="text-align:right; padding:12px;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="staff_tbody"></tbody>
+      </table>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="js/app.js"></script>
   <script>
-    let stockData = [];
-
     async function initSup() {
       if(sessionStorage.getItem('isSupervisor') !== 'true') { location.href='user-select.html'; return; }
-      const res = await fetch(`${API}?action=read&password=${PASSWORD}`).then(r => r.json());
-      if(res.success) {
-        stockData = res.data;
-        renderStaffStock();
-      }
+      await window.loadStockData('all'); // โหลดข้อมูล rows ทั้งหมดมาไว้ใน memory
+      renderStaffInventory();
     }
 
-    // ค้นหาและโชว์ชื่อสินค้า
-    function checkProduct(val) {
-      const display = document.getElementById('prod_name_display');
-      const item = stockData.find(r => String(r.Material).trim() === val.trim());
-      if(item) {
+    // ฟังก์ชันโชว์ชื่อสินค้าทันทีที่พิมพ์
+    function updateName(val) {
+      const display = document.getElementById('display_prod_name');
+      const product = window.findProductByMat(val);
+      if(product) {
         display.style.display = 'block';
-        display.innerHTML = `📦 Product: ${item['Product Name']}`;
+        display.innerHTML = "📦 Product: " + product['Product Name'];
       } else {
         display.style.display = val ? 'block' : 'none';
-        display.innerHTML = val ? '🔍 Searching...' : '';
+        display.innerHTML = val ? "🔍 Searching..." : "";
       }
     }
 
-    async function renderStaffStock() {
+    async function renderStaffInventory() {
       const usersRes = await window.loadUsers();
       const USERS = usersRes.map(u => u.header);
-      const container = document.getElementById('staff_list');
+      const tbody = document.getElementById('staff_tbody');
       
       let html = '';
-      stockData.forEach(row => {
+      rows.forEach(row => {
         USERS.forEach(user => {
           const val = Number(row[user] || 0);
           if (val > 0) {
-            html += `<div class="staff-row">
-              <div style="flex:2">
-                <div style="font-size:11px; color:#2563eb; font-weight:bold;">${user}</div>
-                <div style="font-weight:bold;">${row.Material}</div>
-                <div style="font-size:11px; color:#666;">${row['Product Name']}</div>
-              </div>
-              <div style="display:flex; align-items:center; gap:10px;">
-                <span class="badge">${val}</span>
-                <button onclick="doDeduct('${row.Material}','${user}',${val})" style="background:#fee2e2; color:#ef4444; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">DEDUCT</button>
-              </div>
-            </div>`;
+            const tid = `id_${row.Material}_${user}`;
+            html += `<tr style="border-bottom: 1px solid #f8fafc;">
+              <td style="padding:12px;"><span style="background:#eff6ff; color:#1d4ed8; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:bold;">${user}</span></td>
+              <td style="padding:12px; font-weight:bold;">${row.Material}</td>
+              <td style="padding:12px; font-size:13px; color:#64748b;">${row['Product Name'] || ''}</td>
+              <td style="text-align:center;"><input type="number" class="qty-input" id="${tid}" value="${val}"></td>
+              <td style="text-align:right; padding:12px;">
+                <button onclick="doDeduct('${row.Material}','${user}','${tid}')" style="background:#fee2e2; color:#ef4444; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:bold;">Deduct</button>
+              </td>
+            </tr>`;
           }
         });
       });
-      container.innerHTML = html || 'No stock in hands.';
+      tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center; padding:20px; color:#94a3b8;">No staff currently has items.</td></tr>';
     }
 
     async function doAdd() {
       const mat = document.getElementById('sup_mat_add').value;
       const qty = document.getElementById('sup_qty_add').value;
-      if(!mat) return alert("Please enter Material");
+      if(!mat) return alert("Please enter Material Code");
+      
       const res = await window.supAddStock(mat, qty);
-      if(res.success) { alert("Success!"); location.reload(); }
-      else { alert("Error: " + res.msg); }
+      if(res.success) { 
+        alert("Stock Updated Successfully!"); 
+        location.reload(); 
+      } else {
+        alert("Update failed: " + res.msg);
+      }
     }
 
-    async function doDeduct(mat, user, qty) {
-      if(!confirm(`Deduct ${mat} from ${user}?`)) return;
+    async function doDeduct(mat, user, tid) {
+      const qty = document.getElementById(tid).value;
+      if(!confirm(`Deduct ${qty} units of ${mat} from ${user}?`)) return;
       const res = await window.supDeductUser(mat, user, qty);
       if(res.success) { alert("Deducted!"); location.reload(); }
     }
