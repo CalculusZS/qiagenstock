@@ -3,42 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supervisor Control</title>
+    <title>Supervisor Control Panel</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
         .container { max-width: 100% !important; width: 95%; margin: 20px auto; }
-        .admin-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th, td { padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: left; }
         .badge-user { background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        #s_name_display { display: block; margin-top: 5px; font-size: 13px; font-weight: bold; min-height: 18px; }
+        #s_name_display { display: block; margin-top: 6px; font-size: 14px; font-weight: bold; min-height: 20px; }
     </style>
 </head>
 <body onload="loadStockData()">
     <div class="container">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-            <button onclick="location.href='user-select.html'" style="padding:10px; cursor:pointer;">◀ Back to User Selection</button>
-            <h2 style="color:#003366;">Supervisor Panel</h2>
-            <button onclick="logout()" style="background:red; color:white; border:none; padding:10px; border-radius:6px; cursor:pointer;">Logout</button>
+            <button onclick="location.href='user-select.html'" style="padding:10px 15px; cursor:pointer;">◀ Back</button>
+            <h2 style="color: #003366;">Supervisor Admin Panel</h2>
+            <button onclick="logout()" style="background:#ef4444; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">Logout</button>
         </div>
 
-        <div class="admin-card">
-            <h3>Add Stock to Central (0243)</h3>
-            <div style="display:flex; gap:10px; align-items: flex-start;">
+        <div class="card">
+            <h3 style="margin-top:0;">Add Stock to Central (0243)</h3>
+            <div style="display:flex; gap:12px; align-items: flex-start;">
                 <div style="flex:3;">
-                    <input type="text" id="s_mat" placeholder="Material Code" style="width:100%; padding:10px; border-radius:6px; border:1px solid #ccc;">
+                    <input type="text" id="s_mat" placeholder="Type Material Code..." style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px;">
                     <span id="s_name_display"></span>
                 </div>
-                <input type="number" id="s_qty" value="1" style="flex:1; padding:10px; border-radius:6px; border:1px solid #ccc; max-width:80px;">
-                <button onclick="doSupAdd()" style="background:#003366; color:white; padding:10px 20px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ADD</button>
+                <input type="number" id="s_qty" value="1" min="1" style="width:80px; padding:10px; border:1px solid #cbd5e1; border-radius:8px; text-align:center;">
+                <button onclick="doSupAdd()" style="background:#003366; color:white; padding:11px 25px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ADD STOCK</button>
             </div>
         </div>
 
-        <div class="admin-card">
-            <h3>Staff Inventory</h3>
+        <div class="card">
+            <h3>Staff Inventory Management</h3>
             <table>
                 <thead>
-                    <tr><th>Material & Product</th><th>Staff</th><th>Qty</th><th>Action</th></tr>
+                    <tr>
+                        <th>Material & Product</th>
+                        <th>Staff Name</th>
+                        <th style="text-align: center;">Qty</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
                 </thead>
                 <tbody id="staff-data"></tbody>
             </table>
