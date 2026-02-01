@@ -1,13 +1,12 @@
 /* ===== 1. Configuration ===== */
-const API = "https://script.google.com/macros/s/AKfycbyL887e7XHftaD8e8lIRIxN3MA90t1GFvka0GiIa4hZQ-Jh5zGlHZG5QKkqa9NqmfeWIA/exec";     
+const API = "https://script.google.com/macros/s/AKfycbyL887e7XHftaD8e8lIRIxN3MA90t1GFvka0GiIa4hZQ-Jh5zGlHZG5QKkqa9NqmfeWIA/exec";       
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 
-// รายชื่อพนักงานตรงตาม Column I ถึง N ใน Google Sheets
 const STAFF_NAMES = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 let rows = []; 
 
-/* ===== 2. Authentication (แก้ปัญหา Login ไม่ได้) ===== */
+/* ===== 2. Authentication ===== */
 window.login = function() {
     const passInput = document.getElementById('password').value.trim();
     if (passInput === PASSWORD) {
@@ -27,18 +26,23 @@ window.loadUsers = async function() {
 };
 
 window.loadStockData = async function(type) {
-    const tbody = document.getElementById('data');
-    if(tbody) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px;">⌛ Loading Inventory...</td></tr>';
+    const tbody = document.getElementById('data') || document.getElementById('staff_tbody');
+    if(tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">⌛ Loading Inventory...</td></tr>';
     
     try {
         const res = await fetch(`${API}?action=read&password=${PASSWORD}`).then(r => r.json());
         if (res.success) {
             rows = res.data; 
-            window.renderTable(rows, type);
+            if (typeof renderStaffStock === 'function') renderStaffStock(); // สำหรับหน้า Supervisor
+            if (document.getElementById('data')) window.renderTable(rows, type); // สำหรับหน้า Main/All
         }
     } catch (e) { 
-        if(tbody) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:red;">❌ Connection Error</td></tr>'; 
+        if(tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">❌ Connection Error</td></tr>'; 
     }
+};
+
+window.findProductByMat = function(m) {
+    return rows.find(r => String(r.Material) === String(m));
 };
 
 window.renderTable = function(data, type) {
@@ -46,48 +50,25 @@ window.renderTable = function(data, type) {
     const currentUser = sessionStorage.getItem('selectedUser');
     if(!tbody) return;
 
-    tbody.innerHTML = data.map((r, index) => {
+    tbody.innerHTML = data.map((r) => {
         const stock0243 = Number(r['0243'] || 0);
         const userStock = Number(r[currentUser] || 0);
         const isOut = stock0243 <= 0;
         const itemInfo = `<strong>${r.Material}</strong> | <span style="font-size:12px; color:#64748b;">${r['Product Name']}</span>`;
 
-        if (type === 'all') { // สำหรับหน้า All Parts (0243)
-            return `<tr>
-                <td style="padding:10px;">${itemInfo}</td>
-                <td style="text-align:center; font-weight:bold;">${stock0243}</td>
-                <td style="text-align:right; padding-right:15px;">
-                    <span style="color:${isOut?'#ef4444':'#16a34a'}; font-weight:bold;">${isOut?'OUT':'IN STOCK'}</span>
-                </td>
-            </tr>`;
+        if (type === 'all') {
+            return `<tr><td style="padding:10px;">${itemInfo}</td><td style="text-align:center;">${stock0243}</td><td style="text-align:right;"><span style="color:${isOut?'#ef4444':'#16a34a'};">${isOut?'OUT':'IN STOCK'}</span></td></tr>`;
         }
-
-        if (type === 'withdraw') { // หน้าเบิก
-            return `<tr>
-                <td style="padding:10px;">${itemInfo}</td>
-                <td style="text-align:center; font-weight:bold;">${stock0243}</td>
-                <td style="text-align:right; white-space:nowrap;">
-                    <input type="number" id="q_${r.Material}" value="1" min="1" style="width:40px; text-align:center;">
-                    <button onclick="doAction('${r.Material}', 'withdraw')" style="background:${isOut?'#cbd5e1':'#003366'}; color:white; border:none; padding:6px 12px; border-radius:4px;" ${isOut ? 'disabled' : ''}>Withdraw</button>
-                </td>
-            </tr>`;
+        if (type === 'withdraw') {
+            return `<tr><td style="padding:10px;">${itemInfo}</td><td style="text-align:center;">${stock0243}</td><td style="text-align:right;"><input type="number" id="q_${r.Material}" value="1" style="width:40px;"><button onclick="doAction('${r.Material}', 'withdraw')" ${isOut ? 'disabled' : ''}>Withdraw</button></td></tr>`;
         }
-
-        if (type === 'return') { // หน้าคืน
-            if (userStock <= 0) return '';
-            return `<tr>
-                <td style="padding:10px;">${itemInfo}</td>
-                <td style="text-align:center; font-weight:bold;">${userStock}</td>
-                <td style="text-align:right;">
-                    <input type="number" id="q_${r.Material}" value="1" style="width:40px; text-align:center;">
-                    <button onclick="doAction('${r.Material}', 'return')" style="background:#16a34a; color:white; border:none; padding:6px 12px; border-radius:4px;">Return</button>
-                </td>
-            </tr>`;
+        if (type === 'return' && userStock > 0) {
+            return `<tr><td style="padding:10px;">${itemInfo}</td><td style="text-align:center;">${userStock}</td><td style="text-align:right;"><input type="number" id="q_${r.Material}" value="1" style="width:40px;"><button onclick="doAction('${r.Material}', 'return')">Return</button></td></tr>`;
         }
     }).join('');
 };
 
-/* ===== 4. Transaction Actions (เบิก/คืน) ===== */
+/* ===== 4. Transaction Actions ===== */
 window.doAction = async function(mat, mode) {
     const user = sessionStorage.getItem('selectedUser');
     const qty = document.getElementById(`q_${mat}`).value;
@@ -98,32 +79,22 @@ window.doAction = async function(mat, mode) {
     } catch (e) { alert("Network Error"); }
 };
 
-/* ===== 5. Supervisor Actions (เพิ่ม/ลดสต็อก) ===== */
-window.addStock = async function() {
-    const mat = document.getElementById('add_mat').value;
-    const qty = document.getElementById('add_qty').value;
-    if(!mat || !qty) return alert("Please enter Material and Quantity");
-
+/* ===== 5. Supervisor Actions (เชื่อมกับ supervisor.html) ===== */
+window.supAddStock = async function(mat, qty) {
     try {
         const res = await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}`).then(r => r.json());
-        if(res.success) { alert("Stock Added!"); location.reload(); }
-        else { alert("Error: " + res.msg); }
-    } catch (e) { alert("Network Error"); }
+        return res;
+    } catch (e) { return {success: false, msg: "Network Error"}; }
 };
 
-window.deductStock = async function(mat, user, qtyId) {
-    const qty = document.getElementById(qtyId).value;
-    if(!confirm(`Confirm deduct ${qty} units from ${user}?`)) return;
-
+window.supDeductUser = async function(mat, user, qty) {
     try {
         const res = await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}`).then(r => r.json());
-        if(res.success) { alert("Stock Deducted!"); location.reload(); }
-        else { alert("Error: " + res.msg); }
-    } catch (e) { alert("Network Error"); }
+        return res;
+    } catch (e) { return {success: false, msg: "Network Error"}; }
 };
 
 window.searchStock = (keyword, type) => {
     const filtered = rows.filter(r => String(r.Material + r['Product Name']).toLowerCase().includes(keyword.toLowerCase()));
     window.renderTable(filtered, type);
-};
 };
