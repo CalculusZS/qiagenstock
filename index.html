@@ -3,22 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Qiagen Stock Login</title>
+  <title>Stock System Login</title>
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    body.login-page { 
+      display: grid; place-items: center; min-height: 100vh; 
+      background: #0f172a; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .login-box { 
+      width: min(90vw, 360px); background: #fff; border-radius: 16px; 
+      padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
+    }
+    .login-box h1 { margin: 0 0 20px; font-size: 24px; text-align: center; color: #1e293b; }
+    input { 
+      width: 100%; padding: 12px; margin-bottom: 20px; border: 2px solid #e2e8f0; 
+      border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none;
+    }
+    input:focus { border-color: #1e2937; }
+    .btn-login { 
+      width: 100%; background: #1e2937; color: #fff; border: none; 
+      padding: 12px; border-radius: 10px; font-weight: bold; cursor: pointer; 
+      transition: background 0.3s;
+    }
+    .btn-login:hover { background: #334155; }
+  </style>
 </head>
 <body class="login-page">
   <div class="login-box">
-    <h1 style="color:#003366;">QIAGEN STOCK</h1>
-    <p style="text-align:center; color:#64748b; font-size:14px; margin-bottom:20px;">Inventory Management System</p>
-    
-    <input type="password" id="password" placeholder="Enter Password" 
-           onkeypress="if(event.key==='Enter') login()" 
-           style="width:100%; padding:12px; margin-bottom:20px; border:2px solid #e2e8f0; border-radius:10px; box-sizing:border-box; font-size:16px; outline:none;" />
-    
-    <button class="btn-login" onclick="login()" 
-            style="width:100%; background:#003366; color:white; padding:12px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">
-      LOGIN
-    </button>
+    <h1>QIAGEN STOCK</h1>
+    <input type="password" id="password" placeholder="Password" onkeypress="if(event.key==='Enter') login()" />
+    <button class="btn-login" onclick="login()">LOGIN</button>
   </div>
   <script src="js/app.js"></script>
 </body>
