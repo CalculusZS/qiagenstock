@@ -1,6 +1,6 @@
 /* ===== 1. Configuration ===== */
 const API = "https://script.google.com/macros/s/AKfycbwd2Db27tpGfv1STLX8N6I6tBv5CDYkAM4bHbsxQDJ8wgRLqP_f3kvwkleemCH9DrEf/exec";           
-       
+          
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 const TIMEOUT_MS = 5 * 60 * 1000; 
@@ -37,16 +37,17 @@ window.checkAuth = function() {
 
 window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 
-// ฟังก์ชันปุ่มย้อนกลับ
-window.goBack = () => { 
-    if (document.referrer.includes('index.html') || !document.referrer) {
-        location.href = 'user-select.html';
+// ปุ่มย้อนกลับที่ฉลาดขึ้น
+window.goBack = () => {
+    const isSup = sessionStorage.getItem('isSupervisor');
+    if (isSup === 'true') {
+        location.href = 'supervisor.html';
     } else {
-        window.history.back();
+        location.href = 'user-select.html';
     }
 };
 
-/* ===== 3. Rendering Logic (ปรับปรุง UI ตามโจทย์) ===== */
+/* ===== 3. Rendering Logic (Full Width & Single Line) ===== */
 window.loadStockData = async function(type) {
     if (!window.checkAuth()) return;
     const tbody = document.getElementById('data');
@@ -67,21 +68,25 @@ window.renderTable = function(data, type) {
     const user = sessionStorage.getItem('selectedUser');
     if(!tbody) return;
 
+    // ขยาย Container ให้กว้างขึ้นผ่าน JS (ถ้า CSS เดิมล็อคความกว้างไว้)
+    const container = document.querySelector('.container');
+    if(container) container.style.maxWidth = '100%';
+
     tbody.innerHTML = data.map(r => {
         const s0243 = Number(r['0243'] || 0);
         const sUser = Number(r[user] || 0);
         const mat = r.Material;
         const name = r['Product Name'] || '';
 
-        // UI บรรทัดเดียว: ขยายหน้ากว้างเต็มพื้นที่
-        const info = `<div style="display:flex; align-items:center; gap:12px; white-space:nowrap; overflow:hidden;">
-                        <b style="color:#1e293b; min-width:85px;">${mat}</b>
-                        <span style="color:#64748b; font-size:13px; text-overflow:ellipsis; overflow:hidden;">${name}</span>
+        // UI บรรทัดเดียวแบบ Full Width: Material | Product Name
+        const info = `<div style="display:flex; align-items:center; gap:15px; white-space:nowrap; overflow:hidden;">
+                        <b style="color:#003366; min-width:85px; font-size:15px;">${mat}</b>
+                        <span style="color:#64748b; font-size:14px; text-overflow:ellipsis; overflow:hidden;">${name}</span>
                       </div>`;
 
         if (type === 'all') {
             return `<tr>
-                <td style="width:75%;">${info}</td>
+                <td style="width:80%;">${info}</td>
                 <td align="center"><b>${s0243}</b></td>
                 <td align="right" style="padding-right:15px;">${s0243 > 0 ? '✅' : '❌'}</td>
             </tr>`;
@@ -89,12 +94,12 @@ window.renderTable = function(data, type) {
         
         if (type === 'withdraw') {
             return `<tr>
-                <td style="width:65%;">${info}</td>
+                <td style="width:70%;">${info}</td>
                 <td align="center"><b>${s0243}</b></td>
                 <td align="right">
-                    <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
-                        <input type="number" id="q_${mat}" value="1" style="width:35px; padding:7px; border:1px solid #cbd5e1; border-radius:6px; text-align:center;">
-                        <button onclick="doAction('${mat}','withdraw')" style="background:#003366; color:white; border:none; padding:8px 14px; border-radius:8px; font-weight:600; cursor:pointer; min-width:95px;">Withdraw</button>
+                    <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
+                        <input type="number" id="q_${mat}" value="1" style="width:35px; height:32px; padding:2px; border:1px solid #cbd5e1; border-radius:6px; text-align:center;">
+                        <button onclick="doAction('${mat}','withdraw')" style="background:#003366; color:white; border:none; padding:10px 16px; border-radius:8px; font-weight:bold; cursor:pointer; min-width:100px;">Withdraw</button>
                     </div>
                 </td>
             </tr>`;
@@ -102,12 +107,12 @@ window.renderTable = function(data, type) {
 
         if (type === 'return') {
             return `<tr>
-                <td style="width:65%;">${info}</td>
+                <td style="width:70%;">${info}</td>
                 <td align="center"><b>${sUser}</b></td>
                 <td align="right">
-                    <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
-                        <input type="number" id="q_${mat}" value="1" style="width:35px; padding:7px; border:1px solid #cbd5e1; border-radius:6px; text-align:center;">
-                        <button onclick="doAction('${mat}','return')" style="background:#22c55e; color:white; border:none; padding:8px 14px; border-radius:8px; font-weight:600; cursor:pointer; min-width:85px;">Return</button>
+                    <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
+                        <input type="number" id="q_${mat}" value="1" style="width:35px; height:32px; padding:2px; border:1px solid #cbd5e1; border-radius:6px; text-align:center;">
+                        <button onclick="doAction('${mat}','return')" style="background:#22c55e; color:white; border:none; padding:10px 16px; border-radius:8px; font-weight:bold; cursor:pointer; min-width:90px;">Return</button>
                     </div>
                 </td>
             </tr>`;
@@ -115,7 +120,7 @@ window.renderTable = function(data, type) {
     }).join('');
 };
 
-/* ===== 4. Core Actions ===== */
+/* ===== 4. Actions & Search ===== */
 window.doAction = async function(mat, mode) {
     if (!window.checkAuth()) return;
     const user = sessionStorage.getItem('selectedUser');
