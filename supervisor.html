@@ -2,85 +2,82 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Supervisor Panel</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
-    :root { --primary: #1e293b; --accent: #2563eb; --success: #10b981; }
-    body { background: #f8fafc; font-family: sans-serif; margin: 0; }
-    .header-panel { background: var(--primary); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
-    .container { max-width: 1100px; margin: 20px auto; padding: 0 20px; }
-    .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e2e8f0; }
-    #display_prod_name { margin-top: 8px; font-weight: bold; color: #2563eb; font-size: 14px; min-height: 20px; }
-    .modern-table { width: 100%; border-collapse: collapse; }
-    .modern-table th { background: #f8fafc; padding: 12px; text-align: left; font-size: 12px; color: #64748b; border-bottom: 2px solid #e2e8f0; }
-    .modern-table td { padding: 14px 12px; border-bottom: 1px solid #f1f5f9; }
-    .qty-input { width: 80px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-weight: bold; }
+    body { background: #f1f5f9; font-family: sans-serif; margin:0; }
+    .header-panel { background: #1e293b; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top:0; z-index:10; }
+    .container { padding: 15px; max-width: 600px; margin: auto; }
+    .admin-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    .input-group { display: flex; gap: 8px; margin-top: 10px; }
+    input { padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    .btn-main { background: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; }
+    .staff-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .staff-row:last-child { border: none; }
   </style>
 </head>
-<body onload="onSupLoad()">
+<body onload="loadAdminData()">
   <div class="header-panel">
-    <div style="font-size: 20px; font-weight: 700;">🚀 Supervisor Panel</div>
-    <button onclick="location.href='user-select.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Back</button>
+    <b>Supervisor Control</b>
+    <button onclick="location.href='user-select.html'" style="background:none; border:1px solid white; color:white; border-radius:5px; padding:4px 8px;">Exit</button>
   </div>
 
   <div class="container">
-    <div class="card">
-      <h3>📥 Add Stock to 0243 (H)</h3>
-      <div style="display:flex; gap:12px; align-items:flex-start;">
-        <div style="flex: 1;">
-          <input id="sup_mat_add" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;" placeholder="Enter Material..." oninput="lookupMat(this.value)">
-          <div id="display_prod_name">Product: -</div>
+    <div class="admin-card">
+        <h3 style="margin-top:0; font-size:16px;">➕ Add Stock (Column 0243)</h3>
+        <div class="input-group">
+            <input type="text" id="sup_mat_add" placeholder="Material Code" style="flex:2;">
+            <input type="number" id="sup_qty_add" value="1" style="flex:1;">
+            <button class="btn-main" onclick="doAdd()">Add</button>
         </div>
-        <input id="sup_qty_add" type="number" class="qty-input" placeholder="Qty">
-        <button onclick="doAdd()" style="background:var(--accent); color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">Add Stock</button>
-      </div>
     </div>
 
-    <div class="card">
-      <h3>🔍 Person Stock (Deduct Used)</h3>
-      <table class="modern-table">
-        <thead>
-          <tr><th>Holder</th><th>Material</th><th>Product Name</th><th>Qty</th><th>Action</th></tr>
-        </thead>
-        <tbody id="sup_users_table_body"></tbody>
-      </table>
+    <div class="admin-card">
+        <h3 style="margin-top:0; font-size:16px;">👤 Staff Inventory</h3>
+        <div id="sup_list">Loading...</div>
     </div>
   </div>
 
   <script src="js/app.js"></script>
   <script>
-    const USERS = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
-    async function onSupLoad() { await window.loadStockData('all'); }
-    function lookupMat(val) {
-        const item = window.findProductByMaterial(val);
-        document.getElementById('display_prod_name').textContent = item ? "Product: " + item['Product Name'] : "Product: Not found";
-    }
-    function refreshTable() {
-      const tbody = document.getElementById('sup_users_table_body');
-      let html = '';
-      rows.forEach(row => {
-        USERS.forEach(user => {
-          const val = Number(row[user] || 0);
-          if (val > 0) {
-            const tid = `id_${row.Material}_${user}`;
-            html += `<tr><td><span style="background:#eff6ff;color:#1d4ed8;padding:4px 12px;border-radius:99px;font-size:13px;font-weight:600;">${user}</span></td>
-              <td>${row.Material}</td><td>${row['Product Name'] || ''}</td>
-              <td><input type="number" class="qty-input" id="${tid}" value="${val}"></td>
-              <td><button onclick="doDeduct('${row.Material}','${user}','${tid}')" style="background:var(--success);color:white;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;">Deduct Used</button></td></tr>`;
-          }
+    async function loadAdminData() {
+        const res = await fetch(`${API}?action=read&password=${PASSWORD}`).then(r => r.json());
+        const usersRes = await window.loadUsers();
+        const USERS = usersRes.map(u => u.header);
+        
+        let html = '';
+        res.data.forEach(row => {
+            USERS.forEach(user => {
+                const val = Number(row[user] || 0);
+                if(val > 0) {
+                    html += `
+                    <div class="staff-row">
+                        <div style="flex:2">
+                            <div style="font-size:12px; color:#2563eb; font-weight:bold;">${user}</div>
+                            <div style="font-weight:bold; font-size:14px;">${row.Material}</div>
+                        </div>
+                        <div style="flex:1; text-align:center; font-weight:bold;">${val}</div>
+                        <button onclick="doDeduct('${row.Material}','${user}',${val})" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:6px; font-size:12px;">Deduct</button>
+                    </div>`;
+                }
+            });
         });
-      });
-      tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">No data</td></tr>';
+        document.getElementById('sup_list').innerHTML = html || 'No stock in hands.';
     }
+
     async function doAdd() {
-        const res = await window.supAddStock(document.getElementById('sup_mat_add').value, document.getElementById('sup_qty_add').value);
-        if(res.success) { alert("Updated Column H!"); location.reload(); }
+        const mat = document.getElementById('sup_mat_add').value;
+        const qty = document.getElementById('sup_qty_add').value;
+        if(!mat) return alert("Enter Material");
+        const res = await window.supAddStock(mat, qty);
+        if(res.success) { alert("Stock Updated!"); location.reload(); }
     }
-    async function doDeduct(mat, user, tid) {
-        const qty = document.getElementById(tid).value;
-        if(!confirm(`Deduct ${qty} from ${user}? (Not return to H)`)) return;
-        const res = await window.supDeductUser(mat, user, qty);
-        if(res.success) { alert("Deducted Successfully!"); onSupLoad(); }
+
+    async function doDeduct(mat, user, currentVal) {
+        if(!confirm(`Confirm deduct ${mat} from ${user}?`)) return;
+        const res = await window.supDeductUser(mat, user, currentVal);
+        if(res.success) { alert("Deducted!"); location.reload(); }
     }
   </script>
 </body>
