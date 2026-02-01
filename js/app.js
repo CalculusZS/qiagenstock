@@ -1,13 +1,12 @@
 /* ===== 1. Configuration ===== */
 const API = "https://script.google.com/macros/s/AKfycbwd2Db27tpGfv1STLX8N6I6tBv5CDYkAM4bHbsxQDJ8wgRLqP_f3kvwkleemCH9DrEf/exec";           
-          
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
-const TIMEOUT_MS = 5 * 60 * 1000; // 5 Minutes
+const TIMEOUT_MS = 5 * 60 * 1000; // 5 Minutes Auto Logout
 
 let rows = []; 
 
-/* ===== 2. Auth & Auto Logout (5 Mins) ===== */
+/* ===== 2. Authentication & Session Security ===== */
 window.login = function() {
     const passInput = document.getElementById('password').value.trim();
     if (passInput === PASSWORD || passInput === SUP_PASSWORD) {
@@ -23,13 +22,12 @@ window.login = function() {
 };
 
 window.checkAuth = function() {
-    const isLoggedIn = sessionStorage.getItem('isLoggedIn');
     const lastActivity = sessionStorage.getItem('lastActivity');
     const now = new Date().getTime();
-
-    if (!isLoggedIn || !lastActivity || (now - lastActivity > TIMEOUT_MS)) {
+    if (lastActivity && (now - lastActivity > TIMEOUT_MS)) {
         alert("⏰ Session Expired - Please login again.");
-        window.logout();
+        sessionStorage.clear();
+        location.href = 'index.html';
         return false;
     }
     sessionStorage.setItem('lastActivity', now);
@@ -39,7 +37,7 @@ window.checkAuth = function() {
 window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 window.goBack = () => { window.history.back(); };
 
-/* ===== 3. Rendering Logic (Single Line Style) ===== */
+/* ===== 3. Data Loading & Rendering (UI เหมือนเดิมเป๊ะ) ===== */
 window.loadStockData = async function(type) {
     if (!window.checkAuth()) return;
     const tbody = document.getElementById('data');
@@ -66,38 +64,50 @@ window.renderTable = function(data, type) {
         const mat = r.Material;
         const name = r['Product Name'] || '';
 
-        // --- หัวใจสำคัญ: โชว์บรรทัดเดียว (Material | Name) ---
-        const info = `
-            <div style="display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px;">
-                <b style="color: #003366; min-width: 80px;">${mat}</b>
-                <span style="color: #64748b; font-size: 13px; margin-left: 10px; overflow: hidden; text-overflow: ellipsis;">${name}</span>
-            </div>`;
+        // --- UI บรรทัดเดียว (Material | Name) ---
+        // ใช้ <b> สำหรับ Material และ <span> สำหรับชื่อสินค้า เพื่อให้อยู่บรรทัดเดียวกัน
+        const info = `<div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px;">
+                        <b style="color:#1e293b;">${mat}</b> 
+                        <span style="color:#64748b; font-size:13px; margin-left:8px;">${name}</span>
+                      </div>`;
 
         if (type === 'all') {
-            return `<tr><td>${info}</td><td align="center"><b>${s0243}</b></td><td align="right">${s0243 > 0 ? '✅' : '❌'}</td></tr>`;
+            return `<tr>
+                <td>${info}</td>
+                <td align="center"><b>${s0243}</b></td>
+                <td align="right" style="padding-right:15px;">${s0243 > 0 ? '✅' : '❌'}</td>
+            </tr>`;
         }
         
         if (type === 'withdraw') {
-            return `<tr><td>${info}</td><td align="center"><b>${s0243}</b></td><td align="right">
-                <div class="action-cell">
-                    <input type="number" id="q_${mat}" value="1" class="qty-inline">
-                    <button onclick="doAction('${mat}','withdraw')" class="btn-action" style="background:#1e2937; color:white;">Withdraw</button>
-                </div>
-            </td></tr>`;
+            return `<tr>
+                <td>${info}</td>
+                <td align="center"><b>${s0243}</b></td>
+                <td align="right">
+                    <div class="action-cell">
+                        <input type="number" id="q_${mat}" value="1" class="qty-inline">
+                        <button onclick="doAction('${mat}','withdraw')" class="btn-action" style="background:#1e2937; color:white;">Withdraw</button>
+                    </div>
+                </td>
+            </tr>`;
         }
 
         if (type === 'return') {
-            return `<tr><td>${info}</td><td align="center"><b>${sUser}</b></td><td align="right">
-                <div class="action-cell">
-                    <input type="number" id="q_${mat}" value="1" class="qty-inline">
-                    <button onclick="doAction('${mat}','return')" class="btn-action" style="background:#22c55e; color:white;">Return</button>
-                </div>
-            </td></tr>`;
+            return `<tr>
+                <td>${info}</td>
+                <td align="center"><b>${sUser}</b></td>
+                <td align="right">
+                    <div class="action-cell">
+                        <input type="number" id="q_${mat}" value="1" class="qty-inline">
+                        <button onclick="doAction('${mat}','return')" class="btn-action" style="background:#22c55e; color:white;">Return</button>
+                    </div>
+                </td>
+            </tr>`;
         }
     }).join('');
 };
 
-/* ===== 4. Actions & Supervisor Functions ===== */
+/* ===== 4. Core Actions & Supervisor ===== */
 window.doAction = async function(mat, mode) {
     if (!window.checkAuth()) return;
     const user = sessionStorage.getItem('selectedUser');
