@@ -1,23 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Qiagen Stock - Login</title>
-    <style>
-        body { background:#0f172a; display:grid; place-items:center; min-height:100vh; font-family:sans-serif; margin:0; }
-        .box { background:white; padding:40px; border-radius:15px; text-align:center; width:300px; box-shadow:0 10px 20px rgba(0,0,0,0.5); }
-        input { width:100%; padding:12px; margin:20px 0; border:1px solid #ddd; border-radius:8px; box-sizing:border-box; font-size:16px; }
-        button { width:100%; padding:12px; background:#003366; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Qiagen Stock Login</title>
+  <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
-    <div class="box">
-        <h2 style="color:#003366;margin:0">QIAGEN</h2>
-        <p style="color:#64748b;font-size:12px">Stock Management System</p>
-        <input type="password" id="password" placeholder="Enter Service Password" onkeypress="if(event.key==='Enter') login()">
-        <button onclick="login()">LOGIN</button>
-    </div>
-    <script src="js/app.js"></script>
+<body class="login-page">
+  <div class="login-box">
+    <h1 style="color:#003366;">QIAGEN STOCK</h1>
+    <p style="text-align:center; color:#64748b; font-size:14px; margin-bottom:20px;">Inventory Management System</p>
+    
+    <input type="password" id="password" placeholder="Enter Password" 
+           onkeypress="if(event.key==='Enter') login()" 
+           style="width:100%; padding:12px; margin-bottom:20px; border:2px solid #e2e8f0; border-radius:10px; box-sizing:border-box; font-size:16px; outline:none;" />
+    
+    <button class="btn-login" onclick="login()" 
+            style="width:100%; background:#003366; color:white; padding:12px; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">
+      LOGIN
+    </button>
+  </div>
+  <script src="js/app.js"></script>
 </body>
 </html>
