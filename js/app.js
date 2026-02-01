@@ -1,5 +1,5 @@
 /* ===== 1. Configuration ===== */
-const API = "https://script.google.com/macros/s/AKfycbxQVNIf-QRiQVibH601ijLM57fBSjAlZJcEfzNhFn5X8VjTukJQXkv5vtib-jzaybImnw/exec";  
+const API = "https://script.google.com/macros/s/AKfycbwS2LWmnkCYE4eiP5MWMyGW9S4QqpG9sITJis0WJOqkguiMPjEApOBF7dQYSHbz8SnfeQ/exec";  
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 
