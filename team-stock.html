@@ -6,11 +6,21 @@
     <title>Team Spare Parts - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
+        /* สไตล์เพิ่มเติมเพื่อให้ดูเป็นมืออาชีพ */
         .header-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .user-tag { background: #e2e8f0; color: #003366; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-top: 5px; display: inline-block; }
-        .qty-badge { background: #2563eb; color: white; padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 16px; }
+        .user-tag { 
+            background: #e2e8f0; color: #003366; padding: 5px 10px; border-radius: 20px; 
+            font-size: 11px; font-weight: bold; margin-top: 5px; display: inline-block; 
+            border: 1px solid #cbd5e1;
+        }
+        .qty-badge { 
+            background: #64748b; color: white; padding: 5px 10px; border-radius: 8px; 
+            font-weight: bold; font-size: 14px; min-width: 30px; text-align: center;
+        }
         .card { background: white; border-radius: 12px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        tr:nth-child(even) td { background: #f8fafc; }
+        .holder-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        tr:hover td { background-color: #f8fafc; }
+        td { vertical-align: top; border-bottom: 1px solid #f1f5f9 !important; }
     </style>
 </head>
 <body onload="initTeamStock()">
@@ -29,8 +39,8 @@
             <table style="width:100%; border-collapse: collapse;">
                 <thead>
                     <tr style="background:#f1f5f9;">
-                        <th style="text-align:left; padding:12px;">Product & Holder</th>
-                        <th style="text-align:center; padding:12px; width:60px;">Qty</th>
+                        <th style="text-align:left; padding:12px;">Product Details & Holders</th>
+                        <th style="text-align:center; padding:12px; width:70px;">Total</th>
                     </tr>
                 </thead>
                 <tbody id="team-data-body">
@@ -44,13 +54,18 @@
     
     <script>
         let fullTeamData = [];
-        // รายชื่อพนักงานต้องตรงกับหัวข้อคอลัมน์ใน Google Sheets เป๊ะๆ
+        // รายชื่อพนักงาน (ต้องตรงกับ Header ใน Google Sheets)
         const teamMembers = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
         async function initTeamStock() {
             const tbody = document.getElementById('team-data-body');
             
-            // ต้องส่ง password=${PASSWORD} ไปด้วยตามเงื่อนไขใน app.js
+            // ใช้ตัวแปร API และ PASSWORD จาก app.js
+            if (typeof API === 'undefined' || typeof PASSWORD === 'undefined') {
+                tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px; color:red;">❌ Configuration Error: API or PASSWORD not found.</td></tr>';
+                return;
+            }
+
             const fetchUrl = `${API}?action=read&password=${PASSWORD}`;
 
             try {
@@ -58,15 +73,14 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    // กรองข้อมูลเฉพาะแถวที่มีพนักงานในทีมถือของอยู่ > 0
                     fullTeamData = result.data;
                     renderTeamTable(fullTeamData);
                 } else {
                     tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px;">❌ Error: ' + result.error + '</td></tr>';
                 }
             } catch (e) {
-                tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px; color:red;">❌ Connection Failed. Check your API URL.</td></tr>';
-                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px; color:red;">❌ Connection Failed. Please check your internet.</td></tr>';
+                console.error("Fetch Error:", e);
             }
         }
 
@@ -76,24 +90,36 @@
             let hasData = false;
 
             data.forEach(item => {
+                let holdersHtml = '';
+                let totalQty = 0;
+
+                // ตรวจสอบพนักงานแต่ละคนในรายการนี้
                 teamMembers.forEach(member => {
                     const qty = Number(item[member] || 0);
                     if (qty > 0) {
-                        hasData = true;
-                        html += `
-                            <tr>
-                                <td style="padding:12px; border-bottom:1px solid #eee;">
-                                    <div style="font-weight:bold; color:#003366; font-size:14px;">${item.Material}</div>
-                                    <div style="font-size:11px; color:#64748b; line-height:1.3; margin:4px 0;">${item['Product Name']}</div>
-                                    <span class="user-tag">👤 ${member}</span>
-                                </td>
-                                <td align="center" style="padding:12px; border-bottom:1px solid #eee;">
-                                    <span class="qty-badge">${qty}</span>
-                                </td>
-                            </tr>
-                        `;
+                        totalQty += qty;
+                        holdersHtml += `<span class="user-tag">👤 ${member} (${qty})</span>`;
                     }
                 });
+
+                // แสดงผลเฉพาะรายการที่พนักงานในทีมถืออยู่เท่านั้น
+                if (totalQty > 0) {
+                    hasData = true;
+                    html += `
+                        <tr>
+                            <td style="padding:15px 12px;">
+                                <div style="font-weight:bold; color:#003366; font-size:14px; margin-bottom:2px;">${item.Material || 'N/A'}</div>
+                                <div style="font-size:12px; color:#64748b; line-height:1.4;">${item['Product Name'] || ''}</div>
+                                <div class="holder-list">
+                                    ${holdersHtml}
+                                </div>
+                            </td>
+                            <td align="center" style="padding:15px 12px;">
+                                <span class="qty-badge">${totalQty}</span>
+                            </td>
+                        </tr>
+                    `;
+                }
             });
 
             tbody.innerHTML = hasData ? html : '<tr><td colspan="2" align="center" style="padding:30px; color:#64748b;">No spare parts found in team possession.</td></tr>';
@@ -101,11 +127,12 @@
 
         function filterTeamTable() {
             const query = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = fullTeamData.filter(item => 
-                String(item.Material).toLowerCase().includes(query) || 
-                String(item['Product Name']).toLowerCase().includes(query) ||
-                teamMembers.some(m => m.toLowerCase().includes(query) && Number(item[m] || 0) > 0)
-            );
+            const filtered = fullTeamData.filter(item => {
+                const inMat = String(item.Material || '').toLowerCase().includes(query);
+                const inName = String(item['Product Name'] || '').toLowerCase().includes(query);
+                const inStaff = teamMembers.some(m => m.toLowerCase().includes(query) && Number(item[m] || 0) > 0);
+                return inMat || inName || inStaff;
+            });
             renderTeamTable(filtered);
         }
     </script>
