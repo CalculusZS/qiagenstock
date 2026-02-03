@@ -1,183 +1,106 @@
-/* ===== 1. Configuration ===== */
-const API = "https://script.google.com/macros/s/AKfycbwtJToyD_ODuZKz4PE6S3bRCbSLdYe1Tl6twyGYyW5loyaCmKdJdDopzFxdZZK6nWA5/exec";           
-          
+/* ===== CONFIGURATION ===== */
+const API = "https://script.google.com/macros/s/AKfycbzzniWvRgSWhQEoSI2UzXfTdPK1Dp181RHWesV25pNWwD8aPWQp18yMuFgELRrYlCxd/exec"; 
 const PASSWORD = "Service";
-const SUP_PASSWORD = "Qiagen";
-const TIMEOUT_MS = 5 * 60 * 1000; 
+let rows = [];
 
-let rows = []; 
-
-/* ===== 2. Auth & Navigation ===== */
-window.login = function() {
-    const passInput = document.getElementById('password');
-    if (!passInput) return;
-    const val = passInput.value.trim();
-    if (val === PASSWORD || val === SUP_PASSWORD) {
-        sessionStorage.setItem('isLoggedIn', 'true');
-        sessionStorage.setItem('lastActivity', new Date().getTime());
-        if (val === SUP_PASSWORD) {
-            sessionStorage.setItem('isSupervisor', 'true');
-            location.href = 'supervisor.html';
-        } else {
-            location.href = 'user-select.html';
-        }
-    } else { alert('❌ Incorrect Password!'); }
-};
-
-window.checkAuth = function() {
-    const lastActivity = sessionStorage.getItem('lastActivity');
-    const now = new Date().getTime();
-    if (lastActivity && (now - lastActivity > TIMEOUT_MS)) {
-        alert("⏰ Session Expired!");
-        sessionStorage.clear();
-        location.href = 'index.html';
-        return false;
-    }
-    sessionStorage.setItem('lastActivity', now);
-    return true;
-};
-
-window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
-
-window.goBack = () => { 
-    const isSup = sessionStorage.getItem('isSupervisor');
-    if (isSup === 'true') {
-        location.href = 'supervisor.html';
-    } else {
-        location.href = 'user-select.html';
-    }
-};
-
-/* ===== 3. Product Lookup & Search ===== */
-window.setupAdminLookup = function() {
-    const matInput = document.getElementById('s_mat');
-    const nameDisplay = document.getElementById('s_name_display');
-    if (matInput && nameDisplay) {
-        matInput.addEventListener('input', function() {
-            const val = this.value.trim();
-            const item = rows.find(r => String(r.Material) === val);
-            if (item) {
-                nameDisplay.innerText = "Product: " + item['Product Name'];
-                nameDisplay.style.color = "#003366";
-            } else {
-                nameDisplay.innerText = val === "" ? "" : "❌ Material not found";
-                nameDisplay.style.color = "#ef4444";
-            }
-        });
-    }
-};
-
-window.searchStock = (keyword, type) => {
-    const filtered = rows.filter(r => 
-        String(r.Material).toLowerCase().includes(keyword.toLowerCase()) || 
-        String(r['Product Name']).toLowerCase().includes(keyword.toLowerCase())
-    );
-    window.renderTable(filtered, type);
-};
-
-/* ===== 4. Rendering (Updated for Responsive) ===== */
+/* ===== 1. LOAD DATA (ทุกหน้า) ===== */
 window.loadStockData = async function(type) {
-    if (!window.checkAuth()) return;
-    const tbody = document.getElementById('data');
-    if(tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading Data...</td></tr>';
+    const tbody = document.getElementById('data') || document.getElementById('staff-data');
+    if(tbody) tbody.innerHTML = '<tr><td colspan="4" align="center">⌛ Loading...</td></tr>';
     
     try {
-        const response = await fetch(`${API}?action=read&password=${PASSWORD}`);
+        const response = await fetch(`${API}?action=read&password=${PASSWORD}&t=${Date.now()}`);
         const res = await response.json();
         if (res.success) {
             rows = res.data;
-            window.renderTable(rows, type);
+            if (document.getElementById('data')) window.renderTable(rows, type);
             if (document.getElementById('staff-data')) window.renderStaffInventory(rows);
             if (document.getElementById('s_mat')) window.setupAdminLookup();
         }
     } catch (e) { console.error("Error:", e); }
 };
 
+/* ===== 2. RENDER TABLE (เบิก-คืน) ===== */
 window.renderTable = function(data, type) {
     const tbody = document.getElementById('data');
-    const user = sessionStorage.getItem('selectedUser');
-    if(!tbody) return;
+    if (!tbody) return;
+    const user = sessionStorage.getItem('selectedUser') || "";
 
-    const container = document.querySelector('.container');
-    if(container) container.style.maxWidth = '100%';
-
-    let displayData = (type === 'return') ? data.filter(r => Number(r[user] || 0) > 0) : data;
-
-    tbody.innerHTML = displayData.map(r => {
-        const s0243 = Number(r['0243'] || 0);
-        const sUser = Number(r[user] || 0);
-        const mat = r.Material;
-        const name = r['Product Name'] || '';
-        const stockStyle = s0243 === 0 ? 'color: #ef4444; font-weight: bold;' : 'font-weight: bold;';
-
-        // ปรับชื่อคลาสเพื่อให้ CSS ควบคุมการจัดวางในมือถือได้ (Stacking)
-        const info = `<div class="p-info" style="display:flex; align-items:center; gap:12px;">
-                        <b class="p-mat" style="color:#003366; min-width:85px;">${mat}</b>
-                        <span class="p-name" style="color:#64748b; font-size:13px;">${name}</span>
-                      </div>`;
-
-        if (type === 'withdraw') {
-            return `<tr><td class="td-product">${info}</td><td align="center"><span style="${stockStyle}">${s0243}</span></td>
-                <td align="right"><div class="action-box" style="display:flex; gap:6px; justify-content:flex-end;">
-                    <input type="number" id="q_${mat}" value="1" style="width:40px; text-align:center;">
-                    <button onclick="window.doAction('${mat}','withdraw')" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Withdraw</button>
-                </div></td></tr>`;
-        }
-        if (type === 'return') {
-            return `<tr><td class="td-product">${info}</td><td align="center"><b>${sUser}</b></td>
-                <td align="right"><div class="action-box" style="display:flex; gap:6px; justify-content:flex-end;">
-                    <input type="number" id="q_${mat}" value="1" style="width:40px; text-align:center;">
-                    <button onclick="window.doAction('${mat}','return')" style="background:#22c55e; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Return</button>
-                </div></td></tr>`;
-        }
-        return `<tr><td class="td-product">${info}</td><td align="center"><span style="${stockStyle}">${s0243}</span></td><td align="right">${s0243 > 0 ? '✅' : '❌'}</td></tr>`;
+    tbody.innerHTML = data.map(r => {
+        const stock = (type === 'return') ? (r[user] || 0) : (r['0243'] || 0);
+        return `
+            <tr>
+                <td><b>${r.Material}</b><br><small>${r['Product Name']}</small></td>
+                <td align="center"><b>${stock}</b></td>
+                <td align="right">
+                    <button onclick="window.doAction('${r.Material}', '${type}')" 
+                    style="background:${type==='withdraw'?'#003366':'#16a34a'}; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">
+                    ${type === 'withdraw' ? 'Withdraw' : 'Return'}
+                    </button>
+                </td>
+            </tr>`;
     }).join('');
 };
 
-/* ===== 5. Action Functions ===== */
-window.doAction = async function(mat, mode) {
-    if (!window.checkAuth()) return;
+/* ===== 3. DO ACTION (เบิก-คืน) ===== */
+window.doAction = async function(mat, type) {
     const user = sessionStorage.getItem('selectedUser');
-    const qtyInput = document.getElementById(`q_${mat}`);
-    const qty = qtyInput ? qtyInput.value : 1;
+    const qty = prompt(`จำนวนที่ต้องการ ${type}:`);
+    if (!qty || isNaN(qty) || qty <= 0) return;
+
     try {
-        const res = await fetch(`${API}?action=${mode}&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}`).then(r=>r.json());
-        if (res.success) { alert("✅ Success!"); await window.loadStockData(mode); } else { alert("❌ Error"); }
-    } catch (e) { alert("Network Error"); }
+        const url = `${API}?action=${type}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}&password=${PASSWORD}`;
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) {
+            alert("✅ สำเร็จ!");
+            window.loadStockData(type);
+        } else { alert("❌ " + res.msg); }
+    } catch (e) { alert("❌ ติดต่อ Server ไม่ได้"); }
 };
 
+/* ===== 4. SUPERVISOR FUNCTIONS ===== */
 window.renderStaffInventory = function(data) {
     const tbody = document.getElementById('staff-data');
-    if (!tbody) return;
-    const STAFF_LIST = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+    const staff = ["0432", "0433", "0434", "0435", "0436", "0437", "0438", "0439", "0440", "0441", "0442"];
     let html = '';
     data.forEach(row => {
-        STAFF_LIST.forEach(user => {
+        staff.forEach(user => {
             const val = Number(row[user] || 0);
             if (val > 0) {
-                const tid = `ed_${row.Material}_${user}`;
-                html += `<tr><td><b style="color:#003366;">${row.Material}</b><br><small>${row['Product Name']}</small></td>
-                    <td>${user}</td><td align="center"><input type="number" id="${tid}" value="${val}" style="width:40px;"></td>
-                    <td align="right"><button onclick="window.doSupDeduct('${row.Material}','${user}','${tid}')" style="background:#ef4444; color:white; border:none; padding:6px; border-radius:6px; cursor:pointer;">Deduct</button></td></tr>`;
+                const tid = `in_${row.Material}_${user}`;
+                html += `<tr>
+                    <td><b>${row.Material}</b><br><small>${row['Product Name']}</small></td>
+                    <td><span class="badge-user">${user}</span></td>
+                    <td align="center"><input type="number" id="${tid}" value="${val}" style="width:50px; text-align:center;"></td>
+                    <td align="right"><button onclick="window.doSupDeduct('${row.Material}','${user}','${tid}')" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">Deduct</button></td>
+                </tr>`;
             }
         });
     });
-    tbody.innerHTML = html || '<tr><td colspan="4" align="center">No staff inventory</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="4" align="center">ไม่มีข้อมูลสต็อกของ Staff</td></tr>';
 };
 
 window.doSupAdd = async function() {
     const mat = document.getElementById('s_mat').value.trim();
     const qty = document.getElementById('s_qty').value;
-    try {
-        const res = await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}`).then(r => r.json());
-        if (res.success) { alert("✅ Success!"); location.reload(); } else { alert("❌ Error"); }
-    } catch (e) { alert("Error"); }
+    const url = `${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}`;
+    const res = await fetch(url).then(r => r.json());
+    if (res.success) { alert("✅ เพิ่มสต็อกแล้ว"); window.loadStockData(); }
 };
 
 window.doSupDeduct = async function(mat, user, tid) {
     const qty = document.getElementById(tid).value;
-    try {
-        const res = await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}`).then(r => r.json());
-        if (res.success) { alert("✅ Success!"); location.reload(); } else { alert("❌ Error"); }
-    } catch (e) { alert("Error"); }
+    const url = `${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}`;
+    const res = await fetch(url).then(r => r.json());
+    if (res.success) { alert("✅ หักสต็อกแล้ว"); window.loadStockData(); }
 };
+
+/* ===== 5. OTHERS ===== */
+window.searchStock = function(query, type) {
+    const q = query.toLowerCase();
+    const filtered = rows.filter(r => r.Material.toString().toLowerCase().includes(q) || r['Product Name'].toString().toLowerCase().includes(q));
+    window.renderTable(filtered, type);
+};
+
+window.goBack = () => window.history.back();
+window.logout = () => { sessionStorage.clear(); location.href='index.html'; };
