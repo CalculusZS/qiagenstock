@@ -7,49 +7,54 @@
     <link rel="stylesheet" href="css/style.css">
     <style>
         .history-item { 
-            background: var(--card); border-radius: 12px; padding: 15px; 
-            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
-            border-left: 6px solid #cbd5e1; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9;
+            background: #fff; border-radius: 12px; padding: 15px; 
+            margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+            border-left: 6px solid #cbd5e1; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-        .type-withdraw { border-left-color: var(--danger); }
-        .type-return { border-left-color: var(--success); }
-        .type-transfer { border-left-color: var(--accent); }
+        .type-withdraw { border-left-color: #ef4444; }
+        .type-return { border-left-color: #22c55e; }
+        .type-transfer { border-left-color: #2563eb; }
         .type-add_stock { border-left-color: #3b82f6; }
-
         .time-stamp { font-size: 11px; color: #94a3b8; display: block; margin-bottom: 4px; }
         .p-mat-line { font-weight: bold; color: #003366; font-size: 14px; margin-right: 8px; }
         .p-name-line { color: #64748b; font-size: 13px; }
         .user-tag { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .qty-circle { background: var(--brand); color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
+        .qty-circle { background: #003366; color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
     </style>
 </head>
 <body onload="loadHistory()">
     <div class="container">
-        <div style="display:flex; align-items:center; gap:15px; margin: 15px 0;">
-            <button onclick="location.href='user-select.html'" class="btn-sm" style="background:#fff; border:1px solid #ddd;">◀ Back</button>
-            <h2 style="margin:0; color:var(--brand); font-size: 20px;">History Events</h2>
+        <div style="display:flex; align-items:center; gap:15px; margin: 20px 0;">
+            <button onclick="location.href='user-select.html'" style="background:#fff; border:1px solid #ddd; padding: 5px 10px; border-radius: 5px; cursor: pointer;">◀ Back</button>
+            <h2 style="margin:0; color:#003366; font-size: 20px;">History Events</h2>
         </div>
         <div id="history-list">
             <div style="text-align:center; padding:50px; color:#94a3b8;">⌛ Loading history logs...</div>
         </div>
     </div>
 
-    <script src="js/app.js"></script>
     <script>
+        // กำหนดค่าตรงๆ ในหน้านี้เพื่อป้องกันปัญหา Cache หรือการเรียกไฟล์ js ไม่ติด
+        const API_URL = "https://script.google.com/macros/s/AKfycbxpAUr2ShX0LR5YFKqCzvc060_2m9_Wsp_tAx6qEwSJ-JwZT1aRF4Z5dLcgk2J8ZTRcuw/exec";
+        const PASS = "Service";
+
         async function loadHistory() {
             const listNode = document.getElementById('history-list');
             try {
-                // เรียกใช้ action=gethistory (ตามที่คุณเขียนใน Apps Script)
-                const url = `${API}?action=gethistory&password=${PASSWORD}`;
-                const response = await fetch(url);
+                // ใช้ลิงก์ API ตรงๆ และใส่โหมดการดึงข้อมูลที่ถูกต้อง
+                const response = await fetch(`${API_URL}?action=gethistory&password=${PASS}`, {
+                    method: 'GET'
+                });
+
+                if (!response.ok) throw new Error('Network response error');
+                
                 const res = await response.json();
 
                 if (res.success && res.data.length > 0) {
                     listNode.innerHTML = res.data.map(item => {
-                        const typeLabel = item['Transaction Type'] || '';
-                        const typeClass = typeLabel.toLowerCase().replace(' ', '_');
+                        const type = (item['Transaction Type'] || '').toLowerCase().replace(' ', '_');
                         return `
-                            <div class="history-item type-${typeClass}">
+                            <div class="history-item type-${type}">
                                 <div style="flex:1; padding-right:10px;">
                                     <span class="time-stamp">${item['Date and Time'] || ''}</span>
                                     <div style="margin-bottom: 5px;">
@@ -58,7 +63,7 @@
                                     </div>
                                     <div style="display:flex; align-items:center; gap:10px;">
                                         <span class="user-tag">👤 ${item['User'] || ''}</span>
-                                        <span style="font-size:11px; font-weight:bold; color:var(--accent);">${typeLabel}</span>
+                                        <span style="font-size:11px; font-weight:bold; color:#2563eb;">${item['Transaction Type']}</span>
                                     </div>
                                 </div>
                                 <div class="qty-circle">${item['Qty'] || 0}</div>
@@ -66,11 +71,11 @@
                         `;
                     }).join('');
                 } else {
-                    listNode.innerHTML = '<div style="text-align:center; padding:50px; color:#94a3b8;">No history found.</div>';
+                    listNode.innerHTML = '<div style="text-align:center; padding:50px; color:#94a3b8;">No data found.</div>';
                 }
             } catch (e) {
-                listNode.innerHTML = '<div style="text-align:center; padding:50px; color:var(--danger);">❌ Connection Error. Please re-deploy Script or check URL.</div>';
-                console.error("Fetch error:", e);
+                listNode.innerHTML = '<div style="text-align:center; padding:50px; color:#ef4444;">❌ CORS Error: Please try clearing your browser cache.</div>';
+                console.error(e);
             }
         }
     </script>
