@@ -13,12 +13,12 @@
         tr:nth-child(even) td { background: #f8fafc; }
     </style>
 </head>
-<body onload="loadTeamData()">
+<body onload="initTeamStock()">
     <div class="container">
         <div class="header-box" style="display:flex; justify-content:space-between; align-items:center;">
             <button onclick="location.href='user-select.html'" class="btn-sm" style="background:#f1f5f9; border:1px solid #ddd;">◀ Back</button>
             <h2 style="margin:0; color:#003366; font-size: 18px;">Team Spare Parts</h2>
-            <button onclick="loadTeamData()" class="btn-sm" style="background:transparent; border:none; font-size:18px;">🔄</button>
+            <button onclick="initTeamStock()" class="btn-sm" style="background:transparent; border:none; font-size:18px;">🔄</button>
         </div>
 
         <div class="search-container">
@@ -44,53 +44,47 @@
     
     <script>
         let fullTeamData = [];
-        // รายชื่อต้องสะกดให้ตรงกับ Header ใน Google Sheets เป๊ะๆ
+        // รายชื่อพนักงานต้องตรงกับหัวข้อคอลัมน์ใน Google Sheets เป๊ะๆ
         const teamMembers = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
-        async function loadTeamData() {
+        async function initTeamStock() {
             const tbody = document.getElementById('team-data-body');
             
-            // ตรวจสอบว่ามีตัวแปร API หรือไม่ ถ้าไม่มีให้ใส่ URL ตรงๆ
-            const finalAPI = (typeof API !== 'undefined') ? API : "ใส่_URL_Web_App_ของคุณตรงนี้";
+            // ต้องส่ง password=${PASSWORD} ไปด้วยตามเงื่อนไขใน app.js
+            const fetchUrl = `${API}?action=read&password=${PASSWORD}`;
 
             try {
-                const response = await fetch(`${finalAPI}?action=read`);
+                const response = await fetch(fetchUrl);
                 const result = await response.json();
                 
                 if (result.success) {
-                    // กรองเฉพาะรายการที่พนักงานคนใดคนหนึ่งมีของ > 0
-                    fullTeamData = result.data.filter(row => {
-                        return teamMembers.some(member => {
-                            const val = row[member];
-                            return val !== undefined && Number(val) > 0;
-                        });
-                    });
+                    // กรองข้อมูลเฉพาะแถวที่มีพนักงานในทีมถือของอยู่ > 0
+                    fullTeamData = result.data;
                     renderTeamTable(fullTeamData);
                 } else {
                     tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px;">❌ Error: ' + result.error + '</td></tr>';
                 }
             } catch (e) {
-                tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px; color:red;">❌ Cannot connect to API. Please check your Script URL.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px; color:red;">❌ Connection Failed. Check your API URL.</td></tr>';
+                console.error(e);
             }
         }
 
         function renderTeamTable(data) {
             const tbody = document.getElementById('team-data-body');
-            if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:30px; color:#64748b;">No spare parts found in team possession.</td></tr>';
-                return;
-            }
-
             let html = '';
+            let hasData = false;
+
             data.forEach(item => {
                 teamMembers.forEach(member => {
                     const qty = Number(item[member] || 0);
                     if (qty > 0) {
+                        hasData = true;
                         html += `
                             <tr>
                                 <td style="padding:12px; border-bottom:1px solid #eee;">
-                                    <div style="font-weight:bold; color:#003366; font-size:14px;">${item.Material || 'N/A'}</div>
-                                    <div style="font-size:11px; color:#64748b; line-height:1.3; margin:4px 0;">${item['Product Name'] || 'No Description'}</div>
+                                    <div style="font-weight:bold; color:#003366; font-size:14px;">${item.Material}</div>
+                                    <div style="font-size:11px; color:#64748b; line-height:1.3; margin:4px 0;">${item['Product Name']}</div>
                                     <span class="user-tag">👤 ${member}</span>
                                 </td>
                                 <td align="center" style="padding:12px; border-bottom:1px solid #eee;">
@@ -101,7 +95,8 @@
                     }
                 });
             });
-            tbody.innerHTML = html;
+
+            tbody.innerHTML = hasData ? html : '<tr><td colspan="2" align="center" style="padding:30px; color:#64748b;">No spare parts found in team possession.</td></tr>';
         }
 
         function filterTeamTable() {
