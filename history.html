@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,26 +7,36 @@
     <link rel="stylesheet" href="css/style.css">
     <style>
         .history-card { 
-            background: white; border-radius: 12px; padding: 16px; 
-            margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            display: flex; align-items: center; gap: 15px;
+            background: white; border-radius: 12px; padding: 15px; 
+            margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center;
             border-left: 6px solid #cbd5e1;
         }
-        /* แยกสีตามประเภท Action */
-        .type-withdraw { border-left-color: #ef4444; } /* แดง: เบิกออก */
-        .type-return { border-left-color: #22c55e; }   /* เขียว: คืนของ */
-        .type-add { border-left-color: #3b82f6; }      /* ฟ้า: เพิ่มสต็อก */
-        .type-deduct { border-left-color: #f59e0b; }   /* ส้ม: ตัดใช้ไป */
+        /* แยกสีตามประเภท */
+        .type-withdraw { border-left-color: #ef4444; }
+        .type-return { border-left-color: #22c55e; }
+        .type-transfer { border-left-color: #2563eb; }
+        .type-add_stock { border-left-color: #3b82f6; }
 
-        .info-main { flex-grow: 1; }
-        .time-label { font-size: 11px; color: #94a3b8; font-weight: 500; }
-        .user-name { font-weight: bold; color: #1e293b; font-size: 14px; margin: 2px 0; }
-        .product-detail { font-size: 12px; color: #64748b; line-height: 1.4; }
+        .info-container { flex: 1; margin-right: 10px; }
+        .time-text { font-size: 11px; color: #94a3b8; display: block; }
+        
+        /* Material และ Product Name อยู่บรรทัดเดียวกัน */
+        .product-line { 
+            display: flex; gap: 8px; font-size: 13px; margin: 4px 0; 
+            align-items: baseline; overflow: hidden;
+        }
+        .mat-id { font-weight: bold; color: #003366; white-space: nowrap; }
+        .prod-name { color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .user-row { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+        .user-tag { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .action-text { font-size: 11px; font-weight: bold; text-transform: uppercase; }
+
         .qty-badge { 
-            background: #f1f5f9; color: #0f172a; 
-            width: 35px; height: 35px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 14px; border: 1px solid #e2e8f0;
+            background: #0f172a; color: white; width: 35px; height: 35px; 
+            border-radius: 50%; display: flex; align-items: center; 
+            justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;
         }
     </style>
 </head>
@@ -34,59 +44,66 @@
     <div class="container">
         <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px;">
             <button onclick="location.href='user-select.html'" class="btn-sm" style="background:#fff; border:1px solid #ddd;">◀ Back</button>
-            <h2 style="margin:0; color:#003366; font-size: 20px;">History Events</h2>
+            <h2 style="margin:0; color:#0f172a; font-size: 20px;">History Events</h2>
         </div>
-
-        <div id="history-container">
-            <div style="text-align:center; padding:50px; color:#94a3b8;">⌛ กำลังโหลดประวัติ...</div>
+        <div id="history-list">
+            <div style="text-align:center; padding:50px; color:#94a3b8;">⌛ Loading history logs...</div>
         </div>
     </div>
 
     <script src="js/app.js"></script>
     <script>
         async function loadHistory() {
-            const container = document.getElementById('history-container');
+            const listNode = document.getElementById('history-list');
             try {
-                const response = await fetch(`${API}?action=getHistory&password=${PASSWORD}`);
+                // เรียก API ดึงประวัติ (ตรวจสอบว่าใน Code.gs มี handleGetHistory แล้ว)
+                const response = await fetch(`${API}?action=gethistory&password=${PASSWORD}`);
                 const res = await response.json();
-                
+
                 if (res.success && res.data.length > 0) {
-                    container.innerHTML = res.data.map(item => {
-                        // กำหนด Class และ Label ตาม Transaction Type
-                        let typeClass = '';
-                        let actionLabel = item['Transaction Type'];
-                        const type = String(actionLabel).toUpperCase();
+                    listNode.innerHTML = res.data.map(item => {
+                        // พยายามหาค่าจากคีย์ต่างๆ กรณีชื่อคอลัมน์ใน Sheet ไม่ตรงเป๊ะ
+                        const material = item.Material || item.material || 'N/A';
+                        const productName = item['Product Name'] || item.productname || '';
+                        const actionType = item['Transaction Type'] || item.type || 'Unknown';
+                        const user = item.User || item.user || 'System';
+                        const qty = item.Qty || item.qty || 0;
+                        const timestamp = item['Date and Time'] || item.timestamp || '';
 
-                        if (type.includes('WITHDRAW')) typeClass = 'type-withdraw';
-                        else if (type.includes('RETURN')) typeClass = 'type-return';
-                        else if (type.includes('ADD')) typeClass = 'type-add';
-                        else if (type.includes('DEDUCT')) typeClass = 'type-deduct';
-
-                        // ฟอร์แมตเวลาให้ดูง่าย
-                        const dateObj = new Date(item['Date and Time']);
-                        const timeStr = dateObj.toLocaleDateString('th-TH', { 
-                            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
-                        });
+                        const typeClass = actionType.toLowerCase().replace(' ', '_');
 
                         return `
-                            <div class="history-card ${typeClass}">
-                                <div class="info-main">
-                                    <div class="time-label">${timeStr}</div>
-                                    <div class="user-name">👤 ${item.User} • <span style="font-weight:500; color:#2563eb;">${actionLabel}</span></div>
-                                    <div class="product-detail">
-                                        <b>${item.Material}</b>: ${item['Product Name']}
+                            <div class="history-card type-${typeClass}">
+                                <div class="info-container">
+                                    <span class="time-text">${timestamp}</span>
+                                    <div class="product-line">
+                                        <span class="mat-id">${material}</span>
+                                        <span class="prod-name">${productName}</span>
+                                    </div>
+                                    <div class="user-row">
+                                        <span class="user-tag">👤 ${user}</span>
+                                        <span class="action-text" style="color:${getActionColor(actionType)}">${actionType}</span>
                                     </div>
                                 </div>
-                                <div class="qty-badge">${item.Qty}</div>
+                                <div class="qty-badge">${qty}</div>
                             </div>
                         `;
                     }).join('');
                 } else {
-                    container.innerHTML = '<div style="text-align:center; padding:50px; color:#94a3b8;">ไม่พบข้อมูลประวัติ</div>';
+                    listNode.innerHTML = '<div style="text-align:center; padding:50px; color:#94a3b8;">No history found in TRANSACTION_LOG.</div>';
                 }
             } catch (e) {
-                container.innerHTML = '<div style="text-align:center; padding:50px; color:#ef4444;">❌ ไม่สามารถเชื่อมต่อข้อมูลได้</div>';
+                listNode.innerHTML = '<div style="text-align:center; padding:50px; color:red;">❌ Connection Error. Please check API/Network.</div>';
+                console.error(e);
             }
+        }
+
+        function getActionColor(type) {
+            type = type.toLowerCase();
+            if (type.includes('withdraw')) return '#ef4444';
+            if (type.includes('return')) return '#22c55e';
+            if (type.includes('transfer')) return '#2563eb';
+            return '#64748b';
         }
     </script>
 </body>
