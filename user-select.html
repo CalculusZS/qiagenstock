@@ -10,21 +10,12 @@
         .nav-header { background: #003366; color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .container { max-width: 450px; margin: 25px auto; padding: 0 15px; }
         
-        /* ส่วนแสดงข้อความที่ต้องการ */
         .staff-label { 
-            display: block;
-            text-align: center; 
-            margin-bottom: 20px; 
-            color: #64748b; 
-            font-size: 15px; 
-            font-weight: bold; 
-            letter-spacing: 0.5px;
-            background: #e2e8f0;
-            padding: 8px;
-            border-radius: 8px;
+            display: block; text-align: center; margin-bottom: 20px; color: #64748b; 
+            font-size: 15px; font-weight: bold; letter-spacing: 0.5px;
+            background: #e2e8f0; padding: 8px; border-radius: 8px;
         }
 
-        /* ปุ่มรายชื่อพนักงาน */
         .btn-staff { 
             width: 100%; background: white; border: 1px solid #e2e8f0; padding: 18px; border-radius: 12px; 
             font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 15px; 
@@ -32,7 +23,6 @@
         }
         .btn-staff:hover { background: #f8fafc; border-color: #003366; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         
-        /* ปุ่มเมนู View All และ Supervisor (ปรับให้เหมือนกัน) */
         .btn-menu { 
             width: 100%; padding: 18px; border: none; border-radius: 12px; font-weight: bold; 
             cursor: pointer; display: flex; align-items: center; justify-content: center; 
@@ -45,9 +35,17 @@
         .btn-sup { background: #0f172a; color: white; }
         .btn-sup:hover { background: #1e293b; }
 
-        .divider { margin: 30px 0; border: none; border-top: 2px solid #cbd5e1; }
+        /* --- ปุ่มใหม่ที่เพิ่มเข้ามา --- */
+        .btn-excel { background: #ffffff; color: #15803d; border: 2px solid #15803d; }
+        .btn-excel:hover { background: #f0fdf4; }
         
-        /* Modal Style */
+        .btn-team { background: #2563eb; color: white; }
+        .btn-team:hover { background: #1d4ed8; }
+        /* ----------------------- */
+
+        .divider { margin: 30px 0; border: none; border-top: 2px solid #cbd5e1; position: relative; text-align: center; }
+        .divider::after { content: "Other Options"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #f4f7fa; padding: 0 10px; color: #64748b; font-size: 14px; font-weight: bold; }
+        
         .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items:center; justify-content:center; z-index:1000; }
         .modal-content { background:white; padding:25px; border-radius:15px; width:85%; max-width:300px; text-align:center; }
         .input-pass { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; text-align: center; }
@@ -58,7 +56,7 @@
     <div class="nav-header">QIAGEN INVENTORY</div>
 
     <div class="container">
-        <div class="staff-label"</div>
+        <div class="staff-label">Select Staff Name</div>
         
         <div id="user_list">
             <button class="btn-staff" onclick="selectUser('Kitti')">👤 Kitti</button>
@@ -69,10 +67,18 @@
             <button class="btn-staff" onclick="selectUser('Phuriwat')">👤 Phuriwat</button>
         </div>
 
-        <div class="divider">Staff Selection</div>
+        <div class="divider"></div>
+
+        <button class="btn-menu btn-team" onclick="location.href='team-stock.html'">
+            👥 TEAM SPARE PARTS
+        </button>
 
         <button class="btn-menu btn-all" onclick="location.href='showall.html'">
             🔍 VIEW ALL PARTS (0243)
+        </button>
+
+        <button class="btn-menu btn-excel" onclick="window.open('https://docs.google.com/spreadsheets/d/ใส่_ID_ของ_Sheet_ตรงนี้/edit', '_blank')">
+            📊 VIEW SUMMARY SHEET
         </button>
 
         <button class="btn-menu btn-sup" onclick="openSupModal()">
@@ -108,7 +114,6 @@
 
         function submitSupLogin() {
             const inputPass = document.getElementById('sup_pass_input').value;
-            // ใช้รหัสผ่าน "Qiagen" เป็นค่าเริ่มต้นถ้าหาใน app.js ไม่เจอ
             const correctPass = (typeof SUP_PASSWORD !== 'undefined') ? SUP_PASSWORD : "Qiagen";
             if (inputPass === correctPass) {
                 sessionStorage.setItem('isSupervisor', 'true');
