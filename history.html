@@ -3,100 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transaction History - QIAGEN Stock</title>
+    <title>QIAGEN - Transaction History</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        body { background-color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .btn-back { background: white; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; color: #334155; text-decoration: none; }
         
-        /* History Cards */
-        .history-item { 
-            background: #ffffff; border-radius: 12px; padding: 15px; 
-            margin-bottom: 12px; display: flex; justify-content: space-between; 
-            align-items: center; border-left: 6px solid #cbd5e1; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        .history-card { 
+            background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); border-left: 6px solid #cbd5e1;
+            display: flex; justify-content: space-between; align-items: center;
         }
-        
-        /* Status Colors */
-        .type-withdraw { border-left-color: #ef4444; } /* Red */
-        .type-return   { border-left-color: #22c55e; } /* Green */
-        .type-transfer { border-left-color: #3b82f6; } /* Blue */
-        .type-add_stock { border-left-color: #8b5cf6; } /* Purple */
+        .type-withdraw { border-left-color: #ef4444; }
+        .type-return { border-left-color: #22c55e; }
+        .type-add_stock { border-left-color: #8b5cf6; }
+        .type-deduct_used { border-left-color: #f59e0b; }
 
-        .time-stamp { font-size: 11px; color: #94a3b8; display: block; margin-bottom: 4px; }
-        .p-mat-line { font-weight: bold; color: #003366; font-size: 14px; margin-right: 8px; }
-        .p-name-line { color: #64748b; font-size: 13px; display: block; }
-        .user-tag { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 5px; display: inline-block; }
-        .qty-circle { background: #003366; color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
+        .info-group { flex-grow: 1; padding-right: 15px; }
+        .time { font-size: 11px; color: #94a3b8; margin-bottom: 4px; display: block; }
+        .material-id { font-weight: bold; color: #003366; font-size: 15px; margin-right: 8px; }
+        .prod-name { color: #64748b; font-size: 13px; }
+        .details { margin-top: 8px; font-size: 11px; font-weight: 600; color: #475569; }
+        .user-badge { background: #f1f5f9; padding: 2px 8px; border-radius: 4px; margin-right: 8px; }
+
+        .qty-badge { background: #003366; color: white; min-width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
         
-        .error-box { text-align: center; padding: 30px; border: 2px dashed #ef4444; border-radius: 12px; background: #fff; }
-        .btn-retry { background: #003366; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-top: 15px; font-weight: bold; }
+        .loading { text-align: center; padding: 40px; color: #64748b; font-style: italic; }
+        .error-box { background: #fee2e2; color: #b91c1c; padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #fecaca; }
     </style>
 </head>
-<body onload="loadHistory()">
+<body onload="fetchHistory()">
     <div class="container">
-        <div style="display:flex; align-items:center; gap:15px; margin: 20px 0;">
-            <button onclick="location.href='user-select.html'" style="background:#fff; border:1px solid #ddd; padding: 8px 12px; border-radius: 8px; cursor: pointer;">◀ Back</button>
-            <h2 style="margin:0; color:#003366; font-size: 20px;">Transaction History</h2>
+        <div class="header">
+            <a href="user-select.html" class="btn-back">◀ Back</a>
+            <h2 style="margin:0; color:#003366;">History Events</h2>
         </div>
 
-        <div id="history-list">
-            <div style="text-align:center; padding:50px; color:#94a3b8;">⌛ Loading history logs...</div>
+        <div id="display-area">
+            <div class="loading">⌛ Loading data from server...</div>
         </div>
     </div>
 
     <script>
-        // API Configuration
-        const API_URL = "https://script.google.com/macros/s/AKfycbxpAUr2ShX0LR5YFKqCzvc060_2m9_Wsp_tAx6qEwSJ-JwZT1aRF4Z5dLcgk2J8ZTRcuw/exec";
-        const PASS = "Service";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyPjsv5oV-8qUONsjCiuiXr-dheX0eC7bq5UHuhrOTKUvWmMPKYjvG-1opbpxJ7F7x1iQ/exec";
+        const PASSWORD = "Service";
 
-        async function loadHistory() {
-            const listNode = document.getElementById('history-list');
-            // Cache-busting with timestamp
-            const finalUrl = `${API_URL}?action=gethistory&password=${PASS}&t=${new Date().getTime()}`;
-
+        async function fetchHistory() {
+            const container = document.getElementById('display-area');
             try {
-                // Fetch with standard CORS settings for Google Apps Script
-                const response = await fetch(finalUrl);
-                
-                if (!response.ok) throw new Error('Network error');
-                
+                const response = await fetch(`${API_URL}?action=gethistory&password=${PASSWORD}&t=${Date.now()}`);
                 const res = await response.json();
 
-                if (res.success && res.data && res.data.length > 0) {
-                    listNode.innerHTML = res.data.map(item => {
-                        const typeLabel = item['Transaction Type'] || 'Unknown';
-                        const typeClass = typeLabel.toLowerCase().replace(' ', '_');
-                        
-                        return `
-                            <div class="history-item type-${typeClass}">
-                                <div style="flex:1; padding-right:10px;">
-                                    <span class="time-stamp">${item['Date and Time'] || '-'}</span>
-                                    <div>
-                                        <span class="p-mat-line">${item['Material'] || '-'}</span>
-                                        <span class="p-name-line">${item['Product Name'] || ''}</span>
-                                    </div>
-                                    <div style="display:flex; align-items:center; gap:10px;">
-                                        <span class="user-tag">👤 ${item['User'] || 'User'}</span>
-                                        <span style="font-size:11px; font-weight:bold; color:#2563eb;">${typeLabel}</span>
-                                    </div>
-                                </div>
-                                <div class="qty-circle">${item['Qty'] || 0}</div>
-                            </div>
-                        `;
-                    }).join('');
-                } else {
-                    listNode.innerHTML = '<div style="text-align:center; padding:50px; color:#94a3b8;">No records found.</div>';
+                if (!res.success) throw new Error(res.msg);
+                if (res.data.length === 0) {
+                    container.innerHTML = '<div class="loading">No history records found.</div>';
+                    return;
                 }
-            } catch (e) {
-                console.error("CORS Error:", e);
-                listNode.innerHTML = `
+
+                container.innerHTML = res.data.map(item => {
+                    const type = (item['Transaction Type'] || 'OTHER').toUpperCase();
+                    const typeClass = type.toLowerCase().replace(' ', '_');
+                    
+                    return `
+                        <div class="history-card type-${typeClass}">
+                            <div class="info-group">
+                                <span class="time">${item['Date and Time']}</span>
+                                <div>
+                                    <span class="material-id">${item['Material']}</span>
+                                    <span class="prod-name">${item['Product Name']}</span>
+                                </div>
+                                <div class="details">
+                                    <span class="user-badge">👤 ${item['User']}</span>
+                                    <span style="color:#2563eb;">${type}</span>
+                                </div>
+                            </div>
+                            <div class="qty-badge">${item['Qty']}</div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                container.innerHTML = `
                     <div class="error-box">
-                        <p style="color:#ef4444; font-weight:bold;">❌ Connection Blocked (CORS)</p>
-                        <p style="font-size:13px; color:#64748b;">The browser blocked the request. Please verify the API is public.</p>
-                        <a href="${finalUrl}" target="_blank" style="display:inline-block; margin-top:10px; color:#2563eb; font-size:12px;">Click to Test API Link</a>
-                        <br>
-                        <button class="btn-retry" onclick="location.reload()">Retry Now</button>
+                        <strong>Connection Error</strong><br>
+                        <small>${err.message}</small><br><br>
+                        <button onclick="location.reload()" style="padding:5px 10px; cursor:pointer;">Retry</button>
                     </div>`;
             }
         }
