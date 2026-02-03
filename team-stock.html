@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Team Spare Parts - QIAGEN</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .header-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .user-tag { background: #e2e8f0; color: #003366; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-top: 5px; display: inline-block; }
+        .qty-badge { background: #2563eb; color: white; padding: 2px 8px; border-radius: 6px; font-weight: bold; }
+    </style>
+</head>
+<body onload="loadTeamData()">
+    <div class="container">
+        <div class="header-box" style="display:flex; justify-content:space-between; align-items:center;">
+            <button onclick="location.href='user-select.html'" class="btn-sm" style="background:#f1f5f9;">◀ Back</button>
+            <h2 style="margin:0; color:#003366; font-size: 18px;">Team Spare Parts</h2>
+            <div style="width: 50px;"></div> </div>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search material or staff..." oninput="filterTeamTable()">
+        </div>
+
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product & Holder</th>
+                        <th style="text-align:center;">Qty</th>
+                    </tr>
+                </thead>
+                <tbody id="team-data-body">
+                    <tr><td colspan="2" align="center">⌛ Loading team inventory...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let fullTeamData = [];
+        const teamMembers = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+
+        async function loadTeamData() {
+            const tbody = document.getElementById('team-data-body');
+            try {
+                // ดึงข้อมูลโดยใช้ API เดิมที่มีใน app.js
+                const response = await fetch(`${API}?action=read`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    // กรองเฉพาะแถวที่พนักงานคนใดคนหนึ่งในทีมมีของอยู่ > 0
+                    fullTeamData = result.data.filter(row => {
+                        return teamMembers.some(member => Number(row[member] || 0) > 0);
+                    });
+                    renderTeamTable(fullTeamData);
+                }
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="2" align="center" style="color:red;">❌ Connection Error</td></tr>';
+            }
+        }
+
+        function renderTeamTable(data) {
+            const tbody = document.getElementById('team-data-body');
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" align="center">No spare parts currently with team members.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(item => {
+                // หาว่าใครบ้างที่มีของชิ้นนี้
+                teamMembers.forEach(member => {
+                    const qty = Number(item[member] || 0);
+                    if (qty > 0) {
+                        html += `
+                            <tr>
+                                <td>
+                                    <div style="font-weight:bold; color:#003366;">${item.Material}</div>
+                                    <div style="font-size:12px; color:#64748b; margin-bottom:5px;">${item['Product Name']}</div>
+                                    <span class="user-tag">👤 ${member}</span>
+                                </td>
+                                <td align="center">
+                                    <span class="qty-badge">${qty}</span>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                });
+            });
+            tbody.innerHTML = html;
+        }
+
+        function filterTeamTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = fullTeamData.filter(item => 
+                String(item.Material).toLowerCase().includes(query) || 
+                String(item['Product Name']).toLowerCase().includes(query) ||
+                teamMembers.some(m => m.toLowerCase().includes(query) && Number(item[m] || 0) > 0)
+            );
+            renderTeamTable(filtered);
+        }
+    </script>
+</body>
+</html>
