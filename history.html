@@ -29,7 +29,6 @@
             <button onclick="location.href='user-select.html'" class="btn-sm" style="background:#fff; border:1px solid #ddd;">◀ Back</button>
             <h2 style="margin:0; color:var(--brand); font-size: 20px;">History Events</h2>
         </div>
-
         <div id="history-list">
             <div style="text-align:center; padding:50px; color:#94a3b8;">⌛ Loading history logs...</div>
         </div>
@@ -47,9 +46,10 @@
 
                 if (res.success && res.data.length > 0) {
                     listNode.innerHTML = res.data.map(item => {
-                        const type = String(item['Transaction Type'] || '').toLowerCase().replace(' ', '_');
+                        const typeLabel = item['Transaction Type'] || '';
+                        const typeClass = typeLabel.toLowerCase().replace(' ', '_');
                         return `
-                            <div class="history-item type-${type}">
+                            <div class="history-item type-${typeClass}">
                                 <div style="flex:1; padding-right:10px;">
                                     <span class="time-stamp">${item['Date and Time'] || ''}</span>
                                     <div style="margin-bottom: 5px;">
@@ -58,7 +58,7 @@
                                     </div>
                                     <div style="display:flex; align-items:center; gap:10px;">
                                         <span class="user-tag">👤 ${item['User'] || ''}</span>
-                                        <span style="font-size:11px; font-weight:bold; color:var(--accent);">${item['Transaction Type'] || ''}</span>
+                                        <span style="font-size:11px; font-weight:bold; color:var(--accent);">${typeLabel}</span>
                                     </div>
                                 </div>
                                 <div class="qty-circle">${item['Qty'] || 0}</div>
@@ -66,7 +66,7 @@
                         `;
                     }).join('');
                 } else {
-                    listNode.innerHTML = '<div style="text-align:center; padding:50px; color:#94a3b8;">No transaction history found.</div>';
+                    listNode.innerHTML = '<div style="text-align:center; padding:50px; color:#94a3b8;">No history found.</div>';
                 }
             } catch (e) {
                 listNode.innerHTML = '<div style="text-align:center; padding:50px; color:var(--danger);">❌ Connection Error. Please re-deploy Script or check URL.</div>';
