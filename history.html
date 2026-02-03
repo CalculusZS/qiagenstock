@@ -1,75 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QIAGEN - History</title>
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        body { background: #f8fafc; font-family: sans-serif; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; }
-        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
-        .type-withdraw { border-left-color: #ef4444; }
-        .type-return { border-left-color: #22c55e; }
-        .type-transfer { border-left-color: #3b82f6; }
-        .date { font-size: 11px; color: #94a3b8; }
-        .mat { font-weight: bold; color: #003366; }
-        .qty { background: #003366; color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .error-msg { background: #fee2e2; border: 1px solid #ef4444; color: #b91c1c; padding: 15px; border-radius: 8px; text-align: center; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
-            <a href="user-select.html" style="text-decoration:none; color:#64748b;">◀ Back</a>
-            <h2 style="margin:0; color:#003366;">History Events</h2>
-        </div>
-        <div id="list">Loading...</div>
-    </div>
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxdUDS2xiQuijTCLkAOcvR5X1SzG3WH4nbKfjsC687rW4seMdIDqr7_9KWDXp8G5e0p7g/exec";
+    const PASS = "Service";
 
-    <script>
-        // *** เปลี่ยน URL ตรงนี้เป็น Web App URL ล่าสุดของคุณ ***
-        const API_URL = "https://script.google.com/macros/s/AKfycbwF9kNWdNa_-nqnFcJFqtYQJAmrsfmkewOUp3S7K4b63fzyjwQuTq15GbEbFnDHv-Q0Pw/exec";
-        const PASS = "Service";
+    async function loadHistory() {
+        const listDiv = document.getElementById('list'); // เปลี่ยน ID ให้ตรงกับใน HTML ของคุณ
+        try {
+            // เพิ่ม t=${Date.now()} เพื่อป้องกัน Cache
+            const response = await fetch(`${API_URL}?action=gethistory&password=${PASS}&t=${Date.now()}`);
+            const res = await response.json();
 
-        async function loadHistory() {
-            const listDiv = document.getElementById('list');
-            try {
-                // เติมพารามิเตอร์เพื่อเลี่ยง Cache
-                const resp = await fetch(`${API_URL}?action=gethistory&password=${PASS}&t=${Date.now()}`);
-                const res = await resp.json();
-
-                if (!res.success) throw new Error(res.msg);
-
-                if (res.data.length === 0) {
-                    listDiv.innerHTML = "No history found.";
-                    return;
-                }
-
-                listDiv.innerHTML = res.data.map(item => {
-                    const type = (item['Transaction Type'] || '').toLowerCase();
-                    return `
-                        <div class="card type-${type}">
-                            <div>
-                                <span class="date">${item['Date and Time']}</span><br>
-                                <span class="mat">${item['Material']}</span> - <span style="font-size:13px;">${item['Product Name']}</span><br>
-                                <span style="font-size:12px; color:#64748b;">👤 ${item['User']} | 🏷️ ${item['Transaction Type']}</span>
-                            </div>
-                            <div class="qty">${item['Qty']}</div>
-                        </div>
-                    `;
-                }).join('');
-
-            } catch (err) {
-                listDiv.innerHTML = `
-                    <div class="error-msg">
-                        <strong>❌ CORS or Connection Error</strong><br>
-                        <small>${err.message}</small><br><br>
-                        <a href="${API_URL}?action=gethistory&password=${PASS}" target="_blank" style="font-size:12px;">Click to test API directly</a>
-                    </div>`;
+            if (!res.success) {
+                listDiv.innerHTML = `<p style="color:red">Error: ${res.msg}</p>`;
+                return;
             }
+
+            if (res.data.length === 0) {
+                listDiv.innerHTML = "No history records found.";
+                return;
+            }
+
+            // แสดงผลข้อมูล (ปรับแต่ง CSS ตามชอบ)
+            listDiv.innerHTML = res.data.map(item => `
+                <div class="card">
+                    <small>${item['Date and Time']}</small><br>
+                    <strong>${item['Material']}</strong> - ${item['Product Name']}<br>
+                    <span>Qty: ${item['Qty']} | User: ${item['User']}</span><br>
+                    <em style="color:blue">${item['Transaction Type']}</em>
+                </div>
+                <hr>
+            `).join('');
+
+        } catch (err) {
+            console.error("CORS Error:", err);
+            listDiv.innerHTML = "API Connection Error. Please check if the URL is correct and deployed as 'Anyone'.";
         }
-        loadHistory();
-    </script>
-</body>
-</html>
+    }
+    loadHistory();
+</script>
