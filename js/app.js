@@ -1,5 +1,5 @@
 /* ===== 1. Configuration ===== */
-const API = "https://script.google.com/macros/s/AKfycbz1r6sNyuVeIr5tWrOnEduVtzzNmWIrFPwLgs6UchX24U2wVspNIZoU2lxnLa74tVDI/exec";           
+const API = "https://script.google.com/macros/s/AKfycbx6YxykZ_JYerudSjfSODxhr4dSpfpKxohja91yEubrDTMl413FZTpgbmmT3WERGdZ9/exec";           
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 const TIMEOUT_MS = 5 * 60 * 1000; 
@@ -50,6 +50,7 @@ window.loadStockData = async function(type) {
     if(tbody) tbody.innerHTML = '<tr><td colspan="4" align="center">⌛ Loading Data...</td></tr>';
     
     try {
+        // เพิ่ม _t เพื่อป้องกัน Browser จำค่าเก่า (Cache)
         const response = await fetch(`${API}?action=read&password=${PASSWORD}&_t=${new Date().getTime()}`);
         const res = await response.json();
         if (res.success) {
@@ -57,7 +58,7 @@ window.loadStockData = async function(type) {
             if (document.getElementById('data')) window.renderTable(rows, type);
             if (document.getElementById('staff-data')) window.renderStaffInventory(rows);
             
-            // Activate Search Lookup
+            // *** แก้ไข: เพิ่มบรรทัดนี้เพื่อให้ระบบค้นหาเริ่มทำงาน ***
             window.setupAdminLookup(); 
         }
     } catch (e) { console.error("Error:", e); }
@@ -136,42 +137,32 @@ window.doAction = async function(mat, mode) {
     } catch (e) { alert("Network Error"); }
 };
 
-window.doSupAdd = async function() {
-    const mat = document.getElementById('s_mat').value.trim();
-    const qty = document.getElementById('s_qty').value;
-    if(!mat || !qty) { alert("Please fill all fields"); return; }
-    try {
-        const res = await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&_t=${new Date().getTime()}`).then(r=>r.json());
-        if(res.success) { alert("✅ Stock Added!"); location.reload(); } else { alert("❌ " + res.msg); }
-    } catch(e) { alert("Connection Error"); }
-};
-
 window.doSupDeduct = async function(mat, user, tid) {
-    const qtyInput = document.getElementById(tid);
-    const qty = qtyInput ? qtyInput.value : 0;
+    const qty = document.getElementById(tid).value;
     try {
         const res = await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}&_t=${new Date().getTime()}`).then(r => r.json());
-        if (res.success) { alert("✅ Success!"); window.loadStockData(); } else { alert("❌ Error: " + res.msg); }
+        if (res.success) { alert("✅ Success!"); window.loadStockData(); } else { alert("❌ Error"); }
     } catch (e) { alert("Error"); }
 };
 
-window.doTransfer = async function() {
-    const mat = document.getElementById('t_mat').value.trim();
-    const from = document.getElementById('t_from').value;
-    const to = document.getElementById('t_to').value;
-    const qty = document.getElementById('t_qty').value;
-    if(!mat || from === to || !qty) { alert("Check your inputs (From and To must be different)"); return; }
+// เพิ่มฟังก์ชัน Add Stock ที่หายไป
+window.doSupAdd = async function() {
+    const mat = document.getElementById('s_mat').value.trim();
+    const qty = document.getElementById('s_qty').value;
+    if(!mat || !qty) { alert("กรุณากรอกข้อมูลให้ครบ"); return; }
     try {
-        const res = await fetch(`${API}?action=transfer&password=${PASSWORD}&material=${encodeURIComponent(mat)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&qty=${qty}&_t=${new Date().getTime()}`).then(r=>r.json());
-        if(res.success) { alert("✅ Transfer Success!"); location.reload(); } else { alert("❌ " + res.msg); }
-    } catch(e) { alert("Connection Error"); }
+        const res = await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&_t=${new Date().getTime()}`).then(r=>r.json());
+        if(res.success) { alert("✅ Success!"); location.reload(); } else { alert("❌ " + res.msg); }
+    } catch(e) { alert("Error"); }
 };
 
-/* ===== 5. Lookup Logic ===== */
+/* ===== 5. Search Lookup Logic (แก้ไขให้ทำงานอัตโนมัติ) ===== */
 window.setupAdminLookup = function() {
     const matInput = document.getElementById('s_mat');
     const nameDisplay = document.getElementById('s_name_display');
+    
     if (matInput && nameDisplay) {
+        // ใช้ oninput เพื่อให้ค้นหาทันทีที่พิมพ์
         matInput.oninput = function() {
             const val = this.value.trim();
             const item = rows.find(r => String(r.Material) === val);
@@ -181,23 +172,6 @@ window.setupAdminLookup = function() {
             } else {
                 nameDisplay.innerText = val === "" ? "" : "❌ Material not found";
                 nameDisplay.style.color = "#ef4444";
-            }
-        };
-    }
-    
-    // Transfer Lookup
-    const tMatInput = document.getElementById('t_mat');
-    const tNameDisplay = document.getElementById('t_name_display');
-    if (tMatInput && tNameDisplay) {
-        tMatInput.oninput = function() {
-            const val = this.value.trim();
-            const item = rows.find(r => String(r.Material) === val);
-            if (item) {
-                tNameDisplay.innerText = "Product: " + item['Product Name'];
-                tNameDisplay.style.color = "#003366";
-            } else {
-                tNameDisplay.innerText = val === "" ? "" : "❌ Material not found";
-                tNameDisplay.style.color = "#ef4444";
             }
         };
     }
