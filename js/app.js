@@ -1,6 +1,6 @@
 /* ===== 1. Configuration ===== */
 const API = "https://script.google.com/macros/s/AKfycbz1r6sNyuVeIr5tWrOnEduVtzzNmWIrFPwLgs6UchX24U2wVspNIZoU2lxnLa74tVDI/exec";           
-      
+        
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 const TIMEOUT_MS = 5 * 60 * 1000; 
@@ -12,6 +12,7 @@ window.login = function() {
     const passInput = document.getElementById('password');
     if (!passInput) return;
     const val = passInput.value.trim();
+    
     if (val === PASSWORD || val === SUP_PASSWORD) {
         sessionStorage.setItem('isLoggedIn', 'true');
         sessionStorage.setItem('lastActivity', new Date().getTime());
@@ -21,7 +22,9 @@ window.login = function() {
         } else {
             location.href = 'user-select.html';
         }
-    } else { alert('❌ Incorrect Password!'); }
+    } else { 
+        alert('❌ Incorrect Password!'); 
+    }
 };
 
 window.checkAuth = function() {
@@ -44,7 +47,17 @@ window.goBack = () => {
     location.href = (isSup === 'true') ? 'supervisor.html' : 'user-select.html';
 };
 
-/* ===== 3. Loading & Rendering ===== */
+/* ===== 3. Search & Rendering ===== */
+// ฟังก์ชันค้นหาอัตโนมัติสำหรับหน้า showall, withdraw, return
+window.searchStock = function(query, type) {
+    const q = query.toLowerCase().trim();
+    const filtered = rows.filter(r => {
+        return String(r.Material).toLowerCase().includes(q) || 
+               String(r['Product Name']).toLowerCase().includes(q);
+    });
+    window.renderTable(filtered, type);
+};
+
 window.loadStockData = async function(type) {
     if (!window.checkAuth()) return;
     const tbody = document.getElementById('data') || document.getElementById('staff-data');
@@ -58,23 +71,10 @@ window.loadStockData = async function(type) {
             if (document.getElementById('data')) window.renderTable(rows, type);
             if (document.getElementById('staff-data')) window.renderStaffInventory(rows);
             
-            // Activate Auto-Lookup for Supervisor/Transfer
+            // Activate Lookup for Supervisor/Transfer
             window.setupAdminLookup(); 
         }
     } catch (e) { console.error("Error:", e); }
-};
-
-window.initTeamStock = () => window.loadStockData('all');
-
-// ฟังก์ชันค้นหาในหน้าตาราง (Showall, Withdraw, Return)
-window.searchStock = function(query, type) {
-    const q = query.toLowerCase().trim();
-    const filtered = rows.filter(r => {
-        return String(r.Material).toLowerCase().includes(q) || 
-               String(r['Product Name']).toLowerCase().includes(q) ||
-               String(r['Instrument']).toLowerCase().includes(q);
-    });
-    window.renderTable(filtered, type);
 };
 
 window.renderTable = function(data, type) {
@@ -114,6 +114,7 @@ window.renderTable = function(data, type) {
     }).join('');
 };
 
+/* ===== 4. Admin & Staff Actions ===== */
 window.renderStaffInventory = function(data) {
     const tbody = document.getElementById('staff-data');
     if (!tbody) return;
@@ -134,7 +135,6 @@ window.renderStaffInventory = function(data) {
     tbody.innerHTML = html || '<tr><td colspan="4" align="center">No staff inventory found</td></tr>';
 };
 
-/* ===== 4. Actions ===== */
 window.doAction = async function(mat, mode) {
     if (!window.checkAuth()) return;
     const user = sessionStorage.getItem('selectedUser');
@@ -152,7 +152,6 @@ window.doSupAdd = async function() {
     if(!matInput || !qtyInput) return;
     const mat = matInput.value.trim();
     const qty = qtyInput.value;
-    if(!mat || !qty) { alert("Please fill all fields"); return; }
     try {
         const res = await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&_t=${new Date().getTime()}`).then(r=>r.json());
         if(res.success) { alert("✅ Stock Added!"); location.reload(); } else { alert("❌ " + res.msg); }
@@ -167,42 +166,21 @@ window.doSupDeduct = async function(mat, user, tid) {
     } catch (e) { alert("Error"); }
 };
 
-window.doTransfer = async function() {
-    const mat = document.getElementById('t_mat').value.trim();
-    const from = document.getElementById('t_from').value;
-    const to = document.getElementById('t_to').value;
-    const qty = document.getElementById('t_qty').value;
-    if(!mat || from === to || !qty) { alert("Invalid Transfer Data"); return; }
-    try {
-        const res = await fetch(`${API}?action=transfer&password=${PASSWORD}&material=${encodeURIComponent(mat)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&qty=${qty}&_t=${new Date().getTime()}`).then(r=>r.json());
-        if(res.success) { alert("✅ Transfer Success!"); location.reload(); } else { alert("❌ " + res.msg); }
-    } catch(e) { alert("Error"); }
-};
-
-/* ===== 5. Lookup Logic (Auto-Search Name) ===== */
+/* ===== 5. Auto Lookup for Supervisor Page ===== */
 window.setupAdminLookup = function() {
-    const config = [
-        { inputId: 's_mat', displayId: 's_name_display' }, // Supervisor Add Stock
-        { inputId: 't_mat', displayId: 't_name_display' }  // Transfer
-    ];
-
-    config.forEach(cfg => {
-        const matInput = document.getElementById(cfg.inputId);
-        const nameDisplay = document.getElementById(cfg.displayId);
-        if (matInput && nameDisplay) {
-            matInput.oninput = function() {
-                const val = this.value.trim();
-                const item = rows.find(r => String(r.Material) === val);
-                if (item) {
-                    nameDisplay.innerText = "Product: " + item['Product Name'];
-                    nameDisplay.style.color = "#003366";
-                } else {
-                    nameDisplay.innerText = val === "" ? "" : "❌ Material not found";
-                    nameDisplay.style.color = "#ef4444";
-                }
-            };
-        }
-    });
-};
-    } catch(e) { alert("Error"); }
+    const matInput = document.getElementById('s_mat');
+    const nameDisplay = document.getElementById('s_name_display');
+    if (matInput && nameDisplay) {
+        matInput.oninput = function() {
+            const val = this.value.trim();
+            const item = rows.find(r => String(r.Material) === val);
+            if (item) {
+                nameDisplay.innerText = "Product: " + item['Product Name'];
+                nameDisplay.style.color = "#003366";
+            } else {
+                nameDisplay.innerText = val === "" ? "" : "❌ Material not found";
+                nameDisplay.style.color = "#ef4444";
+            }
+        };
+    }
 };
