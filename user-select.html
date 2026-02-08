@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select User - Qiagen</title>
-    <link rel="stylesheet" href="css/style.css">
     <style>
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f7fa; margin: 0; color: #1e293b; }
         .nav-header { background: #003366; color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -29,23 +28,27 @@
             gap: 10px; margin-top: 15px; font-size: 16px; transition: 0.2s;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
+
+        /* 1. View All Part */
         .btn-all { background: #64748b; color: white; }
         .btn-all:hover { background: #475569; }
         
-        .btn-sup { background: #0f172a; color: white; }
-        .btn-sup:hover { background: #1e293b; }
-
-        .btn-excel { background: #ffffff; color: #15803d; border: 2px solid #15803d; }
-        .btn-excel:hover { background: #f0fdf4; }
-        
+        /* 2. Team Spare Part */
         .btn-team { background: #2563eb; color: white; }
         .btn-team:hover { background: #1d4ed8; }
 
-        /* --- สไตล์สำหรับปุ่ม History --- */
+        /* 3. Supervisor Access */
+        .btn-sup { background: #0f172a; color: white; }
+        .btn-sup:hover { background: #1e293b; }
+
+        /* 4. History Event */
         .btn-history { background: #ffffff; color: #475569; border: 1px solid #cbd5e1; }
         .btn-history:hover { background: #f1f5f9; }
-        /* --------------------------- */
 
+        /* 5. Summary Sheet */
+        .btn-excel { background: #ffffff; color: #15803d; border: 2px solid #15803d; }
+        .btn-excel:hover { background: #f0fdf4; }
+        
         .divider { margin: 30px 0; border: none; border-top: 2px solid #cbd5e1; position: relative; text-align: center; }
         .divider::after { content: "Other Options"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #f4f7fa; padding: 0 10px; color: #64748b; font-size: 14px; font-weight: bold; }
         
@@ -72,24 +75,24 @@
 
         <div class="divider"></div>
 
+        <button class="btn-menu btn-all" onclick="location.href='showall.html'">
+            🔍 VIEW ALL PARTS (0243)
+        </button>
+
         <button class="btn-menu btn-team" onclick="location.href='team-stock.html'">
             👥 TEAM SPARE PARTS
+        </button>
+
+        <button class="btn-menu btn-sup" onclick="openSupModal()">
+            🛠️ SUPERVISOR ACCESS
         </button>
 
         <button class="btn-menu btn-history" onclick="location.href='history.html'">
             🕒 VIEW HISTORY EVENTS
         </button>
 
-        <button class="btn-menu btn-all" onclick="location.href='showall.html'">
-            🔍 VIEW ALL PARTS (0243)
-        </button>
-
         <button class="btn-menu btn-excel" onclick="window.open('https://docs.google.com/spreadsheets/d/11do2WhK7yLrg3dG63vGxyJPc8aetCHZApK1fyiFaT9c/edit', '_blank')">
             📊 VIEW SUMMARY SHEET
-        </button>
-
-        <button class="btn-menu btn-sup" onclick="openSupModal()">
-            🛠️ SUPERVISOR ACCESS
         </button>
     </div>
 
@@ -121,6 +124,7 @@
 
         function submitSupLogin() {
             const inputPass = document.getElementById('sup_pass_input').value;
+            // ดึงรหัสผ่านจากแอปหลัก ถ้าไม่มีให้ใช้ค่าเริ่มต้น
             const correctPass = (typeof SUP_PASSWORD !== 'undefined') ? SUP_PASSWORD : "Qiagen";
             if (inputPass === correctPass) {
                 sessionStorage.setItem('isSupervisor', 'true');
