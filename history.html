@@ -1,80 +1,52 @@
 <!DOCTYPE html>
-<html lang="th">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transaction History - View Only</title>
+    <title>History</title>
+    <link rel="stylesheet" href="css/style.css">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; }
-        .header { background-color: #003366; color: white; padding: 15px; text-align: center; position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between; }
-        .container { padding: 15px; max-width: 800px; margin: auto; }
-        .btn-back { background: #64748b; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
-        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #003366; }
-        .log-date { color: #666; font-size: 0.85em; display: block; margin-bottom: 5px; }
-        .log-details { font-size: 1.1em; margin: 5px 0; }
-        .log-info { color: #444; font-size: 0.9em; }
-        .type-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8em; text-transform: uppercase; margin-top: 5px; }
-        .WITHDRAW { background: #fee2e2; color: #b91c1c; }
-        .RETURN { background: #dcfce7; color: #15803d; }
-        .TRANSFER { background: #fef9c3; color: #854d0e; }
-        .loading { text-align: center; padding: 50px; color: #666; }
+        .card-log { background:white; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #003366; }
+        .WITHDRAW { color: #b91c1c; font-weight: bold; }
+        .RETURN { color: #15803d; font-weight: bold; }
     </style>
 </head>
 <body onload="loadHistory()">
-
-    <div class="header">
-        <button class="btn-back" onclick="window.history.back()">◀ Back</button>
-        <strong style="font-size: 1.2em;">ประวัติการทำรายการ</strong>
-        <div style="width: 60px;"></div>
+    <div class="header" style="background:#003366; color:white; padding:15px; display:flex; align-items:center;">
+        <button onclick="window.history.back()" style="background:none; border:none; color:white; cursor:pointer;">◀ Back</button>
+        <b style="margin-left:15px;">Transaction History</b>
     </div>
 
-    <div class="container" id="list">
-        <div class="loading">⌛ กำลังโหลดประวัติจากระบบ...</div>
+    <div class="container" id="list" style="padding:15px;">
+        <p align="center">⌛ Loading History...</p>
     </div>
 
     <script>
-        // ใช้ URL ล่าสุดที่คุณยืนยันว่าใช้งานได้
-        const API_URL = "https://script.google.com/macros/s/AKfycbzBDmcC07-2UEIYq7XmpALt9zqcBzrkOU5hDb0BdeXTi5_VK_T2ERR1H_g7AXVpdCw/exec";
+        const API = "https://script.google.com/macros/s/AKfycbzBDmcC07-2UEIYq7XmpALt9zqcBzrkOU5hDb0BdeXTi5_VK_T2ERR1H_g7AXVpdCZw/exec";
         const PASS = "Service";
 
         async function loadHistory() {
             const listDiv = document.getElementById('list');
             try {
-                // เรียก action=gethistory โดยส่ง password ไปด้วย
-                const response = await fetch(`${API_URL}?action=gethistory&password=${PASS}&t=${Date.now()}`);
+                const response = await fetch(`${API}?action=gethistory&password=${PASS}&t=${Date.now()}`);
                 const res = await response.json();
+                if (!res.success) { listDiv.innerHTML = "Error: " + res.msg; return; }
 
-                if (!res.success) {
-                    listDiv.innerHTML = `<div class="card" style="border-left-color:red;">❌ ไม่สามารถโหลดข้อมูลได้: ${res.msg}</div>`;
-                    return;
-                }
+                // ฟังก์ชันช่วยดึงค่าแบบไม่สนตัวเล็กใหญ่ (Case-insensitive)
+                const getVal = (obj, key) => {
+                    const found = Object.keys(obj).find(k => k.trim().toLowerCase() === key.toLowerCase());
+                    return found ? obj[found] : "-";
+                };
 
-                if (!res.data || res.data.length === 0) {
-                    listDiv.innerHTML = `<div class="card">📭 ยังไม่มีบันทึกประวัติในขณะนี้</div>`;
-                    return;
-                }
-
-                // วนลูปโชว์ข้อมูล
-                listDiv.innerHTML = res.data.map(item => {
-                    const typeClass = item['Transaction Type'] || '';
-                    return `
-                        <div class="card">
-                            <span class="log-date">📅 ${item['Date and Time'] || 'ไม่ระบุวันที่'}</span>
-                            <div class="log-details">
-                                <strong>${item['Material'] || '-'}</strong> : ${item['Product Name'] || '-'}
-                            </div>
-                            <div class="log-info">
-                                👤 ผู้ทำรายการ: <b>${item['User'] || '-'}</b> | จำนวน: <b>${item['Qty'] || 0}</b>
-                            </div>
-                            <span class="type-tag ${typeClass}">${item['Transaction Type'] || 'N/A'}</span>
-                        </div>
-                    `;
-                }).join('');
-
-            } catch (err) {
-                console.error(err);
-                listDiv.innerHTML = `<div class="card" style="border-left-color:red;">⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อกับ Google Sheets</div>`;
-            }
+                listDiv.innerHTML = res.data.map(item => `
+                    <div class="card-log">
+                        <small style="color:gray;">📅 ${getVal(item, 'Date and Time')}</small><br>
+                        <strong>${getVal(item, 'Material')}</strong> - ${getVal(item, 'Product Name')}<br>
+                        <span>Qty: <b>${getVal(item, 'Qty')}</b> | User: ${getVal(item, 'User')}</span><br>
+                        <span class="${getVal(item, 'Transaction Type').toUpperCase()}">${getVal(item, 'Transaction Type')}</span>
+                    </div>
+                `).join('');
+            } catch (err) { listDiv.innerHTML = "⚠️ API Connection Error"; }
         }
     </script>
 </body>
