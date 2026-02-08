@@ -1,5 +1,5 @@
 /* ===== 1. Configuration ===== */
-const API = "https://script.google.com/macros/s/AKfycbwgfko90SYTdgP_7g5fO_1Nd5Cg20KoAG2u2KxhyoWkthq8yMq8o_Bj1NATqQYdp1xN/exec";           
+const API = "https://script.google.com/macros/s/AKfycbx6YxykZ_JYerudSjfSODxhr4dSpfpKxohja91yEubrDTMl413FZTpgbmmT3WERGdZ9/exec";           
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 const TIMEOUT_MS = 5 * 60 * 1000; 
@@ -50,7 +50,8 @@ window.loadStockData = async function(type) {
     if(tbody) tbody.innerHTML = '<tr><td colspan="4" align="center">⌛ Loading Data...</td></tr>';
     
     try {
-        const response = await fetch(`${API}?action=read&password=${PASSWORD}`);
+        // FIX: Added timestamp to prevent browser caching old data
+        const response = await fetch(`${API}?action=read&password=${PASSWORD}&_t=${new Date().getTime()}`);
         const res = await response.json();
         if (res.success) {
             rows = res.data;
@@ -61,7 +62,6 @@ window.loadStockData = async function(type) {
     } catch (e) { console.error("Error:", e); }
 };
 
-// ฟังก์ชันสำหรับหน้า Team Spare Parts ที่ Error ในรูปของคุณ
 window.initTeamStock = () => window.loadStockData('all');
 
 window.renderTable = function(data, type) {
@@ -101,18 +101,17 @@ window.renderTable = function(data, type) {
     }).join('');
 };
 
-/* ===== 4. Staff Inventory (คอลัมน์ I-N) ===== */
 window.renderStaffInventory = function(data) {
     const tbody = document.getElementById('staff-data');
     if (!tbody) return;
     
-    // รายชื่อ Staff ที่ตรงกับหัวคอลัมน์ I-N ใน Sheet ของคุณ
+    // STAFF_LIST matching columns I-N in Sheet
     const STAFF_LIST = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat']; 
     let html = '';
     
     data.forEach(row => {
         STAFF_LIST.forEach(user => {
-            const val = Number(row[user] || 0); // ดึงค่าจากคอลัมน์ที่เป็นรหัส
+            const val = Number(row[user] || 0); 
             if (val > 0) {
                 const tid = `ed_${row.Material}_${user}`;
                 html += `<tr><td><b style="color:#003366;">${row.Material}</b><br><small>${row['Product Name']}</small></td>
@@ -125,14 +124,13 @@ window.renderStaffInventory = function(data) {
     tbody.innerHTML = html || '<tr><td colspan="4" align="center">No staff inventory found</td></tr>';
 };
 
-/* ===== 5. Actions ===== */
 window.doAction = async function(mat, mode) {
     if (!window.checkAuth()) return;
     const user = sessionStorage.getItem('selectedUser');
     const qtyInput = document.getElementById(`q_${mat}`);
     const qty = qtyInput ? qtyInput.value : 1;
     try {
-        const res = await fetch(`${API}?action=${mode}&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}`).then(r=>r.json());
+        const res = await fetch(`${API}?action=${mode}&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}&_t=${new Date().getTime()}`).then(r=>r.json());
         if (res.success) { alert("✅ Success!"); window.loadStockData(mode); } else { alert("❌ Error: " + res.msg); }
     } catch (e) { alert("Network Error"); }
 };
@@ -140,7 +138,25 @@ window.doAction = async function(mat, mode) {
 window.doSupDeduct = async function(mat, user, tid) {
     const qty = document.getElementById(tid).value;
     try {
-        const res = await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}`).then(r => r.json());
+        const res = await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}&_t=${new Date().getTime()}`).then(r => r.json());
         if (res.success) { alert("✅ Success!"); window.loadStockData(); } else { alert("❌ Error"); }
     } catch (e) { alert("Error"); }
+};
+
+window.setupAdminLookup = function() {
+    const matInput = document.getElementById('s_mat');
+    const nameDisplay = document.getElementById('s_name_display');
+    if (matInput && nameDisplay) {
+        matInput.addEventListener('input', function() {
+            const val = this.value.trim();
+            const item = rows.find(r => String(r.Material) === val);
+            if (item) {
+                nameDisplay.innerText = "Product: " + item['Product Name'];
+                nameDisplay.style.color = "#003366";
+            } else {
+                nameDisplay.innerText = val === "" ? "" : "❌ Material not found";
+                nameDisplay.style.color = "#ef4444";
+            }
+        });
+    }
 };
