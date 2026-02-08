@@ -43,14 +43,42 @@ window.goBack = () => {
     location.href = (isSup === 'true') ? 'supervisor.html' : 'user-select.html';
 };
 
-/* ===== 3. Loading & Rendering ===== */
+/* ===== 3. Global Auto-Lookup Logic (จุดที่แก้ไขให้ค้นหาอัตโนมัติทุกหน้า) ===== */
+window.initGlobalLookup = function() {
+    // รายชื่อ ID ของช่อง Input และที่แสดงผลชื่อสินค้าในหน้าต่างๆ
+    const searchConfig = [
+        { inputId: 's_mat', displayId: 's_name_display' }, // หน้า Supervisor (Add Stock)
+        { inputId: 't_mat', displayId: 't_name_display' }  // หน้า Transfer
+    ];
+
+    searchConfig.forEach(config => {
+        const matInput = document.getElementById(config.inputId);
+        const nameDisplay = document.getElementById(config.displayId);
+
+        if (matInput && nameDisplay) {
+            matInput.addEventListener('input', function() {
+                const val = this.value.trim();
+                const item = rows.find(r => String(r.Material) === val);
+                if (item) {
+                    nameDisplay.innerText = "Product: " + item['Product Name'];
+                    nameDisplay.style.color = "#003366";
+                    nameDisplay.style.fontWeight = "bold";
+                } else {
+                    nameDisplay.innerText = val === "" ? "" : "❌ Material not found";
+                    nameDisplay.style.color = "#ef4444";
+                }
+            });
+        }
+    });
+};
+
+/* ===== 4. Loading & Rendering ===== */
 window.loadStockData = async function(type) {
     if (!window.checkAuth()) return;
     const tbody = document.getElementById('data') || document.getElementById('staff-data');
     if(tbody) tbody.innerHTML = '<tr><td colspan="4" align="center">⌛ Loading Data...</td></tr>';
     
     try {
-        // เพิ่ม _t เพื่อป้องกัน Browser จำค่าเก่า (Cache)
         const response = await fetch(`${API}?action=read&password=${PASSWORD}&_t=${new Date().getTime()}`);
         const res = await response.json();
         if (res.success) {
@@ -58,8 +86,8 @@ window.loadStockData = async function(type) {
             if (document.getElementById('data')) window.renderTable(rows, type);
             if (document.getElementById('staff-data')) window.renderStaffInventory(rows);
             
-            // *** แก้ไข: เพิ่มบรรทัดนี้เพื่อให้ระบบค้นหาเริ่มทำงาน ***
-            window.setupAdminLookup(); 
+            // เรียกใช้งานค้นหาอัตโนมัติทันทีที่โหลดข้อมูลเสร็จ
+            window.initGlobalLookup(); 
         }
     } catch (e) { console.error("Error:", e); }
 };
@@ -106,10 +134,8 @@ window.renderTable = function(data, type) {
 window.renderStaffInventory = function(data) {
     const tbody = document.getElementById('staff-data');
     if (!tbody) return;
-    
     const STAFF_LIST = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat']; 
     let html = '';
-    
     data.forEach(row => {
         STAFF_LIST.forEach(user => {
             const val = Number(row[user] || 0); 
@@ -125,7 +151,7 @@ window.renderStaffInventory = function(data) {
     tbody.innerHTML = html || '<tr><td colspan="4" align="center">No staff inventory found</td></tr>';
 };
 
-/* ===== 4. Actions ===== */
+/* ===== 5. Actions (ครบทุกฟังก์ชันเดิม) ===== */
 window.doAction = async function(mat, mode) {
     if (!window.checkAuth()) return;
     const user = sessionStorage.getItem('selectedUser');
@@ -145,34 +171,24 @@ window.doSupDeduct = async function(mat, user, tid) {
     } catch (e) { alert("Error"); }
 };
 
-// เพิ่มฟังก์ชัน Add Stock ที่หายไป
 window.doSupAdd = async function() {
     const mat = document.getElementById('s_mat').value.trim();
     const qty = document.getElementById('s_qty').value;
-    if(!mat || !qty) { alert("กรุณากรอกข้อมูลให้ครบ"); return; }
+    if(!mat || !qty) { alert("Please fill all fields"); return; }
     try {
         const res = await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&_t=${new Date().getTime()}`).then(r=>r.json());
         if(res.success) { alert("✅ Success!"); location.reload(); } else { alert("❌ " + res.msg); }
     } catch(e) { alert("Error"); }
 };
 
-/* ===== 5. Search Lookup Logic (แก้ไขให้ทำงานอัตโนมัติ) ===== */
-window.setupAdminLookup = function() {
-    const matInput = document.getElementById('s_mat');
-    const nameDisplay = document.getElementById('s_name_display');
-    
-    if (matInput && nameDisplay) {
-        // ใช้ oninput เพื่อให้ค้นหาทันทีที่พิมพ์
-        matInput.oninput = function() {
-            const val = this.value.trim();
-            const item = rows.find(r => String(r.Material) === val);
-            if (item) {
-                nameDisplay.innerText = "Product: " + item['Product Name'];
-                nameDisplay.style.color = "#003366";
-            } else {
-                nameDisplay.innerText = val === "" ? "" : "❌ Material not found";
-                nameDisplay.style.color = "#ef4444";
-            }
-        };
-    }
+window.doTransfer = async function() {
+    const mat = document.getElementById('t_mat').value.trim();
+    const from = document.getElementById('t_from').value;
+    const to = document.getElementById('t_to').value;
+    const qty = document.getElementById('t_qty').value;
+    if(!mat || from === to || !qty) { alert("Invalid Transfer Data"); return; }
+    try {
+        const res = await fetch(`${API}?action=transfer&password=${PASSWORD}&material=${encodeURIComponent(mat)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&qty=${qty}&_t=${new Date().getTime()}`).then(r=>r.json());
+        if(res.success) { alert("✅ Transfer Success!"); location.reload(); } else { alert("❌ " + res.msg); }
+    } catch(e) { alert("Error"); }
 };
