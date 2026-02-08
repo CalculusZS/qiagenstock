@@ -3,41 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QIAGEN - History</title>
+    <title>QIAGEN - Transaction History</title>
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 0; }
-        .header { background: #003366; color: white; padding: 15px; display: flex; align-items: center; position: sticky; top:0; z-index:100; }
-        .back-btn { background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:4px; cursor:pointer; margin-right:15px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; margin: 0; }
+        .header { background: #003366; color: white; padding: 15px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .back-btn { background: none; border: 1px solid white; color: white; padding: 5px 12px; border-radius: 4px; cursor: pointer; }
         
-        /* สไตล์แบบแถวเดียว */
-        .history-container { background: white; margin: 10px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .history-item { display: flex; padding: 12px 10px; border-bottom: 1px solid #eee; align-items: center; font-size: 13px; }
-        .history-item:last-child { border-bottom: none; }
+        .container { padding: 10px; }
+        .history-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
-        .col-left { flex: 0 0 85px; font-size: 11px; color: #64748b; } /* วันที่ */
-        .col-mid { flex: 1; padding: 0 10px; } /* ข้อมูลสินค้า */
-        .col-right { flex: 0 0 70px; text-align: right; } /* จำนวนและประเภท */
+        /* สไตล์แถวเดียวแบบ List */
+        .history-row { 
+            display: flex; 
+            padding: 12px 10px; 
+            border-bottom: 1px solid #edf2f7; 
+            align-items: center; 
+            font-size: 12px;
+            flex-wrap: nowrap;
+        }
+        .history-row:nth-child(even) { background: #fcfcfc; }
         
-        .mat-id { font-weight: bold; color: #1e293b; display: block; }
-        .p-name { color: #64748b; font-size: 11px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
-        .qty-badge { font-weight: bold; font-size: 14px; }
-        .user-info { font-size: 11px; color: #003366; display: block; }
-        
+        /* กำหนดความกว้างคอลัมน์ */
+        .col-date { flex: 0 0 100px; color: #64748b; }
+        .col-mat { flex: 0 0 80px; font-weight: bold; color: #003366; }
+        .col-inst { flex: 0 0 90px; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .col-pname { flex: 1; color: #1e293b; padding-right: 10px; }
+        .col-type { flex: 0 0 80px; text-align: center; }
+        .col-qty { flex: 0 0 40px; text-align: center; font-weight: bold; font-size: 14px; }
+        .col-user { flex: 0 0 80px; text-align: right; color: #003366; font-weight: 500; }
+
         /* สีแยกประเภท */
-        .WITHDRAW { color: #ef4444; font-weight: bold; font-size: 10px; }
-        .RETURN { color: #22c55e; font-weight: bold; font-size: 10px; }
-        .TRANSFER { color: #a855f7; font-weight: bold; font-size: 10px; }
-        .DEDUCT_USED { color: #f59e0b; font-weight: bold; font-size: 10px; }
+        .type-tag { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .WITHDRAW { background: #fee2e2; color: #b91c1c; }
+        .RETURN { background: #dcfce7; color: #15803d; }
+        .TRANSFER { background: #f3e8ff; color: #7e22ce; }
+        .DEDUCT_USED { background: #fef3c7; color: #92400e; }
+        .ADD_STOCK { background: #e0f2fe; color: #0369a1; }
     </style>
 </head>
 <body onload="loadHistory()">
     <div class="header">
         <button class="back-btn" onclick="window.history.back()">◀ Back</button>
-        <b>Transaction History</b>
+        <b style="margin-left: 15px;">Transaction History</b>
     </div>
 
-    <div class="history-container" id="list">
-        <p align="center" style="padding:20px;">⌛ Loading...</p>
+    <div class="container">
+        <div class="history-row" style="background: #f1f5f9; font-weight: bold; color: #475569; border-bottom: 2px solid #e2e8f0;">
+            <div class="col-date">Date/Time</div>
+            <div class="col-mat">Material</div>
+            <div class="col-inst">Instrument</div>
+            <div class="col-pname">Product Name</div>
+            <div class="col-type">Type</div>
+            <div class="col-qty">Qty</div>
+            <div class="col-user">User</div>
+        </div>
+
+        <div id="list">
+            <p align="center" style="padding: 20px;">⌛ Loading history...</p>
+        </div>
     </div>
 
     <script>
@@ -49,27 +72,27 @@
             try {
                 const response = await fetch(`${API}?action=gethistory&password=${PASS}&t=${Date.now()}`);
                 const res = await response.json();
-                if (!res.success) { listDiv.innerHTML = `<p align="center" style="padding:20px; color:red;">${res.msg}</p>`; return; }
-                if (res.data.length === 0) { listDiv.innerHTML = `<p align="center" style="padding:20px;">No records</p>`; return; }
+                
+                if (!res.success) { listDiv.innerHTML = `<p align="center" style="color:red">${res.msg}</p>`; return; }
+                if (res.data.length === 0) { listDiv.innerHTML = `<p align="center">No data found</p>`; return; }
 
                 listDiv.innerHTML = res.data.map(item => {
                     const type = (item['Transaction Type'] || '').toUpperCase();
                     return `
-                        <div class="history-item">
-                            <div class="col-left">${item['Date and Time']}</div>
-                            <div class="col-mid">
-                                <span class="mat-id">${item['Material']}</span>
-                                <span class="p-name">${item['Product Name']}</span>
+                        <div class="history-row">
+                            <div class="col-date">${item['Date and Time']}</div>
+                            <div class="col-mat">${item['Material']}</div>
+                            <div class="col-inst">${item['Instrument'] || '-'}</div>
+                            <div class="col-pname">${item['Product Name']}</div>
+                            <div class="col-type">
+                                <span class="type-tag ${type}">${type}</span>
                             </div>
-                            <div class="col-right">
-                                <span class="qty-badge">${item['Qty']}</span><br>
-                                <span class="user-info">${item['User']}</span>
-                                <span class="${type}">${type}</span>
-                            </div>
+                            <div class="col-qty">${item['Qty']}</div>
+                            <div class="col-user">${item['User']}</div>
                         </div>
                     `;
                 }).join('');
-            } catch (e) { listDiv.innerHTML = `<p align="center" style="padding:20px;">Connection Error</p>`; }
+            } catch (e) { listDiv.innerHTML = `<p align="center">Connection Error</p>`; }
         }
     </script>
 </body>
