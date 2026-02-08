@@ -9,34 +9,29 @@
         .header { background: #003366; color: white; padding: 15px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; }
         .back-btn { background: none; border: 1px solid white; color: white; padding: 5px 12px; border-radius: 4px; cursor: pointer; }
         
-        .container { padding: 10px; }
-        .history-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        
-        /* สไตล์แถวเดียวแบบ List */
+        .container { padding: 10px; width: 100%; box-sizing: border-box; }
         .history-row { 
             display: flex; 
             padding: 12px 10px; 
             border-bottom: 1px solid #edf2f7; 
             align-items: center; 
-            font-size: 12px;
-            flex-wrap: nowrap;
+            font-size: 13px;
+            min-width: 900px; /* เพื่อให้คอลัมน์ไม่เบียดกันเกินไปในจอเล็ก */
         }
-        .history-row:nth-child(even) { background: #fcfcfc; }
-        
-        /* กำหนดความกว้างคอลัมน์ */
-        .col-date { flex: 0 0 100px; color: #64748b; }
-        .col-mat { flex: 0 0 80px; font-weight: bold; color: #003366; }
-        .col-inst { flex: 0 0 90px; color: #475569; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .col-pname { flex: 1; color: #1e293b; padding-right: 10px; }
-        .col-type { flex: 0 0 80px; text-align: center; }
-        .col-qty { flex: 0 0 40px; text-align: center; font-weight: bold; font-size: 14px; }
-        .col-user { flex: 0 0 80px; text-align: right; color: #003366; font-weight: 500; }
+        .scroll-wrapper { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        /* สีแยกประเภท */
-        .type-tag { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        /* ปรับความกว้างช่อง Date/Time เป็น 2 เท่า (200px) */
+        .col-date { flex: 0 0 200px; color: #475569; font-weight: 500; }
+        .col-mat { flex: 0 0 90px; font-weight: bold; color: #003366; }
+        .col-inst { flex: 0 0 100px; color: #64748b; }
+        .col-pname { flex: 1; color: #1e293b; min-width: 200px; }
+        .col-type { flex: 0 0 100px; text-align: center; }
+        .col-qty { flex: 0 0 50px; text-align: center; font-weight: bold; }
+        .col-user { flex: 0 0 100px; text-align: right; color: #003366; }
+
+        .type-tag { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
         .WITHDRAW { background: #fee2e2; color: #b91c1c; }
         .RETURN { background: #dcfce7; color: #15803d; }
-        .TRANSFER { background: #f3e8ff; color: #7e22ce; }
         .DEDUCT_USED { background: #fef3c7; color: #92400e; }
         .ADD_STOCK { background: #e0f2fe; color: #0369a1; }
     </style>
@@ -48,51 +43,44 @@
     </div>
 
     <div class="container">
-        <div class="history-row" style="background: #f1f5f9; font-weight: bold; color: #475569; border-bottom: 2px solid #e2e8f0;">
-            <div class="col-date">Date/Time</div>
-            <div class="col-mat">Material</div>
-            <div class="col-inst">Instrument</div>
-            <div class="col-pname">Product Name</div>
-            <div class="col-type">Type</div>
-            <div class="col-qty">Qty</div>
-            <div class="col-user">User</div>
-        </div>
-
-        <div id="list">
-            <p align="center" style="padding: 20px;">⌛ Loading history...</p>
+        <div class="scroll-wrapper">
+            <div class="history-row" style="background: #f1f5f9; font-weight: bold; color: #475569;">
+                <div class="col-date">Date / Time (GMT+7)</div>
+                <div class="col-mat">Material</div>
+                <div class="col-inst">Instrument</div>
+                <div class="col-pname">Product Name</div>
+                <div class="col-type">Type</div>
+                <div class="col-qty">Qty</div>
+                <div class="col-user">User</div>
+            </div>
+            <div id="list"></div>
         </div>
     </div>
 
     <script>
-        const API = "https://script.google.com/macros/s/AKfycbx6YxykZ_JYerudSjfSODxhr4dSpfpKxohja91yEubrDTMl413FZTpgbmmT3WERGdZ9/exec";
+        const API = "https://script.google.com/macros/s/AKfycbwgfko90SYTdgP_7g5fO_1Nd5Cg20KoAG2u2KxhyoWkthq8yMq8o_Bj1NATqQYdp1xN/exec";
         const PASS = "Service";
 
         async function loadHistory() {
             const listDiv = document.getElementById('list');
+            listDiv.innerHTML = '<p align="center">⌛ Loading...</p>';
             try {
                 const response = await fetch(`${API}?action=gethistory&password=${PASS}&t=${Date.now()}`);
                 const res = await response.json();
+                if (!res.success) throw new Error(res.msg);
                 
-                if (!res.success) { listDiv.innerHTML = `<p align="center" style="color:red">${res.msg}</p>`; return; }
-                if (res.data.length === 0) { listDiv.innerHTML = `<p align="center">No data found</p>`; return; }
-
-                listDiv.innerHTML = res.data.map(item => {
-                    const type = (item['Transaction Type'] || '').toUpperCase();
-                    return `
-                        <div class="history-row">
-                            <div class="col-date">${item['Date and Time']}</div>
-                            <div class="col-mat">${item['Material']}</div>
-                            <div class="col-inst">${item['Instrument'] || '-'}</div>
-                            <div class="col-pname">${item['Product Name']}</div>
-                            <div class="col-type">
-                                <span class="type-tag ${type}">${type}</span>
-                            </div>
-                            <div class="col-qty">${item['Qty']}</div>
-                            <div class="col-user">${item['User']}</div>
-                        </div>
-                    `;
-                }).join('');
-            } catch (e) { listDiv.innerHTML = `<p align="center">Connection Error</p>`; }
+                listDiv.innerHTML = res.data.map(item => `
+                    <div class="history-row">
+                        <div class="col-date">${item['Date and Time']}</div>
+                        <div class="col-mat">${item['Material']}</div>
+                        <div class="col-inst">${item['Instrument'] || '-'}</div>
+                        <div class="col-pname">${item['Product Name']}</div>
+                        <div class="col-type"><span class="type-tag ${item['Transaction Type']}">${item['Transaction Type']}</span></div>
+                        <div class="col-qty">${item['Qty']}</div>
+                        <div class="col-user">${item['User']}</div>
+                    </div>
+                `).join('');
+            } catch (e) { listDiv.innerHTML = `<p align="center" style="color:red">Error: ${e.message}</p>`; }
         }
     </script>
 </body>
