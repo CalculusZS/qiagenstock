@@ -1,5 +1,6 @@
 /* ===== 1. Configuration ===== */
 const API = "https://script.google.com/macros/s/AKfycbz1r6sNyuVeIr5tWrOnEduVtzzNmWIrFPwLgs6UchX24U2wVspNIZoU2lxnLa74tVDI/exec";           
+      
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 const TIMEOUT_MS = 5 * 60 * 1000; 
@@ -43,36 +44,7 @@ window.goBack = () => {
     location.href = (isSup === 'true') ? 'supervisor.html' : 'user-select.html';
 };
 
-/* ===== 3. Global Auto-Lookup Logic (จุดที่แก้ไขให้ค้นหาอัตโนมัติทุกหน้า) ===== */
-window.initGlobalLookup = function() {
-    // รายชื่อ ID ของช่อง Input และที่แสดงผลชื่อสินค้าในหน้าต่างๆ
-    const searchConfig = [
-        { inputId: 's_mat', displayId: 's_name_display' }, // หน้า Supervisor (Add Stock)
-        { inputId: 't_mat', displayId: 't_name_display' }  // หน้า Transfer
-    ];
-
-    searchConfig.forEach(config => {
-        const matInput = document.getElementById(config.inputId);
-        const nameDisplay = document.getElementById(config.displayId);
-
-        if (matInput && nameDisplay) {
-            matInput.addEventListener('input', function() {
-                const val = this.value.trim();
-                const item = rows.find(r => String(r.Material) === val);
-                if (item) {
-                    nameDisplay.innerText = "Product: " + item['Product Name'];
-                    nameDisplay.style.color = "#003366";
-                    nameDisplay.style.fontWeight = "bold";
-                } else {
-                    nameDisplay.innerText = val === "" ? "" : "❌ Material not found";
-                    nameDisplay.style.color = "#ef4444";
-                }
-            });
-        }
-    });
-};
-
-/* ===== 4. Loading & Rendering ===== */
+/* ===== 3. Loading & Rendering ===== */
 window.loadStockData = async function(type) {
     if (!window.checkAuth()) return;
     const tbody = document.getElementById('data') || document.getElementById('staff-data');
@@ -86,13 +58,24 @@ window.loadStockData = async function(type) {
             if (document.getElementById('data')) window.renderTable(rows, type);
             if (document.getElementById('staff-data')) window.renderStaffInventory(rows);
             
-            // เรียกใช้งานค้นหาอัตโนมัติทันทีที่โหลดข้อมูลเสร็จ
-            window.initGlobalLookup(); 
+            // Activate Auto-Lookup for Supervisor/Transfer
+            window.setupAdminLookup(); 
         }
     } catch (e) { console.error("Error:", e); }
 };
 
 window.initTeamStock = () => window.loadStockData('all');
+
+// ฟังก์ชันค้นหาในหน้าตาราง (Showall, Withdraw, Return)
+window.searchStock = function(query, type) {
+    const q = query.toLowerCase().trim();
+    const filtered = rows.filter(r => {
+        return String(r.Material).toLowerCase().includes(q) || 
+               String(r['Product Name']).toLowerCase().includes(q) ||
+               String(r['Instrument']).toLowerCase().includes(q);
+    });
+    window.renderTable(filtered, type);
+};
 
 window.renderTable = function(data, type) {
     const tbody = document.getElementById('data');
@@ -151,7 +134,7 @@ window.renderStaffInventory = function(data) {
     tbody.innerHTML = html || '<tr><td colspan="4" align="center">No staff inventory found</td></tr>';
 };
 
-/* ===== 5. Actions (ครบทุกฟังก์ชันเดิม) ===== */
+/* ===== 4. Actions ===== */
 window.doAction = async function(mat, mode) {
     if (!window.checkAuth()) return;
     const user = sessionStorage.getItem('selectedUser');
@@ -163,22 +146,25 @@ window.doAction = async function(mat, mode) {
     } catch (e) { alert("Network Error"); }
 };
 
+window.doSupAdd = async function() {
+    const matInput = document.getElementById('s_mat');
+    const qtyInput = document.getElementById('s_qty');
+    if(!matInput || !qtyInput) return;
+    const mat = matInput.value.trim();
+    const qty = qtyInput.value;
+    if(!mat || !qty) { alert("Please fill all fields"); return; }
+    try {
+        const res = await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&_t=${new Date().getTime()}`).then(r=>r.json());
+        if(res.success) { alert("✅ Stock Added!"); location.reload(); } else { alert("❌ " + res.msg); }
+    } catch(e) { alert("Error"); }
+};
+
 window.doSupDeduct = async function(mat, user, tid) {
     const qty = document.getElementById(tid).value;
     try {
         const res = await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}&_t=${new Date().getTime()}`).then(r => r.json());
         if (res.success) { alert("✅ Success!"); window.loadStockData(); } else { alert("❌ Error"); }
     } catch (e) { alert("Error"); }
-};
-
-window.doSupAdd = async function() {
-    const mat = document.getElementById('s_mat').value.trim();
-    const qty = document.getElementById('s_qty').value;
-    if(!mat || !qty) { alert("Please fill all fields"); return; }
-    try {
-        const res = await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&_t=${new Date().getTime()}`).then(r=>r.json());
-        if(res.success) { alert("✅ Success!"); location.reload(); } else { alert("❌ " + res.msg); }
-    } catch(e) { alert("Error"); }
 };
 
 window.doTransfer = async function() {
@@ -190,5 +176,33 @@ window.doTransfer = async function() {
     try {
         const res = await fetch(`${API}?action=transfer&password=${PASSWORD}&material=${encodeURIComponent(mat)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&qty=${qty}&_t=${new Date().getTime()}`).then(r=>r.json());
         if(res.success) { alert("✅ Transfer Success!"); location.reload(); } else { alert("❌ " + res.msg); }
+    } catch(e) { alert("Error"); }
+};
+
+/* ===== 5. Lookup Logic (Auto-Search Name) ===== */
+window.setupAdminLookup = function() {
+    const config = [
+        { inputId: 's_mat', displayId: 's_name_display' }, // Supervisor Add Stock
+        { inputId: 't_mat', displayId: 't_name_display' }  // Transfer
+    ];
+
+    config.forEach(cfg => {
+        const matInput = document.getElementById(cfg.inputId);
+        const nameDisplay = document.getElementById(cfg.displayId);
+        if (matInput && nameDisplay) {
+            matInput.oninput = function() {
+                const val = this.value.trim();
+                const item = rows.find(r => String(r.Material) === val);
+                if (item) {
+                    nameDisplay.innerText = "Product: " + item['Product Name'];
+                    nameDisplay.style.color = "#003366";
+                } else {
+                    nameDisplay.innerText = val === "" ? "" : "❌ Material not found";
+                    nameDisplay.style.color = "#ef4444";
+                }
+            };
+        }
+    });
+};
     } catch(e) { alert("Error"); }
 };
