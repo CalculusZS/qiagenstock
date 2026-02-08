@@ -1,78 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transaction History - QIAGEN</title>
+    <title>QIAGEN - History</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-        .header { background: #003366; color: white; padding: 15px; position: sticky; top: 0; display: flex; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        .back-btn { background: none; border: 1px solid white; color: white; padding: 5px 12px; border-radius: 4px; cursor: pointer; margin-right: 15px; }
-        .container { padding: 15px; max-width: 800px; margin: auto; }
-        .card { background: white; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 6px solid #003366; }
-        .date { color: #64748b; font-size: 0.85em; margin-bottom: 5px; }
-        .mat-row { display: flex; justify-content: space-between; align-items: flex-start; }
-        .mat-id { font-weight: bold; color: #1e293b; font-size: 1.1em; }
-        .qty { background: #e2e8f0; padding: 2px 8px; border-radius: 5px; font-weight: bold; }
-        .user-tag { color: #64748b; font-size: 0.9em; margin-top: 5px; }
-        .type-tag { display: inline-block; padding: 3px 10px; border-radius: 50px; font-size: 0.75em; font-weight: bold; margin-top: 8px; text-transform: uppercase; }
-        /* Colors for tags */
-        .WITHDRAW { background: #fee2e2; color: #b91c1c; }
-        .RETURN { background: #dcfce7; color: #15803d; }
-        .ADD_STOCK { background: #e0f2fe; color: #0369a1; }
-        .DEDUCT_USED { background: #fef3c7; color: #92400e; }
-        .TRANSFER { background: #f3e8ff; color: #7e22ce; }
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 0; }
+        .header { background: #003366; color: white; padding: 15px; display: flex; align-items: center; position: sticky; top:0; z-index:100; }
+        .back-btn { background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:4px; cursor:pointer; margin-right:15px; }
+        
+        /* สไตล์แบบแถวเดียว */
+        .history-container { background: white; margin: 10px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .history-item { display: flex; padding: 12px 10px; border-bottom: 1px solid #eee; align-items: center; font-size: 13px; }
+        .history-item:last-child { border-bottom: none; }
+        
+        .col-left { flex: 0 0 85px; font-size: 11px; color: #64748b; } /* วันที่ */
+        .col-mid { flex: 1; padding: 0 10px; } /* ข้อมูลสินค้า */
+        .col-right { flex: 0 0 70px; text-align: right; } /* จำนวนและประเภท */
+        
+        .mat-id { font-weight: bold; color: #1e293b; display: block; }
+        .p-name { color: #64748b; font-size: 11px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+        .qty-badge { font-weight: bold; font-size: 14px; }
+        .user-info { font-size: 11px; color: #003366; display: block; }
+        
+        /* สีแยกประเภท */
+        .WITHDRAW { color: #ef4444; font-weight: bold; font-size: 10px; }
+        .RETURN { color: #22c55e; font-weight: bold; font-size: 10px; }
+        .TRANSFER { color: #a855f7; font-weight: bold; font-size: 10px; }
+        .DEDUCT_USED { color: #f59e0b; font-weight: bold; font-size: 10px; }
     </style>
 </head>
 <body onload="loadHistory()">
     <div class="header">
         <button class="back-btn" onclick="window.history.back()">◀ Back</button>
-        <strong>Transaction History</strong>
+        <b>Transaction History</b>
     </div>
 
-    <div class="container" id="history-content">
-        <p align="center" style="color: #64748b; margin-top: 50px;">⌛ Loading Logs...</p>
+    <div class="history-container" id="list">
+        <p align="center" style="padding:20px;">⌛ Loading...</p>
     </div>
 
     <script>
-        // *** สำคัญ: เปลี่ยน API_URL ให้เป็นลิงก์ Web App ของคุณ ***
-        const API_URL = "https://script.google.com/macros/s/AKfycbwgfko90SYTdgP_7g5fO_1Nd5Cg20KoAG2u2KxhyoWkthq8yMq8o_Bj1NATqQYdp1xN/exec";
+        const API = "https://script.google.com/macros/s/AKfycbwgfko90SYTdgP_7g5fO_1Nd5Cg20KoAG2u2KxhyoWkthq8yMq8o_Bj1NATqQYdp1xN/exec";
         const PASS = "Service";
 
         async function loadHistory() {
-            const listDiv = document.getElementById('history-content');
+            const listDiv = document.getElementById('list');
             try {
-                const response = await fetch(`${API_URL}?action=gethistory&password=${PASS}&t=${Date.now()}`);
+                const response = await fetch(`${API}?action=gethistory&password=${PASS}&t=${Date.now()}`);
                 const res = await response.json();
+                if (!res.success) { listDiv.innerHTML = `<p align="center" style="padding:20px; color:red;">${res.msg}</p>`; return; }
+                if (res.data.length === 0) { listDiv.innerHTML = `<p align="center" style="padding:20px;">No records</p>`; return; }
 
-                if (!res.success) {
-                    listDiv.innerHTML = `<p style="color:red; text-align:center;">Error: ${res.msg}</p>`;
-                    return;
-                }
-
-                if (res.data.length === 0) {
-                    listDiv.innerHTML = `<p style="text-align:center; color:#64748b;">No transaction history found.</p>`;
-                    return;
-                }
-
-                listDiv.innerHTML = res.data.map(item => `
-                    <div class="card">
-                        <div class="date">📅 ${item['Date and Time']}</div>
-                        <div class="mat-row">
-                            <div>
-                                <div class="mat-id">${item['Material']}</div>
-                                <div style="font-size: 0.9em; color:#475569;">${item['Product Name']}</div>
+                listDiv.innerHTML = res.data.map(item => {
+                    const type = (item['Transaction Type'] || '').toUpperCase();
+                    return `
+                        <div class="history-item">
+                            <div class="col-left">${item['Date and Time']}</div>
+                            <div class="col-mid">
+                                <span class="mat-id">${item['Material']}</span>
+                                <span class="p-name">${item['Product Name']}</span>
                             </div>
-                            <div class="qty">Qty: ${item['Qty']}</div>
+                            <div class="col-right">
+                                <span class="qty-badge">${item['Qty']}</span><br>
+                                <span class="user-info">${item['User']}</span>
+                                <span class="${type}">${type}</span>
+                            </div>
                         </div>
-                        <div class="user-tag">👤 User: <b>${item['User']}</b></div>
-                        <span class="type-tag ${item['Transaction Type']}">${item['Transaction Type']}</span>
-                    </div>
-                `).join('');
-
-            } catch (err) {
-                listDiv.innerHTML = `<p style="color:red; text-align:center;">⚠️ API Connection Error</p>`;
-            }
+                    `;
+                }).join('');
+            } catch (e) { listDiv.innerHTML = `<p align="center" style="padding:20px;">Connection Error</p>`; }
         }
     </script>
 </body>
