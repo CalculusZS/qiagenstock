@@ -1,6 +1,5 @@
 /* ===== 1. Configuration ===== */
-const API = "https://script.google.com/macros/s/AKfycbwhMgUh-sEdEjvzOSDXqRfyx5-WOTeBkPNaroZRmq_DBMGL_7VcY4Pa-K0VKmyU0BIr/exec";           
-          
+const API = "https://script.google.com/macros/s/AKfycbzBDmcC07-2UEIYq7XmpALt9zqcBzrkOU5hDb0BdeXTi5_VK_T2ERR1H_g7AXVpdCZw/exec";           
 const PASSWORD = "Service";
 const SUP_PASSWORD = "Qiagen";
 const TIMEOUT_MS = 5 * 60 * 1000; 
@@ -41,65 +40,34 @@ window.logout = () => { sessionStorage.clear(); location.href = 'index.html'; };
 
 window.goBack = () => { 
     const isSup = sessionStorage.getItem('isSupervisor');
-    if (isSup === 'true') {
-        location.href = 'supervisor.html';
-    } else {
-        location.href = 'user-select.html';
-    }
+    location.href = (isSup === 'true') ? 'supervisor.html' : 'user-select.html';
 };
 
-/* ===== 3. Product Lookup & Search ===== */
-window.setupAdminLookup = function() {
-    const matInput = document.getElementById('s_mat');
-    const nameDisplay = document.getElementById('s_name_display');
-    if (matInput && nameDisplay) {
-        matInput.addEventListener('input', function() {
-            const val = this.value.trim();
-            const item = rows.find(r => String(r.Material) === val);
-            if (item) {
-                nameDisplay.innerText = "Product: " + item['Product Name'];
-                nameDisplay.style.color = "#003366";
-            } else {
-                nameDisplay.innerText = val === "" ? "" : "❌ Material not found";
-                nameDisplay.style.color = "#ef4444";
-            }
-        });
-    }
-};
-
-window.searchStock = (keyword, type) => {
-    const filtered = rows.filter(r => 
-        String(r.Material).toLowerCase().includes(keyword.toLowerCase()) || 
-        String(r['Product Name']).toLowerCase().includes(keyword.toLowerCase())
-    );
-    window.renderTable(filtered, type);
-};
-
-/* ===== 4. Rendering (Updated for Responsive) ===== */
+/* ===== 3. Loading & Rendering ===== */
 window.loadStockData = async function(type) {
     if (!window.checkAuth()) return;
-    const tbody = document.getElementById('data');
-    if(tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading Data...</td></tr>';
+    const tbody = document.getElementById('data') || document.getElementById('staff-data');
+    if(tbody) tbody.innerHTML = '<tr><td colspan="4" align="center">⌛ Loading Data...</td></tr>';
     
     try {
         const response = await fetch(`${API}?action=read&password=${PASSWORD}`);
         const res = await response.json();
         if (res.success) {
             rows = res.data;
-            window.renderTable(rows, type);
+            if (document.getElementById('data')) window.renderTable(rows, type);
             if (document.getElementById('staff-data')) window.renderStaffInventory(rows);
             if (document.getElementById('s_mat')) window.setupAdminLookup();
         }
     } catch (e) { console.error("Error:", e); }
 };
 
+// ฟังก์ชันสำหรับหน้า Team Spare Parts ที่ Error ในรูปของคุณ
+window.initTeamStock = () => window.loadStockData('all');
+
 window.renderTable = function(data, type) {
     const tbody = document.getElementById('data');
     const user = sessionStorage.getItem('selectedUser');
     if(!tbody) return;
-
-    const container = document.querySelector('.container');
-    if(container) container.style.maxWidth = '100%';
 
     let displayData = (type === 'return') ? data.filter(r => Number(r[user] || 0) > 0) : data;
 
@@ -110,7 +78,6 @@ window.renderTable = function(data, type) {
         const name = r['Product Name'] || '';
         const stockStyle = s0243 === 0 ? 'color: #ef4444; font-weight: bold;' : 'font-weight: bold;';
 
-        // ปรับชื่อคลาสเพื่อให้ CSS ควบคุมการจัดวางในมือถือได้ (Stacking)
         const info = `<div class="p-info" style="display:flex; align-items:center; gap:12px;">
                         <b class="p-mat" style="color:#003366; min-width:85px;">${mat}</b>
                         <span class="p-name" style="color:#64748b; font-size:13px;">${name}</span>
@@ -134,7 +101,31 @@ window.renderTable = function(data, type) {
     }).join('');
 };
 
-/* ===== 5. Action Functions ===== */
+/* ===== 4. Staff Inventory (คอลัมน์ I-N) ===== */
+window.renderStaffInventory = function(data) {
+    const tbody = document.getElementById('staff-data');
+    if (!tbody) return;
+    
+    // รายชื่อ Staff ที่ตรงกับหัวคอลัมน์ I-N ใน Sheet ของคุณ
+    const STAFF_LIST = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat']; 
+    let html = '';
+    
+    data.forEach(row => {
+        STAFF_LIST.forEach(user => {
+            const val = Number(row[user] || 0); // ดึงค่าจากคอลัมน์ที่เป็นรหัส
+            if (val > 0) {
+                const tid = `ed_${row.Material}_${user}`;
+                html += `<tr><td><b style="color:#003366;">${row.Material}</b><br><small>${row['Product Name']}</small></td>
+                    <td align="center"><b>${user}</b></td>
+                    <td align="center"><input type="number" id="${tid}" value="${val}" style="width:40px;"></td>
+                    <td align="right"><button onclick="window.doSupDeduct('${row.Material}','${user}','${tid}')" style="background:#ef4444; color:white; border:none; padding:6px; border-radius:6px; cursor:pointer;">Deduct</button></td></tr>`;
+            }
+        });
+    });
+    tbody.innerHTML = html || '<tr><td colspan="4" align="center">No staff inventory found</td></tr>';
+};
+
+/* ===== 5. Actions ===== */
 window.doAction = async function(mat, mode) {
     if (!window.checkAuth()) return;
     const user = sessionStorage.getItem('selectedUser');
@@ -142,42 +133,14 @@ window.doAction = async function(mat, mode) {
     const qty = qtyInput ? qtyInput.value : 1;
     try {
         const res = await fetch(`${API}?action=${mode}&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}&user=${encodeURIComponent(user)}`).then(r=>r.json());
-        if (res.success) { alert("✅ Success!"); await window.loadStockData(mode); } else { alert("❌ Error"); }
+        if (res.success) { alert("✅ Success!"); window.loadStockData(mode); } else { alert("❌ Error: " + res.msg); }
     } catch (e) { alert("Network Error"); }
-};
-
-window.renderStaffInventory = function(data) {
-    const tbody = document.getElementById('staff-data');
-    if (!tbody) return;
-    const STAFF_LIST = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
-    let html = '';
-    data.forEach(row => {
-        STAFF_LIST.forEach(user => {
-            const val = Number(row[user] || 0);
-            if (val > 0) {
-                const tid = `ed_${row.Material}_${user}`;
-                html += `<tr><td><b style="color:#003366;">${row.Material}</b><br><small>${row['Product Name']}</small></td>
-                    <td>${user}</td><td align="center"><input type="number" id="${tid}" value="${val}" style="width:40px;"></td>
-                    <td align="right"><button onclick="window.doSupDeduct('${row.Material}','${user}','${tid}')" style="background:#ef4444; color:white; border:none; padding:6px; border-radius:6px; cursor:pointer;">Deduct</button></td></tr>`;
-            }
-        });
-    });
-    tbody.innerHTML = html || '<tr><td colspan="4" align="center">No staff inventory</td></tr>';
-};
-
-window.doSupAdd = async function() {
-    const mat = document.getElementById('s_mat').value.trim();
-    const qty = document.getElementById('s_qty').value;
-    try {
-        const res = await fetch(`${API}?action=add&password=${PASSWORD}&material=${encodeURIComponent(mat)}&qty=${qty}`).then(r => r.json());
-        if (res.success) { alert("✅ Success!"); location.reload(); } else { alert("❌ Error"); }
-    } catch (e) { alert("Error"); }
 };
 
 window.doSupDeduct = async function(mat, user, tid) {
     const qty = document.getElementById(tid).value;
     try {
         const res = await fetch(`${API}?action=deduct&password=${PASSWORD}&material=${encodeURIComponent(mat)}&user=${encodeURIComponent(user)}&qty=${qty}`).then(r => r.json());
-        if (res.success) { alert("✅ Success!"); location.reload(); } else { alert("❌ Error"); }
+        if (res.success) { alert("✅ Success!"); window.loadStockData(); } else { alert("❌ Error"); }
     } catch (e) { alert("Error"); }
 };
