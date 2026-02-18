@@ -4,7 +4,7 @@
 ========================================================================== */
 
 // 1. CONFIGURATION
-const API = "https://script.google.com/macros/s/AKfycbz1r6sNyuVeIr5tWrOnEduVtzzNmWIrFPwLgs6UchX24U2wVspNIZoU2lxnLa74tVDI/exec"; 
+const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec"; 
 const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen";
 
