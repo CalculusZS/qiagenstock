@@ -2,7 +2,26 @@
    QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (FULL VERSION V3.5)
    รวมทุกฟังก์ชัน: เบิก, คืน, ตัดใช้(WO), สต็อกทีม, สต็อกทั้งหมด
 ========================================================================== */
+/* === เพิ่มส่วนนี้ไว้ด้านบนสุดของไฟล์ app.js === */
+const STAFF_LIST = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+const SUP_PASSWORD = "Qiagen"; // รหัสผ่านสำหรับ Login
 
+window.handleLogin = function() {
+    const user = document.getElementById('user-select').value;
+    const pass = document.getElementById('password-input').value;
+
+    if (!user) {
+        alert("กรุณาเลือกชื่อผู้ใช้งาน");
+        return;
+    }
+
+    if (pass === SUP_PASSWORD) {
+        sessionStorage.setItem('selectedUser', user);
+        location.href = 'main.html'; // ไปที่หน้าเมนูหลัก
+    } else {
+        alert("รหัสผ่านไม่ถูกต้อง");
+    }
+};
 // 1. CONFIGURATION (ตั้งค่าที่เดียวใช้ทั้งระบบ)
 const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec"; 
 const MASTER_PASS = "Service";
