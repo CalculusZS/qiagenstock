@@ -1,8 +1,8 @@
 /* ==========================================================================
-   QIAGEN INVENTORY - ULTIMATE REPAIR VERSION
-   - แก้ไข: TypeError success (บรรทัด 60 ใน deduct.html)
-   - แก้ไข: ปัญหาส่งค่า null ไปยัง Google Sheets
-   - รองรับ: Withdraw, Return, Deduct, Supervisor
+   QIAGEN INVENTORY - ULTIMATE REPAIR VERSION (NO CUT-OFF)
+   - แก้ไข: Supervisor Login ไม่เด้งกลับ และรองรับหน้า showall.html
+   - แก้ไข: TypeError success ในหน้า Deduct
+   - ฟังก์ชันครบ: Withdraw, Return, Deduct, Search, Admin Lookup, Staff Audit
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbx2kq4lXAZXziJwFkbA3RRfI_aQIyhbOzQi4k-sm1a66elS-Pwl81995KElbpeORPJB/exec"; 
@@ -12,12 +12,24 @@ const SUP_PASSWORD = "Qiagen";
 window.allRows = []; 
 const STAFF_LIST = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
-/* ===== 1. AUTHENTICATION & SESSION ===== */
+/* ===== 1. AUTHENTICATION & SESSION (ระบบตรวจสอบสิทธิ์) ===== */
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
     const path = window.location.pathname;
     const isLoginPage = path.endsWith('index.html') || path.endsWith('/') || path === '';
-    if (!user && !isLoginPage) { window.location.replace('index.html'); return false; }
+
+    if (!user && !isLoginPage) {
+        window.location.replace('index.html');
+        return false;
+    }
+
+    // ป้องกันหน้า Supervisor เด้ง: เช็คสิทธิ์เฉพาะหน้า supervisor.html
+    if (path.includes('supervisor.html') && user !== 'Supervisor') {
+        alert("🔒 เฉพาะ Supervisor เท่านั้นที่เข้าหน้านี้ได้");
+        window.location.replace('main.html');
+        return false;
+    }
+
     const displayElem = document.getElementById('user_display');
     if (displayElem && user) { displayElem.innerText = user; }
     return true;
@@ -39,7 +51,7 @@ window.handleLogin = async function() {
     } catch (e) { alert("❌ Connection Error"); }
 };
 
-/* ===== 2. DATA RENDERING ===== */
+/* ===== 2. DATA RENDERING (การแสดงผลข้อมูล) ===== */
 window.loadStockData = async function(mode) {
     try {
         const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}`);
@@ -61,6 +73,8 @@ window.renderTable = function(data, mode) {
     data.forEach(item => {
         const s0243 = Number(item['0243'] || 0);
         const sUser = Number(item[user] || 0);
+        
+        // กรองข้อมูล: หน้า Deduct/Return จะโชว์เฉพาะที่มีของในมือ แต่ ShowAll (mode='all') จะโชว์ทั้งหมด
         if ((mode === 'deduct' || mode === 'return') && sUser <= 0) return;
 
         html += `<tr style="border-bottom: 1px solid #eee;">
@@ -81,7 +95,7 @@ window.renderTable = function(data, mode) {
                         <input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:100px; padding:8px; border:1px solid #334155; border-radius:6px;">
                         <input type="number" id="qty_${item.Material}" value="1" style="width:45px; padding:8px; border:1px solid #334155; border-radius:6px;">
                         <button onclick="handleDeductClick('${item.Material}')" style="background:#ef4444; color:white; border:none; padding:10px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">USE</button>
-                    ` : `<span>●</span>`}
+                    ` : `<span style="color:#64748b; font-size:12px;">Available</span>`}
                 </div>
             </td>
         </tr>`;
@@ -89,7 +103,7 @@ window.renderTable = function(data, mode) {
     tbody.innerHTML = html || '<tr><td colspan="3" align="center">No data found</td></tr>';
 };
 
-/* ===== 3. TRANSACTIONS (CRITICAL FIX) ===== */
+/* ===== 3. TRANSACTIONS (ฟังก์ชันทำรายการ) ===== */
 window.executeTransaction = async function(type, mat, qty) {
     const user = sessionStorage.getItem('selectedUser');
     const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
@@ -102,12 +116,10 @@ window.executeTransaction = async function(type, mat, qty) {
 
 window.handleDeductClick = async function(mat, p1 = null, p2 = null) {
     let user, qty, wo;
-    // ตรวจสอบที่มาของข้อมูล: ถ้า p1 เป็นตัวเลข แสดงว่าส่งมาจากหน้า HTML โดยตรง (mat, qty, wo)
-    if (p1 && !isNaN(p1)) {
+    if (p1 && !isNaN(p1)) { // มาจากหน้า deduct.html
         user = sessionStorage.getItem('selectedUser');
-        qty = p1;
-        wo = p2;
-    } else {
+        qty = p1; wo = p2;
+    } else { // มาจากหน้า supervisor
         user = p1 || sessionStorage.getItem('selectedUser');
         const woEl = document.getElementById('wo_' + mat);
         const qtyEl = document.getElementById('qty_' + mat);
@@ -116,7 +128,6 @@ window.handleDeductClick = async function(mat, p1 = null, p2 = null) {
     }
 
     if(!wo) { alert("❌ Please enter Work Order (WO#)"); return {success:false}; }
-    
     const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
     try {
         const response = await fetch(url);
@@ -124,30 +135,20 @@ window.handleDeductClick = async function(mat, p1 = null, p2 = null) {
         if (res && res.success) {
             alert("✅ Recorded Successfully!");
             loadStockData(p1 && isNaN(p1) ? 'supervisor' : 'deduct');
-            return res; // ส่งค่ากลับเพื่อแก้ TypeError success
-        } else { 
-            alert("❌ " + (res ? res.msg : "Failed")); 
-            return res || {success:false}; 
-        }
+            return res; 
+        } else { alert("❌ " + (res ? res.msg : "Failed")); return res || {success:false}; }
     } catch (e) { alert("❌ Connection error"); return {success:false}; }
 };
 
-window.executeDeduct = window.handleDeductClick; // Bridge สำหรับชื่อเก่า
+window.executeDeduct = window.handleDeductClick;
 
 /* ===== 4. SUPERVISOR & UI UTILITIES ===== */
 window.goToAdmin = function() {
-    const modal = document.getElementById('admin-modal');
-    if (modal) modal.style.display = 'flex';
-    else {
-        const p = prompt("Enter Password:");
-        if (p === SUP_PASSWORD) { sessionStorage.setItem('selectedUser', 'Supervisor'); window.location.assign('supervisor.html'); }
-    }
-};
-
-window.submitAdminPass = function() {
-    const passInput = document.getElementById('admin-pass-input');
-    if (passInput && passInput.value === SUP_PASSWORD) {
-        sessionStorage.setItem('selectedUser', 'Supervisor'); window.location.assign('supervisor.html');
+    const p = prompt("Enter Supervisor Password:");
+    if (p === SUP_PASSWORD) {
+        sessionStorage.setItem('selectedUser', 'Supervisor');
+        sessionStorage.setItem('isSupervisor', 'true'); // สำหรับ supervisor.html
+        window.location.assign('supervisor.html'); 
     } else { alert("❌ Incorrect Password"); }
 };
 
