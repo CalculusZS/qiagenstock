@@ -8,15 +8,17 @@
         body { font-family: sans-serif; background: #f1f5f9; margin: 0; }
         .header { background: #003366; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
         .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
-        .welcome { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        /* ส่วนแสดงชื่อผู้ใช้งาน */
+        .welcome { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 10px; }
         .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
         .btn-card { background: white; border-radius: 16px; padding: 30px 10px; text-align: center; text-decoration: none; color: #1e293b; display: flex; flex-direction: column; align-items: center; gap: 10px; font-weight: bold; transition: 0.2s; border: 1px solid #e2e8f0; }
         .btn-card:active { transform: scale(0.95); }
         .icon { font-size: 40px; }
+        /* สีเส้นขอบล่างของปุ่มแต่ละประเภท */
         .withdraw { border-bottom: 5px solid #003366; }
         .return { border-bottom: 5px solid #16a34a; }
         .deduct { border-bottom: 5px solid #ef4444; }
-        .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; }
+        .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body onload="init()">
@@ -24,8 +26,13 @@
         <div style="font-weight: bold; font-size: 20px;">QIAGEN STOCK</div>
         <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
+
     <div class="container">
-        <div class="welcome">👤 User: <b id="user_display" style="color:#003366"></b></div>
+        <div class="welcome">
+            <span>👤 User:</span>
+            <b id="user_display" style="color:#003366">Loading...</b>
+        </div>
+
         <div class="grid">
             <a href="withdraw.html" class="btn-card withdraw"><span class="icon">📥</span>Withdraw</a>
             <a href="return.html" class="btn-card return"><span class="icon">📤</span>Return</a>
@@ -36,11 +43,22 @@
             <a href="https://docs.google.com/spreadsheets/d/11do2WhK7yLrg3dG63vGxyJPc8aetCHZApK1fyiFaT9c/edit" target="_blank" class="btn-card"><span class="icon">📊</span>Show Sheet</a>
         </div>
     </div>
+
     <script src="js/app.js"></script>
     <script>
         function init() {
-            if (!checkAuth()) return;
-            document.getElementById('user_display').innerText = sessionStorage.getItem('selectedUser');
+            // เรียกใช้ checkAuth() จาก app.js เพื่อตรวจสอบสิทธิ์และแสดงชื่อ
+            if (typeof checkAuth === "function") {
+                const authenticated = checkAuth();
+                if (authenticated) {
+                    // ดึงชื่อเต็มจาก Session มาแสดง (เช่น Kitti, Tatchai)
+                    const fullName = sessionStorage.getItem('selectedUser');
+                    const display = document.getElementById('user_display');
+                    if (display && fullName) {
+                        display.innerText = fullName;
+                    }
+                }
+            }
         }
     </script>
 </body>
