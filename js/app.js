@@ -5,7 +5,7 @@
    - รองรับ: Withdraw, Return, Deduct, Supervisor
    ========================================================================== */
 
-const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec"; 
+const API = "https://script.google.com/macros/s/AKfycbyYCysO-TPNwiIlmSdnmWgOoRN_XvI1EYVbZHwY4e7OzBjX7mZg3jWa6LQudX_dEF_A/exec"; 
 const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen"; 
 
