@@ -5,27 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QIAGEN Stock - Login</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #003366; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); width: 100%; max-width: 350px; text-align: center; }
-        .logo { font-size: 28px; font-weight: bold; color: #003366; margin-bottom: 30px; letter-spacing: 1px; }
-        input { width: 100%; padding: 14px; margin: 10px 0; border: 1.5px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; transition: 0.3s; }
-        input:focus { border-color: #003366; outline: none; box-shadow: 0 0 8px rgba(0,51,102,0.1); }
-        button { width: 100%; padding: 14px; background: #003366; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: 0.3s; }
-        button:hover { background: #004080; transform: translateY(-2px); }
-        .admin-btn { margin-top: 25px; padding-top: 15px; border-top: 1px solid #f0f0f0; }
-        .admin-btn a { color: #666; text-decoration: none; font-size: 13px; transition: 0.3s; }
-        .admin-btn a:hover { color: #003366; }
+        body { font-family: 'Segoe UI', sans-serif; background: #003366; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); width: 320px; text-align: center; }
+        .logo { font-size: 26px; font-weight: bold; color: #003366; margin-bottom: 30px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #003366; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .admin-link { margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; }
+        .admin-link a { color: #888; text-decoration: none; font-size: 13px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="login-card">
         <div class="logo">QIAGEN STOCK</div>
-        <input type="text" id="username-input" placeholder="Username (KM, TK, ...)">
+        <input type="text" id="username-input" placeholder="Username (KM, TK, PK)">
         <input type="password" id="password-input" placeholder="Password">
         <button onclick="handleLogin()">LOGIN</button>
         
-        <div class="admin-btn">
-            <a href="#" onclick="goToAdmin()">Supervisor System (Admin)</a>
+        <div class="admin-link">
+            <a onclick="goToAdmin()">Supervisor System (Admin)</a>
         </div>
     </div>
     <script src="js/app.js"></script>
