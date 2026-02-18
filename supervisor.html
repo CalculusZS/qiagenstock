@@ -3,52 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supervisor Control Panel</title>
+    <title>Supervisor - QIAGEN Stock</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .container { max-width: 90% !important; width: 95%; margin: 20px auto; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: left; }
-        .badge-user { background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        #s_name_display { display: block; margin-top: 6px; font-size: 14px; font-weight: bold; min-height: 20px; }
+        body { background: #f1f5f9; font-family: sans-serif; }
+        .container { max-width: 95%; margin: 20px auto; }
+        .header-sup { background: #1e293b; color: white; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; padding: 12px; background: #f8fafc; color: #64748b; font-size: 13px; border-bottom: 2px solid #edf2f7; }
+        td { padding: 12px; border-bottom: 1px solid #edf2f7; font-size: 14px; }
+        .btn-add { background: #003366; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-reset { background: #f59e0b; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+        .btn-logout { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; }
+        input[type="text"], input[type="number"] { padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
+        #s_name_display { display: block; margin-top: 5px; color: #003366; font-weight: bold; font-size: 13px; }
     </style>
 </head>
-<body onload="loadStockData()">
+<body onload="initSup()">
     <div class="container">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-            <button onclick="location.href='user-select.html'" style="padding:10px 15px; cursor:pointer;">◀ Back</button>
-            <h2 style="color: #003366;">Supervisor Admin Panel</h2>
-            <button onclick="logout()" style="background:#ef4444; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">Logout</button>
+        <div class="header-sup">
+            <div>
+                <h2 style="margin:0">Supervisor Panel</h2>
+                <small>Management & Controls</small>
+            </div>
+            <button class="btn-logout" onclick="logout()">LOGOUT</button>
         </div>
 
         <div class="card">
-            <h3 style="margin-top:0;">Add Stock to Central (0243)</h3>
-            <div style="display:flex; gap:12px; align-items: flex-start;">
-                <div style="flex:3;">
-                    <input type="text" id="s_mat" placeholder="Type Material Code..." style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px;">
+            <h3 style="margin-top:0">➕ Add Stock to Central (0243)</h3>
+            <div style="display:flex; gap:10px; flex-wrap: wrap;">
+                <div style="flex:2; min-width:200px;">
+                    <input type="text" id="s_mat" placeholder="Enter Material Code..." style="width:100%" oninput="window.setupAdminLookup()">
                     <span id="s_name_display"></span>
                 </div>
-                <input type="number" id="s_qty" value="1" min="1" style="width:80px; padding:10px; border:1px solid #cbd5e1; border-radius:8px; text-align:center;">
-                <button onclick="doSupAdd()" style="background:#003366; color:white; padding:11px 25px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">ADD STOCK</button>
+                <input type="number" id="s_qty" value="1" min="1" style="width:80px">
+                <button class="btn-add" onclick="window.doSupAdd()">ADD STOCK</button>
             </div>
         </div>
 
         <div class="card">
-            <h3>Staff Inventory Management</h3>
+            <h3>👥 Staff Management (Password Reset)</h3>
             <table>
                 <thead>
                     <tr>
-                        <th>Material & Product</th>
-                        <th>Staff Name</th>
-                        <th style="text-align: center;">Qty</th>
-                        <th style="text-align: right;">Action</th>
+                        <th>Username</th>
+                        <th>Full Name</th>
+                        <th style="text-align:right">Control</th>
                     </tr>
                 </thead>
-                <tbody id="staff-data"></tbody>
+                <tbody id="user-list">
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3>📦 Staff Inventory Audit</h3>
+            <input type="text" placeholder="Search staff or material..." oninput="window.searchStock(this.value, 'supervisor')" style="width:100%; margin-bottom:15px; box-sizing:border-box">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Holder</th>
+                        <th style="text-align:center">Qty</th>
+                        <th style="text-align:right">Deduct Used</th>
+                    </tr>
+                </thead>
+                <tbody id="staff-data">
+                    <tr><td colspan="4" align="center">Loading data...</td></tr>
+                </tbody>
             </table>
         </div>
     </div>
+
     <script src="js/app.js"></script>
+    <script>
+        function initSup() {
+            if (sessionStorage.getItem('isSupervisor') !== 'true') {
+                location.href = 'index.html';
+                return;
+            }
+            renderUserList();
+            window.loadStockData('supervisor');
+        }
+
+        // แสดงรายชื่อพนักงานสำหรับ Reset Password
+        function renderUserList() {
+            const users = [
+                {uid: "KM", name: "Kitti"},
+                {uid: "TK", name: "Tatchai"},
+                {uid: "PSO", name: "Parinyachat"},
+                {uid: "PK", name: "Phurilap"},
+                {uid: "PST", name: "Penporn"},
+                {uid: "PA", name: "Phuriwat"}
+            ];
+            const tbody = document.getElementById('user-list');
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td><b>${u.uid}</b></td>
+                    <td>${u.name}</td>
+                    <td align="right">
+                        <button class="btn-reset" onclick="window.resetStaffPassword('${u.name}')">🔄 Reset Password</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    </script>
 </body>
 </html>
