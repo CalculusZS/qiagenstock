@@ -1,8 +1,8 @@
 /* ==========================================================================
-   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (ENGLISH V5.5)
+   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (FINAL COMPLETED V6.0)
+   - FIXED: ReferenceError executeDeduct is not defined
    - UI: 100% English Language
-   - Fixed: USE button logic & Wide WO input (100px)
-   - Features: KM/TK/PK Login, Reset Modal, Search, Qty Support
+   - Layout: Wide WO input (100px) & Qty support
 ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec"; 
@@ -60,7 +60,7 @@ window.submitNewPassword = async function() {
             sessionStorage.setItem('selectedUser', currentUserData.fullName);
             location.href = 'main.html';
         }
-    } catch (e) { alert("❌ Error updating password."); }
+    } catch (e) { alert("❌ Error."); }
 };
 
 window.logout = function() { sessionStorage.clear(); location.href = 'index.html'; };
@@ -87,7 +87,7 @@ window.searchStock = function(query, mode) {
     renderTable(filtered, mode);
 };
 
-/* ===== 3. UI RENDERING (ENGLISH & FIXED LAYOUT) ===== */
+/* ===== 3. UI RENDERING (ENGLISH & WIDE INPUTS) ===== */
 
 window.renderTable = function(data, mode) {
     const tbody = document.getElementById('data');
@@ -143,7 +143,7 @@ window.executeTransaction = async function(type, mat, qty) {
         const res = await fetch(url).then(r => r.json());
         if (res.success) { alert("✅ Success!"); loadStockData(type); }
         else { alert("❌ " + res.msg); }
-    } catch (e) { alert("❌ Connection Error"); }
+    } catch (e) { alert("❌ Error"); }
 };
 
 window.handleDeductClick = async function(mat) {
@@ -166,3 +166,7 @@ window.handleDeductClick = async function(mat) {
         } else { alert("❌ " + (res.msg || "Transaction failed")); }
     } catch (e) { alert("❌ Connection failed"); }
 };
+
+/* ===== 5. FUNCTION MAPPING (ตัวแก้บั๊กปุ่มกดไม่ติด) ===== */
+// หากไฟล์ HTML เรียกชื่อ executeDeduct ให้ชี้มาที่ handleDeductClick แทน
+window.executeDeduct = window.handleDeductClick;
