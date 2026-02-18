@@ -5,7 +5,7 @@
    - PRESERVED: All features (Withdraw, Return, Use, Search)
    ========================================================================== */
 
-const API = "https://script.google.com/macros/s/AKfycbwsU6rp8fvviV3aako-EqVABQHpQ7GQ9vOKvHR-MwnL3-AuWmTcewct_XUsuhEta1l-/exec"; 
+const API = "https://script.google.com/macros/s/AKfycbzDwLIahmJn4yMt_NqrRr2diHGo6BQ1TsdXBLqsDRuanUvUU2sPCBZsfWQkdMBQaY4S/exec"; 
 const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen";
 
