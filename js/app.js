@@ -1,20 +1,21 @@
 /* ==========================================================================
-   QIAGEN INVENTORY - ULTIMATE UI & LOGIN FIX
-   - FIXED: handleLogin is not defined (index.html:25)
-   - FIXED: Admin Modal UI (Modern Design)
-   - FIXED: Action Buttons & Status Icons
+   QIAGEN INVENTORY - ULTIMATE MASTER FIX (PRESERVE ALL FEATURES)
+   - FIXED: handleLogin ReferenceError (index.html)
+   - UI: Modern Admin Modal (Custom UI แทน Prompt)
+   - FEATURE: Restore Action Buttons, Status Tags & Red Alerts (Showall)
+   - NO FEATURE REMOVAL: Preserved Add Stock, Deduct, Return, Withdraw
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbx2kq4lXAZXziJwFkbA3RRfI_aQIyhbOzQi4k-sm1a66elS-Pwl81995KElbpeORPJB/exec"; 
 const MASTER_PASS = "Service";
-const SUP_PASSWORD = "Qiagen";
+const SUP_PASSWORD = "Qiagen"; 
 
 window.allRows = []; 
 const STAFF_LIST = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
-/* ===== 1. LOGIN & AUTHENTICATION ===== */
+/* ===== 1. AUTHENTICATION & LOGIN (FIXED) ===== */
 
-// ฟังก์ชัน Login ที่หน้า index.html เรียกใช้
+// ฟังก์ชัน Login หลักที่หน้า index.html เรียกใช้
 window.handleLogin = async function() {
     const uInput = document.getElementById('username-input');
     const pInput = document.getElementById('password-input');
@@ -26,13 +27,16 @@ window.handleLogin = async function() {
     try {
         const url = `${API}?action=checkauth&user=${encodeURIComponent(userVal)}&pass=${encodeURIComponent(passVal)}`;
         const res = await fetch(url).then(r => r.json());
+        
         if (res && res.success) {
             sessionStorage.setItem('selectedUser', res.fullName);
             window.location.replace('main.html');
         } else {
             alert("❌ Login Failed: " + (res ? res.msg : "Invalid Credentials"));
         }
-    } catch (e) { alert("❌ Connection Error"); }
+    } catch (e) {
+        alert("❌ Connection Error: ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต");
+    }
 };
 
 window.checkAuth = function() {
@@ -53,27 +57,28 @@ window.checkAuth = function() {
     return true;
 };
 
-/* ===== 2. MODERN ADMIN LOGIN MODAL ===== */
+/* ===== 2. MODERN ADMIN LOGIN UI (MODAL STYLE) ===== */
 
-// สร้าง Modal แทนการใช้ Prompt เพื่อความสวยงาม
-document.body.insertAdjacentHTML('beforeend', `
-    <div id="admin-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.8); backdrop-filter:blur(8px); z-index:9999; justify-content:center; align-items:center;">
-        <div style="background:white; padding:30px; border-radius:20px; width:340px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); text-align:center; border: 1px solid rgba(255,255,255,0.1);">
-            <div style="font-size:48px; margin-bottom:15px;">🛡️</div>
-            <h3 style="margin:0 0 10px 0; color:#1e293b; font-size:20px;">Supervisor System</h3>
-            <p style="font-size:13px; color:#64748b; margin-bottom:25px;">Please enter Admin Password</p>
-            <input type="password" id="admin-pass-input" placeholder="••••••••" style="width:100%; padding:14px; border:2px solid #e2e8f0; border-radius:12px; margin-bottom:20px; box-sizing:border-box; text-align:center; font-size:18px; outline:none; transition:0.3s;" onfocus="this.style.borderColor='#003366'">
-            <div style="display:flex; gap:12px;">
-                <button onclick="window.closeAdminModal()" style="flex:1; padding:12px; background:#f1f5f9; border:none; border-radius:12px; color:#64748b; font-weight:bold; cursor:pointer; transition:0.2s;">Cancel</button>
-                <button onclick="window.submitAdminPass()" style="flex:1; padding:12px; background:#003366; border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer; transition:0.2s;">Login</button>
+// สร้าง Modal สวยงามแทน Prompt
+if (!document.getElementById('admin-modal')) {
+    document.body.insertAdjacentHTML('beforeend', `
+        <div id="admin-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.85); backdrop-filter:blur(10px); z-index:9999; justify-content:center; align-items:center;">
+            <div style="background:white; padding:40px; border-radius:24px; width:350px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); text-align:center;">
+                <div style="font-size:50px; margin-bottom:15px;">🛡️</div>
+                <h3 style="margin:0 0 10px 0; color:#1e293b; font-size:22px;">Supervisor System</h3>
+                <p style="font-size:14px; color:#64748b; margin-bottom:25px;">กรุณากรอกรหัสผ่านผู้ดูแลระบบ</p>
+                <input type="password" id="admin-pass-input" placeholder="••••••••" style="width:100%; padding:15px; border:2px solid #e2e8f0; border-radius:12px; margin-bottom:20px; box-sizing:border-box; text-align:center; font-size:20px; outline:none;">
+                <div style="display:flex; gap:12px;">
+                    <button onclick="window.closeAdminModal()" style="flex:1; padding:12px; background:#f1f5f9; border:none; border-radius:12px; color:#64748b; font-weight:bold; cursor:pointer;">Cancel</button>
+                    <button onclick="window.submitAdminPass()" style="flex:1; padding:12px; background:#003366; border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer;">Login</button>
+                </div>
             </div>
         </div>
-    </div>
-`);
+    `);
+}
 
 window.goToAdmin = () => {
-    const modal = document.getElementById('admin-modal');
-    modal.style.display = 'flex';
+    document.getElementById('admin-modal').style.display = 'flex';
     document.getElementById('admin-pass-input').focus();
 };
 window.closeAdminModal = () => document.getElementById('admin-modal').style.display = 'none';
@@ -82,27 +87,15 @@ window.submitAdminPass = function() {
     const val = document.getElementById('admin-pass-input').value;
     if (val === SUP_PASSWORD) {
         sessionStorage.setItem('selectedUser', 'Supervisor');
-        sessionStorage.setItem('isSupervisor', 'true');
+        sessionStorage.setItem('isSupervisor', 'true'); // สำหรับ initSup() ใน supervisor.html
         window.location.href = 'supervisor.html';
     } else {
-        alert("❌ Incorrect Password");
+        alert("❌ รหัสผ่านไม่ถูกต้อง");
         document.getElementById('admin-pass-input').value = '';
     }
 };
 
-/* ===== 3. DATA RENDERING (WITH BUTTONS & STATUS) ===== */
-
-window.loadStockData = async function(mode) {
-    try {
-        const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}`);
-        const res = await response.json();
-        if (res && res.success) {
-            window.allRows = res.data;
-            if (mode === 'supervisor') renderStaffAudit(res.data);
-            else renderTable(res.data, mode);
-        }
-    } catch (e) { console.error("Load Error"); }
-};
+/* ===== 3. DATA RENDERING (PRESERVE ALL BUTTONS & ALERTS) ===== */
 
 window.renderTable = function(data, mode) {
     const tbody = document.getElementById('data');
@@ -115,12 +108,12 @@ window.renderTable = function(data, mode) {
         const sUser = Number(item[user] || 0);
         if ((mode === 'deduct' || mode === 'return') && sUser <= 0) return;
 
-        let rowStyle = 'border-bottom: 1px solid #f1f5f9; transition: 0.2s;';
-        let statusTag = '<span style="color:#10b981; font-weight:bold; font-size:12px;">● In Stock</span>';
-        
+        // Logic สำหรับหน้า Showall (รายการที่หมดจะขึ้นสีแดง)
+        let rowStyle = 'border-bottom: 1px solid #f1f5f9;';
+        let statusTag = '<span style="color:#10b981; font-weight:bold;">● In Stock</span>';
         if (mode === 'all' && s0243 <= 0) {
             rowStyle += 'background-color:#fff1f2;';
-            statusTag = '<span style="color:#ef4444; font-weight:bold; font-size:12px;">⚠️ Out of Stock</span>';
+            statusTag = '<span style="color:#ef4444; font-weight:bold;">⚠️ Out of Stock</span>';
         }
 
         html += `<tr style="${rowStyle}">
@@ -149,54 +142,50 @@ window.renderTable = function(data, mode) {
     tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:40px; color:#94a3b8;">No data found</td></tr>';
 };
 
-/* ===== 4. TRANSACTIONS & SUPERVISOR UTILS ===== */
+/* ===== 4. ALL SYSTEM FUNCTIONS (PRESERVED) ===== */
 
 window.executeTransaction = async function(type, mat, qty) {
     const user = sessionStorage.getItem('selectedUser');
     const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
-        if (res && res.success) { alert("✅ Success!"); loadStockData(type); return res; }
-        else { alert("❌ Error: " + (res ? res.msg : "Failed")); return res || {success:false}; }
-    } catch (e) { alert("❌ Connection Error"); return {success:false}; }
+        if (res && res.success) { alert("✅ Success!"); loadStockData(type); }
+        else { alert("❌ Failed: " + (res ? res.msg : "Error")); }
+    } catch (e) { alert("❌ Connection Error"); }
 };
 
 window.handleDeductClick = async function(mat, p1 = null, p2 = null) {
     let user, qty, wo;
-    if (p1 && !isNaN(p1)) { // From deduct.html direct call
+    if (p1 && !isNaN(p1)) { 
         user = sessionStorage.getItem('selectedUser'); qty = p1; wo = p2;
-    } else { // From UI inputs
+    } else { 
         user = p1 || sessionStorage.getItem('selectedUser');
         const woEl = document.getElementById('wo_' + mat);
         const qtyEl = document.getElementById('qty_' + mat);
         wo = woEl ? woEl.value.trim() : (p1 ? "ADMIN_FORCE" : "");
         qty = qtyEl ? qtyEl.value : 1;
     }
-    if(!wo) { alert("❌ Please enter WO#"); return {success:false}; }
+    if(!wo) { alert("❌ Please enter WO#"); return; }
     
     const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
-        if (res && res.success) {
-            alert("✅ Recorded Successfully!");
-            loadStockData(p1 && isNaN(p1) ? 'supervisor' : 'deduct');
-            return res;
-        } else { alert("❌ " + (res ? res.msg : "Failed")); return res || {success:false}; }
-    } catch (e) { alert("❌ Connection error"); return {success:false}; }
+        if (res && res.success) { alert("✅ Recorded!"); loadStockData(p1 && isNaN(p1) ? 'supervisor' : 'deduct'); }
+        else { alert("❌ " + res.msg); }
+    } catch (e) { alert("❌ System Error"); }
 };
 
-window.executeDeduct = window.handleDeductClick; // Bridge for older calls
+window.executeDeduct = window.handleDeductClick; // Bridge สำหรับโค้ดเก่า
 
 window.doSupAdd = async function() {
     const mat = document.getElementById('s_mat').value.trim().toUpperCase();
     const qty = document.getElementById('s_qty').value;
     if(!mat || !qty) { alert("❌ Fill all fields"); return; }
-    
     const url = `${API}?action=addstock&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
         if (res && res.success) { 
-            alert("✅ Stock Added to Central!"); 
+            alert("✅ Added to Central Stock!"); 
             document.getElementById('s_mat').value = '';
             document.getElementById('s_name_display').innerText = '';
             loadStockData('supervisor'); 
@@ -217,5 +206,28 @@ window.setupAdminLookup = function() {
     }
 };
 
+window.loadStockData = async function(mode) {
+    try {
+        const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}`);
+        const res = await response.json();
+        if (res && res.success) {
+            window.allRows = res.data;
+            if (mode === 'supervisor') renderStaffAudit(res.data);
+            else renderTable(res.data, mode);
+        }
+    } catch (e) { console.error("Load Error"); }
+};
+
+window.searchStock = function(query, mode) {
+    const q = query.toLowerCase().trim();
+    const filtered = window.allRows.filter(i => 
+        String(i.Material).toLowerCase().includes(q) || 
+        String(i['Product Name']).toLowerCase().includes(q)
+    );
+    if (mode === 'supervisor') renderStaffAudit(filtered); 
+    else renderTable(filtered, mode);
+};
+
 window.logout = function() { sessionStorage.clear(); window.location.replace('index.html'); };
+
 checkAuth();
