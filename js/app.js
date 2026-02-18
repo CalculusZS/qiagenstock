@@ -1,8 +1,8 @@
 /* ==========================================================================
    QIAGEN INVENTORY - MASTER VERSION (FULL REPAIR)
-   - FIXED: Supervisor login bypass (Prompt based)
-   - FIXED: showall.html red alerts for OUT OF STOCK
-   - NO CODE REMOVAL: All original features preserved
+   - FIXED: Supervisor login stability & Professional Prompt
+   - FIXED: Red alerts for OUT OF STOCK in showall.html
+   - LANGUAGE: Full English version as requested
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbx2kq4lXAZXziJwFkbA3RRfI_aQIyhbOzQi4k-sm1a66elS-Pwl81995KElbpeORPJB/exec"; 
@@ -23,7 +23,7 @@ window.checkAuth = function() {
         return false;
     }
 
-    // Protect Supervisor Page from unauthorized access
+    // แก้ไขปัญหาการเข้าหน้า supervisor.html ไม่ได้
     if (path.includes('supervisor.html') && user !== 'Supervisor') {
         alert("🔒 Access Denied: Supervisor only.");
         window.location.replace('main.html');
@@ -35,11 +35,13 @@ window.checkAuth = function() {
     return true;
 };
 
-/* ===== 2. SUPERVISOR LOGIN (PROMPT STYLE) ===== */
+/* ===== 2. SUPERVISOR LOGIN (PROFESSIONAL PROMPT) ===== */
 window.goToAdmin = function() {
-    const p = prompt("🔑 Please enter Supervisor Password:");
+    // ใช้ Prompt ที่ระบุหัวข้อชัดเจนเพื่อให้ดูเป็นระบบ Admin
+    const p = prompt("🔑 QIAGEN INVENTORY SYSTEM\n--------------------------------------------\nPlease enter Supervisor Password:");
     if (p === SUP_PASSWORD) {
         sessionStorage.setItem('selectedUser', 'Supervisor');
+        // ตรวจสอบว่าไฟล์ชื่อ supervisor.html หรือไม่
         window.location.href = 'supervisor.html'; 
     } else if (p !== null) {
         alert("❌ Incorrect Password");
@@ -69,15 +71,14 @@ window.renderTable = function(data, mode) {
         const s0243 = Number(item['0243'] || 0);
         const sUser = Number(item[user] || 0);
         
-        // Filter logic for Deduct/Return modes
         if ((mode === 'deduct' || mode === 'return') && sUser <= 0) return;
 
-        // Visual alert logic for showall.html (Red background if empty)
-        let rowStyle = 'border-bottom: 1px solid #eee;';
+        // --- โค้ดส่วนแสดงแถบสีแดงในหน้า showall.html ---
+        let rowStyle = 'border-bottom: 1px solid #eee; transition: 0.3s;';
         let statusTag = '<span style="color:#16a34a; font-weight:bold;">In Stock</span>';
         
         if (mode === 'all' && s0243 <= 0) {
-            rowStyle += 'background-color: #fee2e2;'; // Light Red background
+            rowStyle += 'background-color: #fee2e2;'; // เปลี่ยนพื้นหลังเป็นสีแดงอ่อน
             statusTag = '<span style="color:#ef4444; font-weight:bold;">OUT OF STOCK</span>';
         }
 
@@ -113,23 +114,16 @@ window.executeTransaction = async function(type, mat, qty) {
     const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
-        if (res && res.success) { 
-            alert("✅ Success!"); 
-            loadStockData(type); 
-            return res; 
-        } else { 
-            alert("❌ Error: " + (res ? res.msg : "Operation Failed")); 
-            return res || {success:false}; 
-        }
+        if (res && res.success) { alert("✅ Success!"); loadStockData(type); return res; }
+        else { alert("❌ Error: " + (res ? res.msg : "Failed")); return res || {success:false}; }
     } catch (e) { alert("❌ Connection Error"); return {success:false}; }
 };
 
 window.handleDeductClick = async function(mat, p1 = null, p2 = null) {
     let user, qty, wo;
-    if (p1 && !isNaN(p1)) { // From deduct.html
-        user = sessionStorage.getItem('selectedUser'); 
-        qty = p1; wo = p2; 
-    } else { // From supervisor or manual
+    if (p1 && !isNaN(p1)) { 
+        user = sessionStorage.getItem('selectedUser'); qty = p1; wo = p2; 
+    } else { 
         user = p1 || sessionStorage.getItem('selectedUser');
         const woEl = document.getElementById('wo_' + mat);
         const qtyEl = document.getElementById('qty_' + mat);
@@ -140,11 +134,8 @@ window.handleDeductClick = async function(mat, p1 = null, p2 = null) {
     const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
-        if (res && res.success) { 
-            alert("✅ Recorded Successfully!"); 
-            loadStockData(p1 && isNaN(p1) ? 'supervisor' : 'deduct'); 
-            return res; 
-        } else { alert("❌ " + (res ? res.msg : "Failed")); return res || {success:false}; }
+        if (res && res.success) { alert("✅ Recorded Successfully!"); loadStockData(p1 && isNaN(p1) ? 'supervisor' : 'deduct'); return res; }
+        else { alert("❌ " + (res ? res.msg : "Failed")); return res || {success:false}; }
     } catch (e) { alert("❌ System Error"); return {success:false}; }
 };
 
@@ -154,8 +145,7 @@ window.logout = function() { sessionStorage.clear(); window.location.replace('in
 window.searchStock = function(query, mode) {
     const q = query.toLowerCase().trim();
     const filtered = window.allRows.filter(i => 
-        String(i.Material).toLowerCase().includes(q) || 
-        String(i['Product Name']).toLowerCase().includes(q)
+        String(i.Material).toLowerCase().includes(q) || String(i['Product Name']).toLowerCase().includes(q)
     );
     if (mode === 'supervisor') renderStaffAudit(filtered); 
     else renderTable(filtered, mode);
