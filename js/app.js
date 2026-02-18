@@ -1,9 +1,8 @@
 /* ==========================================================================
-   QIAGEN INVENTORY - ULTIMATE COMPLETE VERSION (MATCH WITH BACKEND V6.0)
-   - FIXED: Add Stock (ใช้ action 'add' ตรงตาม App Script)
-   - FIXED: Staff Inventory Audit (แสดงข้อมูลสต็อกรายคนครบถ้วน)
-   - FIXED: Load Error & Search (กู้คืนฟังก์ชันที่หายไปทั้งหมด)
-   - PRESERVED: Login, Withdraw, Return, Use, Search, Reset Password
+   QIAGEN INVENTORY - ULTIMATE COMPLETE VERSION (EN)
+   - FEATURE: Password Reset sets status to 'NEW'
+   - FIXED: Universal add stock action compatibility
+   - PRESERVED: All features (Withdraw, Return, Use, Search)
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbwsU6rp8fvviV3aako-EqVABQHpQ7GQ9vOKvHR-MwnL3-AuWmTcewct_XUsuhEta1l-/exec"; 
@@ -26,7 +25,7 @@ window.handleLogin = async function() {
         if (res && res.success) {
             sessionStorage.setItem('selectedUser', res.fullName);
             window.location.replace('main.html');
-        } else { alert("❌ Login Failed: " + (res ? res.msg : "User หรือ Password ไม่ถูกต้อง")); }
+        } else { alert("❌ Login Failed: Invalid user or password"); }
     } catch (e) { alert("❌ Connection Error"); }
 };
 
@@ -75,21 +74,20 @@ window.renderStaffAudit = function(data) {
             }
         });
     });
-    tbody.innerHTML = html || '<tr><td colspan="4" align="center">ไม่มีข้อมูลสต็อกพนักงาน</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="4" align="center">No staff inventory found</td></tr>';
 };
 
-/* ===== 3. TRANSACTIONS (MATCHING BACKEND ACTION 'ADD') ===== */
+/* ===== 3. TRANSACTIONS ===== */
 window.doSupAdd = async function() {
     const mat = document.getElementById('s_mat').value.trim().toUpperCase();
     const qty = document.getElementById('s_qty').value;
-    if(!mat || !qty) { alert("❌ กรุณากรอกข้อมูลให้ครบ"); return; }
+    if(!mat || !qty) { alert("❌ Please fill all fields"); return; }
     
-    // เรียกใช้ action='add' ตามที่คุณตั้งไว้ใน Backend
     const url = `${API}?action=add&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
         if (res && res.success) {
-            alert("✅ เพิ่มสต็อกเข้าส่วนกลางสำเร็จ!");
+            alert("✅ Stock added successfully!");
             document.getElementById('s_mat').value = '';
             document.getElementById('s_name_display').innerText = '';
             loadStockData('supervisor');
@@ -102,13 +100,13 @@ window.handleDeductClick = async function(mat, p1 = null) {
     const wo = (p1 && typeof p1 === 'string') ? "ADMIN_FORCE" : (document.getElementById('wo_' + mat)?.value || "");
     const qty = (p1 && typeof p1 === 'string') ? 1 : (document.getElementById('qty_' + mat)?.value || 1);
 
-    if(!wo) { alert("❌ กรุณากรอก WO#"); return; }
+    if(!wo) { alert("❌ Please enter Work Order (WO#)"); return; }
     
     const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
         if (res.success) { 
-            alert("✅ บันทึกการใช้งานสำเร็จ!"); 
+            alert("✅ Transaction logged successfully!"); 
             loadStockData(p1 ? 'supervisor' : 'deduct'); 
         } else { alert("❌ " + res.msg); }
     } catch (e) { alert("❌ Error"); }
@@ -119,21 +117,24 @@ window.executeTransaction = async function(type, mat, qty) {
     const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
-        if (res && res.success) { alert("✅ Success!"); loadStockData(type); }
+        if (res && res.success) { alert("✅ " + type.toUpperCase() + " Success!"); loadStockData(type); }
         else { alert("❌ " + res.msg); }
     } catch (e) { alert("❌ Error"); }
 };
 
-/* ===== 4. RESET PASSWORD & OTHER UI ===== */
+/* ===== 4. STAFF MANAGEMENT & SEARCH ===== */
 window.resetStaffPassword = async function(staffName) {
-    const newPass = prompt(`กรุณากรอกรหัสผ่านใหม่สำหรับคุณ ${staffName}:`);
-    if (!newPass) return;
-    const url = `${API}?action=setpassword&user=${encodeURIComponent(staffName)}&newPass=${encodeURIComponent(newPass)}&pass=${SUP_PASSWORD}`;
+    const tempPass = prompt(`Set temporary password for ${staffName}:`, "1234");
+    if (!tempPass) return;
+
+    if(!confirm(`Reset ${staffName}'s password to "${tempPass}"?\nStatus will change to 'NEW' for forced update.`)) return;
+
+    const url = `${API}?action=setpassword&user=${encodeURIComponent(staffName)}&newPass=${encodeURIComponent(tempPass)}&pass=${SUP_PASSWORD}`;
     try {
         const res = await fetch(url).then(r => r.json());
-        if (res.success) alert(`✅ เปลี่ยนรหัสผ่านให้คุณ ${staffName} เรียบร้อยแล้ว`);
-        else alert("❌ " + res.msg);
-    } catch (e) { alert("❌ Error"); }
+        if (res.success) alert(`✅ Password for ${staffName} has been reset.\nStaff must login and set a new password.`);
+        else alert("❌ Error: " + res.msg);
+    } catch (e) { alert("❌ Connection Error"); }
 };
 
 window.searchStock = function(query, mode) {
@@ -179,7 +180,7 @@ window.setupAdminLookup = function() {
     const matCode = document.getElementById('s_mat').value.trim().toUpperCase();
     const item = window.allRows.find(r => String(r.Material).toUpperCase() === matCode);
     const display = document.getElementById('s_name_display');
-    if (display) display.innerText = item ? `📦 ${item['Product Name']}` : (matCode ? "❌ ไม่พบข้อมูล" : "");
+    if (display) display.innerText = item ? `📦 ${item['Product Name']}` : (matCode ? "❌ Not found" : "");
 };
 
 window.logout = function() { sessionStorage.clear(); window.location.replace('index.html'); };
