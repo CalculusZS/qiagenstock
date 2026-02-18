@@ -6,74 +6,72 @@
     <title>Team Spare Parts - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .header-box { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        .user-tag { background: #e2e8f0; color: #003366; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block; margin-left: 10px; }
+        .header-box { background: #003366; padding: 15px; display: flex; justify-content: space-between; align-items: center; color: white; position: sticky; top: 0; z-index: 100; }
+        .btn-back { background: rgba(255,255,255,0.2); border: 1px solid #fff; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+        .user-tag { background: #e2e8f0; color: #003366; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 5px; }
         .qty-badge { background: #2563eb; color: white; padding: 5px 12px; border-radius: 8px; font-weight: bold; font-size: 16px; }
-        .card { background: white; border-radius: 12px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        
-        /* สไตล์สำหรับข้อมูลบรรทัดเดียว */
-        .product-line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-        .mat-id { font-weight: bold; color: #003366; font-size: 14px; white-space: nowrap; }
+        .card { background: white; border-radius: 12px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin: 15px; }
+        .product-line { display: flex; flex-direction: column; gap: 2px; }
+        .mat-id { font-weight: bold; color: #003366; font-size: 14px; }
         .prod-name { font-size: 12px; color: #64748b; }
-        
-        tr:nth-child(even) td { background: #f8fafc; }
-        td { border-bottom: 1px solid #f1f5f9 !important; padding: 15px 12px !important; }
+        table { width: 100%; border-collapse: collapse; }
+        td { border-bottom: 1px solid #f1f5f9; padding: 12px !important; vertical-align: middle; }
     </style>
 </head>
 <body onload="initTeamStock()">
-    <div class="container">
-        <div class="header-box" style="display:flex; justify-content:space-between; align-items:center;">
-            <button onclick="location.href='user-select.html'" class="btn-sm" style="background:#f1f5f9; border:1px solid #ddd;">◀ Back</button>
-            <h2 style="margin:0; color:#003366; font-size: 18px;">Team Spare Parts</h2>
-            <button onclick="initTeamStock()" class="btn-sm" style="background:transparent; border:none; font-size:18px;">🔄</button>
-        </div>
+    <div class="header-box">
+        <button onclick="location.href='main.html'" class="btn-back">◀ BACK</button>
+        <h2 style="margin:0; font-size: 18px;">Team Spare Parts</h2>
+        <button onclick="initTeamStock()" style="background:transparent; border:none; font-size:18px; color:white; cursor:pointer;">🔄</button>
+    </div>
 
-        <div class="search-container">
-            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search material, product, or staff..." oninput="filterTeamTable()">
-        </div>
+    <div style="padding: 15px;">
+        <input type="text" id="searchInput" class="search-input" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd;" placeholder="🔍 Search material, product, or staff..." oninput="filterTeamTable()">
+    </div>
 
-        <div class="card">
-            <table style="width:100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background:#f1f5f9;">
-                        <th style="text-align:left; padding:12px;">Product Details & Holder</th>
-                        <th style="text-align:center; padding:12px; width:60px;">Qty</th>
-                    </tr>
-                </thead>
-                <tbody id="team-data-body">
-                    <tr><td colspan="2" align="center" style="padding:30px;">⌛ Loading team inventory...</td></tr>
-                </tbody>
-            </table>
-        </div>
+    <div class="card">
+        <table>
+            <thead>
+                <tr style="background:#f8fafc; color:#64748b; font-size:12px;">
+                    <th style="text-align:left; padding:12px;">DETAILS & HOLDER</th>
+                    <th style="text-align:center; padding:12px; width:60px;">QTY</th>
+                </tr>
+            </thead>
+            <tbody id="team-data-body">
+                <tr><td colspan="2" align="center" style="padding:30px;">⌛ Loading team inventory...</td></tr>
+            </tbody>
+        </table>
     </div>
 
     <script src="js/app.js"></script> 
     
     <script>
         let fullTeamData = [];
-        // รายชื่อพนักงานที่ต้องตรวจสอบ (อ้างอิงจาก STAFF_LIST ใน app.js)
+        // รายชื่อพนักงาน (ต้องตรงกับ Header ใน Excel)
         const teamMembers = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
         async function initTeamStock() {
             const tbody = document.getElementById('team-data-body');
             
-            // ใช้ค่า API และ PASSWORD จากไฟล์ app.js
-            if (typeof API === 'undefined' || typeof PASSWORD === 'undefined') {
-                tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px; color:red;">❌ API Configuration Missing</td></tr>';
+            // แก้ไขการเช็คตัวแปรให้ตรงกับ app.js (ใช้ MASTER_PASS แทน PASSWORD)
+            const api_url = typeof API !== 'undefined' ? API : null;
+            const api_pass = typeof MASTER_PASS !== 'undefined' ? MASTER_PASS : null;
+
+            if (!api_url || !api_pass) {
+                tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px; color:red;">❌ API Configuration Missing<br><small>Check API & MASTER_PASS in app.js</small></td></tr>';
                 return;
             }
 
-            const fetchUrl = `${API}?action=read&password=${PASSWORD}`;
-
             try {
-                const response = await fetch(fetchUrl);
+                // ใช้การส่งค่า pass=${api_pass} ตามที่ตั้งไว้ใน Apps Script
+                const response = await fetch(`${api_url}?action=read&pass=${api_pass}`);
                 const result = await response.json();
                 
                 if (result.success) {
                     fullTeamData = result.data;
                     renderTeamTable(fullTeamData);
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px;">❌ Error: ' + result.error + '</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px;">❌ Error: ' + result.msg + '</td></tr>';
                 }
             } catch (e) {
                 tbody.innerHTML = '<tr><td colspan="2" align="center" style="padding:20px; color:red;">❌ Connection Failed</td></tr>';
@@ -86,7 +84,6 @@
             let hasData = false;
 
             data.forEach(item => {
-                // วนลูปแยกบรรทัดตามพนักงานที่มีของชิ้นนี้
                 teamMembers.forEach(member => {
                     const qty = Number(item[member] || 0);
                     if (qty > 0) {
