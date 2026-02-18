@@ -3,24 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Inventory - Qiagen Stock</title>
+    <title>All Inventory Status</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body onload="loadStockData('all')">
-    <div class="container" style="max-width: 100%; width: 95%; margin: 20px auto;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-            <button onclick="location.href='main.html'" style="padding:10px 15px; background:#003366; color:white; border:none; border-radius:8px; cursor:pointer;">◀ Back</button>
-            <h2 style="color:#003366; margin:0;">All Inventory (0243)</h2>
-            <div style="width:60px;"></div>
-        </div>
-        <input type="text" placeholder="Search..." oninput="searchStock(this.value, 'all')" style="width:100%; padding:12px; margin-bottom:20px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box;">
-        <div class="card" style="background:white; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1); overflow:hidden;">
-            <table style="width:100%; border-collapse: collapse;">
-                <thead><tr style="background:#f1f5f9;"><th style="text-align:left; padding:12px;">Material & Product</th><th style="text-align:center; padding:12px;">Stock 0243</th><th style="text-align:right; padding:12px;">Status</th></tr></thead>
-                <tbody id="data"></tbody>
-            </table>
-        </div>
+<body onload="initShowAll()">
+    <div class="header" style="background:#334155; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight:bold; font-size:18px;">📦 ALL STOCK STATUS</div>
+        <button class="btn-back" onclick="location.href='main.html'" style="background:rgba(255,255,255,0.2); border:1px solid white; color:white; padding:5px 10px; border-radius:5px; cursor:pointer;">BACK</button>
+    </div>
+    <div class="container" style="padding:15px;">
+        <input type="text" class="search-box" placeholder="🔍 Search Material or Product Name..." oninput="searchStock(this.value, 'all')" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px;">
+        <table style="width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+            <thead>
+                <tr style="background:#f8fafc; color:#64748b; font-size:12px; text-transform:uppercase;">
+                    <th style="padding:12px; text-align:left;">Details</th>
+                    <th style="padding:12px; text-align:center;">Stock (0243)</th>
+                    <th style="padding:12px; text-align:right;">Status</th>
+                </tr>
+            </thead>
+            <tbody id="data">
+                <tr><td colspan="3" align="center">Loading inventory data...</td></tr>
+            </tbody>
+        </table>
     </div>
     <script src="js/app.js"></script>
+    <script>
+        function initShowAll() {
+            if(!checkAuth()) return;
+            loadStockData('all'); 
+        }
+    </script>
 </body>
 </html>
