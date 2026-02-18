@@ -1,170 +1,49 @@
-/* ==========================================================================
-   QIAGEN STOCK MANAGEMENT SYSTEM - app.js (MODERN MODAL V4.0)
-   Features: Modern Modal, Confirm Password, English UI
-========================================================================== */
-
-const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec"; 
-const MASTER_PASS = "Service";
-const SUP_PASSWORD = "Qiagen";
-
-window.allRows = [];
-let currentUserData = null; // Store user info during password reset
-
-// --- 1. LOGIN & AUTHENTICATION ---
-window.handleLogin = async function() {
-    const userInput = document.getElementById('username-input').value.trim().toUpperCase();
-    const password = document.getElementById('password-input').value.trim();
-
-    if (!userInput || !password) {
-        alert("Please enter both Username and Password.");
-        return;
-    }
-
-    try {
-        const url = `${API}?action=checkauth&user=${encodeURIComponent(userInput)}&pass=${encodeURIComponent(password)}`;
-        const res = await fetch(url).then(r => r.json());
-
-        if (res.success) {
-            if (res.status === 'FIRST_TIME') {
-                // Show the modern modal instead of prompt
-                currentUserData = res;
-                document.getElementById('welcome-msg').innerText = `Welcome, ${res.fullName}!`;
-                document.getElementById('reset-modal').style.display = 'flex';
-            } else {
-                sessionStorage.setItem('selectedUser', res.fullName);
-                location.href = 'main.html';
-            }
-        } else {
-            alert("❌ " + (res.msg || "Incorrect Username or Password"));
-        }
-    } catch (e) {
-        alert("❌ Connection failed. Please try again.");
-    }
-};
-
-// --- 2. PASSWORD RESET MODAL LOGIC ---
-window.submitNewPassword = async function() {
-    const newPass = document.getElementById('new-pass').value;
-    const confirmPass = document.getElementById('confirm-pass').value;
-
-    if (newPass.length < 4) {
-        alert("Password must be at least 4 characters long.");
-        return;
-    }
-
-    if (newPass !== confirmPass) {
-        alert("Passwords do not match. Please try again.");
-        return;
-    }
-
-    try {
-        const url = `${API}?action=setpassword&user=${encodeURIComponent(currentUserData.fullName)}&newPass=${encodeURIComponent(newPass)}`;
-        const res = await fetch(url).then(r => r.json());
-
-        if (res.success) {
-            alert("✅ Password updated successfully!");
-            sessionStorage.setItem('selectedUser', currentUserData.fullName);
-            location.href = 'main.html';
-        } else {
-            alert("❌ Failed to update password.");
-        }
-    } catch (e) {
-        alert("❌ Error connecting to server.");
-    }
-};
-
-window.closeModal = function() {
-    document.getElementById('reset-modal').style.display = 'none';
-};
-
-window.goToAdmin = function() {
-    const adminPass = prompt("Enter Supervisor Password:");
-    if (adminPass === SUP_PASSWORD) {
-        location.href = 'supervisor.html';
-    } else {
-        alert("Access Denied");
-    }
-};
-
-/* ===== 3. STOCK MANAGEMENT FUNCTIONS ===== */
-window.checkAuth = function() {
-    if (!sessionStorage.getItem('selectedUser')) {
-        location.href = 'index.html';
-    }
-};
-
-window.logout = function() {
-    sessionStorage.clear();
-    location.href = 'index.html';
-};
-
-window.loadStockData = async function(mode) {
-    try {
-        const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}`);
-        const res = await response.json();
-        if (res.success) {
-            window.allRows = res.data;
-            renderTable(res.data, mode);
-        }
-    } catch (e) { console.error("Fetch Error:", e); }
-};
-
-window.searchStock = function(query, mode) {
-    const q = query.toLowerCase().trim();
-    const filtered = window.allRows.filter(item => {
-        return String(item.Material).toLowerCase().includes(q) || 
-               String(item['Product Name']).toLowerCase().includes(q);
-    });
-    renderTable(filtered, mode);
-};
-
-window.renderTable = function(data, mode) {
-    const tbody = document.getElementById('data');
-    if (!tbody) return;
-    
-    const user = sessionStorage.getItem('selectedUser');
-    let html = '';
-
-    data.forEach(item => {
-        const stock0243 = Number(item['0243'] || 0);
-        const stockUser = Number(item[user] || 0);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QIAGEN Stock - Login</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #003366; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); width: 100%; max-width: 350px; text-align: center; position: relative; }
+        .logo { font-size: 28px; font-weight: bold; color: #003366; margin-bottom: 30px; }
+        input { width: 100%; padding: 14px; margin: 10px 0; border: 1.5px solid #eee; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; transition: 0.3s; }
+        input:focus { border-color: #003366; box-shadow: 0 0 8px rgba(0,51,102,0.1); }
+        button { width: 100%; padding: 14px; background: #003366; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: 0.3s; }
+        button:hover { background: #004080; transform: translateY(-1px); }
         
-        if ((mode === 'deduct' || mode === 'return') && stockUser <= 0) return;
+        /* Modal Style - หน้าต่างตั้งรหัสผ่านใหม่ */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 35px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-content h3 { color: #003366; margin-top: 0; }
+        .modal-content p { font-size: 14px; color: #666; margin-bottom: 20px; }
+        
+        .admin-link { margin-top: 25px; font-size: 13px; color: #888; text-decoration: none; cursor: pointer; display: block; }
+    </style>
+</head>
+<body>
 
-        html += `<tr>
-            <td>
-                <div style="font-weight:bold; font-size:14px;">${item.Material}</div>
-                <div style="font-size:11px; color:#64748b;">${item['Product Name']}</div>
-            </td>
-            <td align="center"><b>${(mode === 'all' || mode === 'withdraw') ? stock0243 : stockUser}</b></td>
-            <td align="right">
-                ${mode === 'withdraw' ? `<button onclick="executeTransaction('withdraw','${item.Material}',1)" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">Withdraw</button>` : 
-                  mode === 'deduct' ? `<div style="display:flex; gap:4px;"><input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:60px; padding:5px; border-radius:4px; border:1px solid #ddd;"><button onclick="handleDeductClick('${item.Material}')" style="background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">USE</button></div>` : 
-                  mode === 'return' ? `<button onclick="executeTransaction('return','${item.Material}',1)" style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">Return</button>` : '●'}
-            </td>
-        </tr>`;
-    });
-    tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:20px;">No Data Found</td></tr>';
-};
+    <div class="login-card">
+        <div class="logo">QIAGEN STOCK</div>
+        <input type="text" id="username-input" placeholder="Username (KM, TK, PK)">
+        <input type="password" id="password-input" placeholder="Password">
+        <button onclick="handleLogin()">LOGIN</button>
+        <a class="admin-link" onclick="goToAdmin()">Supervisor System (Admin)</a>
+    </div>
 
-window.executeTransaction = async function(type, mat, qty) {
-    const user = sessionStorage.getItem('selectedUser');
-    const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
-    try {
-        const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ Success!"); loadStockData(type); }
-        else { alert("❌ " + res.msg); }
-    } catch (e) { alert("❌ Connection Error"); }
-};
+    <div id="reset-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Set New Password</h3>
+            <p id="welcome-msg">Welcome!</p>
+            <input type="password" id="new-pass" placeholder="New Password (min 4 chars)">
+            <input type="password" id="confirm-pass" placeholder="Confirm New Password">
+            <button onclick="submitNewPassword()" style="background: #16a34a;">Save & Login</button>
+            <button onclick="closeModal()" style="background: #ccc; margin-top: 10px;">Cancel</button>
+        </div>
+    </div>
 
-window.handleDeductClick = async function(mat) {
-    const wo = document.getElementById('wo_' + mat).value.trim();
-    if(!wo) { alert("❌ Please enter Work Order (WO#)"); return; }
-    const user = sessionStorage.getItem('selectedUser');
-    const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=1&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
-    try {
-        const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ Usage Recorded"); loadStockData('deduct'); }
-        else { alert("❌ " + res.msg); }
-    } catch (e) { alert("❌ Connection Error"); }
-};
+    <script src="js/app.js"></script>
+</body>
+</html>
