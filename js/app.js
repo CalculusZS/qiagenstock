@@ -1,16 +1,16 @@
 /* ==========================================================================
-   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (FULL OPTIMIZED V3.0)
+   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (MATCH WITH BACKEND V3.0)
 ========================================================================== */
 
-const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec"; 
+const API = "ใส่_URL_APPS_SCRIPT_ของคุณตรงนี้";
 const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen"; 
 
-window.allRows = []; // ที่เก็บข้อมูลสต็อกทั้งหมดเพื่อใช้ในการค้นหา
+window.allRows = []; 
 
 // --- 1. ระบบ LOGIN & FORCE PASSWORD CHANGE ---
 window.handleLogin = async function() {
-    const userInput = document.getElementById('username-input').value.trim();
+    const userInput = document.getElementById('username-input').value.trim().toUpperCase();
     const password = document.getElementById('password-input').value.trim();
 
     if (!userInput || !password) {
@@ -19,19 +19,24 @@ window.handleLogin = async function() {
     }
 
     try {
+        // เรียกใช้ action: 'checkauth' ตาม Backend V3.0
         const url = `${API}?action=checkauth&user=${encodeURIComponent(userInput)}&pass=${encodeURIComponent(password)}`;
         const res = await fetch(url).then(r => r.json());
 
         if (res.success) {
+            // กรณีใช้งานครั้งแรก (สถานะ FIRST_TIME จาก Backend)
             if (res.status === 'FIRST_TIME') {
                 const newPass = prompt(`ยินดีต้อนรับคุณ ${res.fullName}\nกรุณาตั้งรหัสผ่านใหม่ (4 ตัวขึ้นไป):`);
                 if (newPass && newPass.length >= 4) {
+                    // เรียกใช้ action: 'setpassword' ตาม Backend V3.0
                     await setPasswordAPI(res.fullName, newPass);
                 } else {
                     alert("การตั้งรหัสผ่านไม่สำเร็จ");
                 }
                 return;
             }
+            
+            // กรณีล็อกอินปกติ
             sessionStorage.setItem('selectedUser', res.fullName);
             location.href = 'main.html';
         } else {
@@ -46,7 +51,7 @@ async function setPasswordAPI(fullName, newPass) {
     const url = `${API}?action=setpassword&user=${encodeURIComponent(fullName)}&newPass=${encodeURIComponent(newPass)}`;
     const res = await fetch(url).then(r => r.json());
     if (res.success) {
-        alert("✅ ตั้งรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบอีกครั้ง");
+        alert("✅ ตั้งรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบอีกครั้งด้วยรหัสใหม่");
         location.reload();
     }
 }
@@ -60,13 +65,9 @@ window.goToAdmin = function() {
     }
 };
 
-/* ===== 2. AUTH & SESSION ===== */
+/* ===== 2. AUTH & STOCK FUNCTIONS ===== */
 window.checkAuth = function() {
-    if (!sessionStorage.getItem('selectedUser')) {
-        location.href = 'index.html';
-        return false;
-    }
-    return true;
+    if (!sessionStorage.getItem('selectedUser')) location.href = 'index.html';
 };
 
 window.logout = function() {
@@ -74,20 +75,15 @@ window.logout = function() {
     location.href = 'index.html';
 };
 
-window.goBack = function() {
-    location.href = 'main.html';
-};
-
-/* ===== 3. DATA LOADING & SEARCH ===== */
 window.loadStockData = async function(mode) {
     try {
         const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}`);
         const res = await response.json();
         if (res.success) {
-            window.allRows = res.data; // เก็บข้อมูลไว้ที่ตัวแปร global เพื่อให้ค้นหาได้
+            window.allRows = res.data;
             renderTable(res.data, mode);
         }
-    } catch (e) { console.error("Fetch Error:", e); }
+    } catch (e) { console.error(e); }
 };
 
 window.searchStock = function(query, mode) {
@@ -99,95 +95,42 @@ window.searchStock = function(query, mode) {
     renderTable(filtered, mode);
 };
 
-/* ===== 4. UI RENDERING (จัดการการแสดงผลทุกหน้า) ===== */
 window.renderTable = function(data, mode) {
     const tbody = document.getElementById('data');
     if (!tbody) return;
-    
     const user = sessionStorage.getItem('selectedUser');
     let html = '';
 
     data.forEach(item => {
-        const stock0243 = Number(item['0243'] || 0);
-        const stockUser = Number(item[user] || 0);
-        
-        // กรองหน้า Deduct/Return: โชว์เฉพาะของที่ตัวเองมีในมือ
-        if ((mode === 'deduct' || mode === 'return') && stockUser <= 0) return;
+        const s0 = Number(item['0243'] || 0);
+        const sU = Number(item[user] || 0);
+        if ((mode === 'deduct' || mode === 'return') && sU <= 0) return;
 
-        if (mode === 'all') {
-            const statusColor = stock0243 > 5 ? '#16a34a' : (stock0243 > 0 ? '#f59e0b' : '#ef4444');
-            html += `<tr>
-                <td style="padding:12px;">
-                    <div style="font-weight:bold; font-size:14px;">${item.Material}</div>
-                    <div style="font-size:11px; color:#64748b;">${item['Product Name']}</div>
-                </td>
-                <td align="center" style="font-size:16px;"><b>${stock0243}</b></td>
-                <td align="right"><span style="color:${statusColor}; font-weight:bold;">● ${stock0243 > 0 ? 'INSTOCK' : 'EMPTY'}</span></td>
-            </tr>`;
-        } else if (mode === 'withdraw') {
-            html += `<tr>
-                <td><div style="font-weight:bold; font-size:14px;">${item.Material}</div><div style="font-size:11px;">${item['Product Name']}</div></td>
-                <td align="center"><b>${stock0243}</b></td>
-                <td align="right">
-                    <div style="display:flex; gap:5px; justify-content:flex-end;">
-                        <input type="number" id="qty_${item.Material}" value="1" min="1" style="width:50px; text-align:center; border-radius:4px; border:1px solid #ddd;">
-                        <button onclick="executeTransaction('withdraw', '${item.Material}', document.getElementById('qty_${item.Material}').value)" 
-                                style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">เบิก</button>
-                    </div>
-                </td>
-            </tr>`;
-        } else if (mode === 'deduct') {
-            html += `<tr>
-                <td><div style="font-weight:bold; font-size:14px;">${item.Material}</div><div style="font-size:11px;">${item['Product Name']}</div></td>
-                <td align="center"><b style="color:#ef4444;">${stockUser}</b></td>
-                <td align="right">
-                    <div style="display:flex; gap:4px; align-items:center;">
-                        <input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:70px; padding:8px; border:1px solid #ddd; border-radius:6px;">
-                        <input type="number" id="qty_${item.Material}" value="1" style="width:45px; padding:8px; border:1px solid #ddd; border-radius:6px;">
-                        <button onclick="handleDeductClick('${item.Material}')" 
-                                style="background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">USE</button>
-                    </div>
-                </td>
-            </tr>`;
-        } else if (mode === 'return') {
-            html += `<tr>
-                <td><div style="font-weight:bold; font-size:14px;">${item.Material}</div><div style="font-size:11px;">${item['Product Name']}</div></td>
-                <td align="center"><b style="color:#16a34a;">${stockUser}</b></td>
-                <td align="right">
-                    <div style="display:flex; gap:5px; justify-content:flex-end;">
-                        <input type="number" id="qty_${item.Material}" value="1" style="width:50px; text-align:center; border-radius:4px; border:1px solid #ddd;">
-                        <button onclick="executeTransaction('return', '${item.Material}', document.getElementById('qty_${item.Material}').value)" 
-                                style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">คืน</button>
-                    </div>
-                </td>
-            </tr>`;
-        }
+        html += `<tr>
+            <td><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
+            <td align="center">${(mode === 'all' || mode === 'withdraw') ? s0 : sU}</td>
+            <td align="right">
+                ${mode === 'withdraw' ? `<button onclick="executeTransaction('withdraw','${item.Material}',1)">เบิก</button>` : 
+                  mode === 'deduct' ? `<input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:60px"> <button onclick="handleDeductClick('${item.Material}')">USE</button>` : 
+                  '●'}
+            </td>
+        </tr>`;
     });
-    tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:20px; color:#94a3b8;">ไม่พบข้อมูล</td></tr>';
+    tbody.innerHTML = html;
 };
-
-/* ===== 5. TRANSACTION LOGIC (เชื่อมต่อ API) ===== */
 
 window.executeTransaction = async function(type, mat, qty) {
     const user = sessionStorage.getItem('selectedUser');
     const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
-    try {
-        const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ ทำรายการสำเร็จ!"); loadStockData(type); }
-        else { alert("❌ " + res.msg); }
-    } catch (e) { alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
+    const res = await fetch(url).then(r => r.json());
+    if (res.success) { alert("สำเร็จ!"); loadStockData(type); }
 };
 
 window.handleDeductClick = async function(mat) {
     const wo = document.getElementById('wo_' + mat).value.trim();
-    const qty = document.getElementById('qty_' + mat).value;
-    if(!wo) { alert("❌ กรุณาใส่เลข Work Order"); return; }
-    
+    if(!wo) return alert("กรุณาใส่ WO");
     const user = sessionStorage.getItem('selectedUser');
-    const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
-    try {
-        const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ บันทึกการใช้งานสำเร็จ"); loadStockData('deduct'); }
-        else { alert("❌ " + res.msg); }
-    } catch (e) { alert("❌ เกิดข้อผิดพลาดในการส่งข้อมูล"); }
+    const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=1&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
+    const res = await fetch(url).then(r => r.json());
+    if (res.success) { alert("ตัดสต็อกสำเร็จ"); loadStockData('deduct'); }
 };
