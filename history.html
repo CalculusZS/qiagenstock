@@ -10,23 +10,25 @@
         .back-btn { background: none; border: 1px solid white; color: white; padding: 5px 12px; border-radius: 4px; cursor: pointer; }
         
         .container { padding: 10px; width: 100%; box-sizing: border-box; }
+        .scroll-wrapper { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
         .history-row { 
             display: flex; 
             padding: 12px 10px; 
             border-bottom: 1px solid #edf2f7; 
             align-items: center; 
             font-size: 13px;
-            min-width: 900px; /* เพื่อให้คอลัมน์ไม่เบียดกันเกินไปในจอเล็ก */
+            min-width: 1100px; /* เพิ่มความกว้างเพื่อรองรับช่อง WO */
         }
-        .scroll-wrapper { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        /* ปรับความกว้างช่อง Date/Time เป็น 2 เท่า (200px) */
-        .col-date { flex: 0 0 200px; color: #475569; font-weight: 500; }
-        .col-mat { flex: 0 0 90px; font-weight: bold; color: #003366; }
-        .col-inst { flex: 0 0 200px; color: #64748b; }
+        /* ปรับสัดส่วนคอลัมน์ */
+        .col-date { flex: 0 0 160px; color: #475569; font-weight: 500; }
+        .col-mat  { flex: 0 0 90px; font-weight: bold; color: #003366; }
+        .col-inst { flex: 0 0 180px; color: #64748b; }
         .col-pname { flex: 1; color: #1e293b; min-width: 200px; }
+        .col-wo   { flex: 0 0 120px; font-weight: bold; color: #ef4444; text-align: center; } /* ช่อง WO ใหม่ */
         .col-type { flex: 0 0 100px; text-align: center; }
-        .col-qty { flex: 0 0 50px; text-align: center; font-weight: bold; }
+        .col-qty  { flex: 0 0 50px; text-align: center; font-weight: bold; }
         .col-user { flex: 0 0 100px; text-align: right; color: #003366; }
 
         .type-tag { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
@@ -38,7 +40,7 @@
 </head>
 <body onload="loadHistory()">
     <div class="header">
-        <button class="back-btn" onclick="window.history.back()">◀ Back</button>
+        <button class="back-btn" onclick="location.href='main.html'">◀ Back</button>
         <b style="margin-left: 15px;">Transaction History</b>
     </div>
 
@@ -49,7 +51,7 @@
                 <div class="col-mat">Material</div>
                 <div class="col-inst">Instrument</div>
                 <div class="col-pname">Product Name</div>
-                <div class="col-type">Type</div>
+                <div class="col-wo">Work Order</div> <div class="col-type">Type</div>
                 <div class="col-qty">Qty</div>
                 <div class="col-user">User</div>
             </div>
@@ -63,7 +65,7 @@
 
         async function loadHistory() {
             const listDiv = document.getElementById('list');
-            listDiv.innerHTML = '<p align="center">⌛ Loading...</p>';
+            listDiv.innerHTML = '<p align="center">⌛ Loading Transactions...</p>';
             try {
                 const response = await fetch(`${API}?action=gethistory&password=${PASS}&t=${Date.now()}`);
                 const res = await response.json();
@@ -75,12 +77,14 @@
                         <div class="col-mat">${item['Material']}</div>
                         <div class="col-inst">${item['Instrument'] || '-'}</div>
                         <div class="col-pname">${item['Product Name']}</div>
-                        <div class="col-type"><span class="type-tag ${item['Transaction Type']}">${item['Transaction Type']}</span></div>
+                        <div class="col-wo">${item['Work Order'] || '-'}</div> <div class="col-type"><span class="type-tag ${item['Transaction Type']}">${item['Transaction Type']}</span></div>
                         <div class="col-qty">${item['Qty']}</div>
                         <div class="col-user">${item['User']}</div>
                     </div>
                 `).join('');
-            } catch (e) { listDiv.innerHTML = `<p align="center" style="color:red">Error: ${e.message}</p>`; }
+            } catch (e) { 
+                listDiv.innerHTML = `<p align="center" style="color:red; padding:20px;">Error: ${e.message}</p>`; 
+            }
         }
     </script>
 </body>
