@@ -1,8 +1,7 @@
 /* ==========================================================================
-   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (FINAL COMPLETED)
-   - รวมระบบ Login KM/TK/PK และระบบ Password Reset
-   - รวมระบบจัดการหน้าตารางทุกโหมด (Withdraw/Return/Deduct/All)
-   - แก้ไขการแสดงผลชื่อผู้ใช้ให้ตรงกับ main.html
+   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (FINAL COMPLETED V5.0)
+   - รวมทุกฟังก์ชัน: Login KM/TK/PK, Password Reset, Search, Qty Input
+   - ปรับปรุง UI: ช่อง WO กว้างขึ้น, ปุ่มกดง่ายขึ้น, รองรับทุกหน้าจอ
 ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec"; 
@@ -12,9 +11,8 @@ const SUP_PASSWORD = "Qiagen";
 window.allRows = []; 
 let currentUserData = null; 
 
-/* ===== 1. AUTHENTICATION & SESSION ===== */
+/* ===== 1. AUTH & SESSION (แสดงชื่อผู้ใช้) ===== */
 
-// ฟังก์ชันเช็คสิทธิ์และแสดงชื่อผู้ใช้ (แก้ไขให้ตรงกับ id="user_display")
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
     if (!user) {
@@ -23,7 +21,7 @@ window.checkAuth = function() {
     }
     const displayElem = document.getElementById('user_display');
     if (displayElem) {
-        displayElem.innerText = user; // แสดงชื่อเต็ม เช่น Kitti
+        displayElem.innerText = user;
     }
     return true;
 };
@@ -43,7 +41,6 @@ window.handleLogin = async function() {
 
         if (res.success) {
             if (res.status === 'FIRST_TIME') {
-                // ส่วนที่เคยขาด: เรียกหน้าต่างตั้งรหัสผ่านใหม่
                 currentUserData = res;
                 document.getElementById('welcome-msg').innerText = `Welcome, ${res.fullName}!`;
                 document.getElementById('reset-modal').style.display = 'flex';
@@ -63,25 +60,18 @@ window.submitNewPassword = async function() {
     const newPass = document.getElementById('new-pass').value;
     const confirmPass = document.getElementById('confirm-pass').value;
 
-    if (newPass.length < 4) {
-        alert("Password must be at least 4 characters.");
-        return;
-    }
-    if (newPass !== confirmPass) {
-        alert("Passwords do not match!");
-        return;
-    }
+    if (newPass.length < 4) { alert("Password must be at least 4 characters."); return; }
+    if (newPass !== confirmPass) { alert("Passwords do not match!"); return; }
 
     try {
         const url = `${API}?action=setpassword&user=${encodeURIComponent(currentUserData.fullName)}&newPass=${encodeURIComponent(newPass)}`;
         const res = await fetch(url).then(r => r.json());
-
         if (res.success) {
             alert("✅ Password updated!");
             sessionStorage.setItem('selectedUser', currentUserData.fullName);
             location.href = 'main.html';
         }
-    } catch (e) { alert("❌ Error updating password."); }
+    } catch (e) { alert("❌ Error."); }
 };
 
 window.logout = function() {
@@ -89,7 +79,7 @@ window.logout = function() {
     location.href = 'index.html';
 };
 
-/* ===== 2. DATA LOADING & RENDERING ===== */
+/* ===== 2. DATA LOADING & SEARCH (ฟังก์ชันค้นหาที่หายไป) ===== */
 
 window.loadStockData = async function(mode) {
     try {
@@ -101,6 +91,17 @@ window.loadStockData = async function(mode) {
         }
     } catch (e) { console.error("Fetch Error:", e); }
 };
+
+window.searchStock = function(query, mode) {
+    const q = query.toLowerCase().trim();
+    const filtered = window.allRows.filter(item => {
+        return String(item.Material || "").toLowerCase().includes(q) || 
+               String(item['Product Name'] || "").toLowerCase().includes(q);
+    });
+    renderTable(filtered, mode);
+};
+
+/* ===== 3. UI RENDERING (ปรับปรุงช่องใส่จำนวน และ WO ให้กว้างขึ้น) ===== */
 
 window.renderTable = function(data, mode) {
     const tbody = document.getElementById('data');
@@ -115,60 +116,62 @@ window.renderTable = function(data, mode) {
         
         if ((mode === 'deduct' || mode === 'return') && stockUser <= 0) return;
 
-        html += `<tr>
-            <td>
-                <div style="font-weight:bold;">${item.Material}</div>
-                <div style="font-size:11px; color:#64748b;">${item['Product Name']}</div>
-            </td>
-            <td align="center"><b>${(mode === 'all' || mode === 'withdraw') ? stock0243 : stockUser}</b></td>
-            <td align="right">
-                ${mode === 'withdraw' ? `
-                    <div style="display:flex; gap:5px; justify-content:flex-end;">
-                        <input type="number" id="qty_${item.Material}" value="1" min="1" style="width:40px;">
-                        <button onclick="executeTransaction('withdraw', '${item.Material}', document.getElementById('qty_${item.Material}').value)">Withdraw</button>
-                    </div>` : 
-                  mode === 'deduct' ? `
-                    <div style="display:flex; gap:4px;">
-                        <input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:60px;">
-                        <button onclick="handleDeductClick('${item.Material}')" style="background:#ef4444; color:white;">USE</button>
-                    </div>` : 
-                  mode === 'return' ? `
-                    <button onclick="executeTransaction('return', '${item.Material}', 1)" style="background:#16a34a; color:white;">Return</button>` : 
-                  mode === 'all' ? `<span>● ${stock0243 > 0 ? 'In Stock' : 'Empty'}</span>` : ''}
-            </td>
-        </tr>`;
+        html += `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px;">
+                    <div style="font-weight:bold; color:#1e293b;">${item.Material}</div>
+                    <div style="font-size:11px; color:#64748b;">${item['Product Name']}</div>
+                </td>
+                <td align="center" style="font-size:16px;">
+                    <b>${(mode === 'withdraw' || mode === 'all') ? stock0243 : stockUser}</b>
+                </td>
+                <td align="right" style="padding: 10px;">
+                    <div style="display:flex; gap:6px; justify-content:flex-end; align-items:center;">
+                        
+                        ${mode === 'withdraw' ? `
+                            <input type="number" id="qty_${item.Material}" value="1" min="1" style="width:45px; padding:6px; border:1px solid #ccc; border-radius:4px;">
+                            <button onclick="executeTransaction('withdraw', '${item.Material}', document.getElementById('qty_${item.Material}').value)" 
+                                    style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">เบิก</button>
+                        ` : mode === 'return' ? `
+                            <input type="number" id="qty_${item.Material}" value="1" min="1" max="${stockUser}" style="width:45px; padding:6px; border:1px solid #ccc; border-radius:4px;">
+                            <button onclick="executeTransaction('return', '${item.Material}', document.getElementById('qty_${item.Material}').value)" 
+                                    style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">คืน</button>
+                        ` : mode === 'deduct' ? `
+                            <input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:90px; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                            <input type="number" id="qty_${item.Material}" value="1" min="1" max="${stockUser}" style="width:45px; padding:8px; border:1px solid #ddd; border-radius:6px;">
+                            <button onclick="handleDeductClick('${item.Material}')" 
+                                    style="background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">USE</button>
+                        ` : `<span>● ${stock0243 > 0 ? 'In Stock' : 'Empty'}</span>`}
+
+                    </div>
+                </td>
+            </tr>`;
     });
-    tbody.innerHTML = html || '<tr><td colspan="3" align="center">No Data</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:20px;">No items found.</td></tr>';
 };
 
-/* ===== 3. TRANSACTIONS ===== */
+/* ===== 4. TRANSACTION LOGIC ===== */
 
 window.executeTransaction = async function(type, mat, qty) {
     const user = sessionStorage.getItem('selectedUser');
     const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) { alert("✅ Success!"); loadStockData(type); }
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { alert("✅ ทำรายการสำเร็จ!"); loadStockData(type); }
+        else { alert("❌ " + res.msg); }
+    } catch (e) { alert("❌ Network Error"); }
 };
 
 window.handleDeductClick = async function(mat) {
     const wo = document.getElementById('wo_' + mat).value.trim();
-    if(!wo) return alert("Please enter WO#");
-    const user = sessionStorage.getItem('selectedUser');
-    const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=1&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) { alert("✅ Recorded"); loadStockData('deduct'); }
-};
-/* ===== ฟังก์ชันค้นหา (Search Stock) - เพิ่มเติมเพื่อให้ปุ่มค้นหาทำงานได้ ===== */
-window.searchStock = function(query, mode) {
-    const q = query.toLowerCase().trim();
+    const qty = document.getElementById('qty_' + mat).value;
+    if(!wo) { alert("❌ กรุณาใส่เลข Work Order (WO#)"); return; }
     
-    // กรองข้อมูลจาก window.allRows ที่โหลดมาแล้ว
-    const filtered = window.allRows.filter(item => {
-        const materialMatch = String(item.Material || "").toLowerCase().includes(q);
-        const nameMatch = String(item['Product Name'] || "").toLowerCase().includes(q);
-        return materialMatch || nameMatch;
-    });
-
-    // ส่งข้อมูลที่กรองแล้วไปแสดงผลใหม่ในตาราง
-    renderTable(filtered, mode);
+    const user = sessionStorage.getItem('selectedUser');
+    const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { alert("✅ ตัดสต็อกสำเร็จ"); loadStockData('deduct'); }
+        else { alert("❌ " + res.msg); }
+    } catch (e) { alert("❌ Error"); }
 };
