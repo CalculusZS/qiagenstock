@@ -1,7 +1,7 @@
 /* ==========================================================================
-   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (ULTRA STABLE V8.5)
-   - FIXED: Kick-out issue & Supervisor Session Management
-   - UI: Professional English UI & Wide Inputs
+   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (STABLE VERSION V9.0)
+   - FIXED: Session Kick-out & Supervisor Auth (แก้ปัญหาเด้งออก)
+   - UI: 100% English & Wide Input
 ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec"; 
@@ -10,33 +10,36 @@ const SUP_PASSWORD = "Qiagen";
 
 window.allRows = []; 
 
-/* ===== 1. AUTH & REDIRECT CONTROL (แก้ปัญหาเด้งออก) ===== */
+/* ===== 1. AUTHENTICATION & SESSION CONTROL ===== */
 
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
     const path = window.location.pathname;
-    const isLoginPage = path.endsWith('index.html') || path === '/' || path.endsWith('/');
+    
+    // ตรวจสอบว่าเป็นหน้า Login หรือไม่
+    const isLoginPage = path.endsWith('index.html') || path.endsWith('/') || path === '';
 
-    // 1. ถ้าไม่มี User และไม่ได้อยู่หน้า Login -> ส่งไป Login
+    // กรณีไม่มี User และไม่ได้อยู่หน้า Login -> ให้ส่งกลับไป Login
     if (!user && !isLoginPage) {
         window.location.replace('index.html');
         return false;
     }
-    
-    // 2. ถ้ามี User แล้วแต่ยังอยู่ที่หน้า Login -> ส่งไปหน้า Main
-    if (user && isLoginPage) {
-        window.location.replace('main.html');
-        return true;
-    }
 
+    // แสดงชื่อผู้ใช้
     const displayElem = document.getElementById('user_display');
-    if (displayElem && user) { displayElem.innerText = user; }
+    if (displayElem && user) { 
+        displayElem.innerText = user; 
+    }
     return true;
 };
 
 window.handleLogin = async function() {
-    const userVal = document.getElementById('username-input').value.trim().toUpperCase();
-    const passVal = document.getElementById('password-input').value.trim();
+    const uInput = document.getElementById('username-input');
+    const pInput = document.getElementById('password-input');
+    if (!uInput || !pInput) return;
+
+    const userVal = uInput.value.trim().toUpperCase();
+    const passVal = pInput.value.trim();
 
     if (!userVal || !passVal) { alert("Please enter credentials"); return; }
 
@@ -46,13 +49,16 @@ window.handleLogin = async function() {
         
         if (res.success) {
             // บันทึก Session หลัก
-            sessionStorage.setItem('selectedUser', res.fullName); 
+            sessionStorage.setItem('selectedUser', res.fullName);
             
+            // กรณีเป็นรหัสผ่านตั้งต้น ให้เปลี่ยนรหัสก่อน
             if (res.status === 'FIRST_TIME') {
-                document.getElementById('welcome-msg').innerText = `Welcome, ${res.fullName}!`;
+                const welcome = document.getElementById('welcome-msg');
+                if (welcome) welcome.innerText = `Welcome, ${res.fullName}!`;
                 document.getElementById('reset-modal').style.display = 'flex';
             } else {
-                window.location.replace('main.html'); 
+                // Login สำเร็จ ไปหน้าหลัก
+                window.location.replace('main.html');
             }
         } else {
             alert("❌ " + (res.msg || "Login Failed"));
@@ -60,26 +66,35 @@ window.handleLogin = async function() {
     } catch (e) { alert("❌ Connection Error"); }
 };
 
-/* ===== 2. ADMIN MODAL SYSTEM (สวยงาม & ไม่เด้งออก) ===== */
+/* ===== 2. ADMIN & SUPERVISOR ACCESS ===== */
 
 window.goToAdmin = function() {
     const modal = document.getElementById('admin-modal');
-    if (modal) modal.style.display = 'flex';
-    else {
+    if (modal) {
+        modal.style.display = 'flex';
+    } else {
         const p = prompt("Enter Supervisor Password:");
         if (p === SUP_PASSWORD) {
-            sessionStorage.setItem('isSupervisor', 'true'); // เซ็ตค่าเพื่อไม่ให้หน้า supervisor เด้งออก
+            // บันทึกสิทธิ์ Supervisor เพื่อไม่ให้หน้า supervisor.html เตะออก
+            sessionStorage.setItem('selectedUser', 'Supervisor'); 
+            sessionStorage.setItem('isSupervisor', 'true');
             window.location.assign('supervisor.html');
+        } else if (p !== null) {
+            alert("Incorrect Password");
         }
     }
 };
 
 window.submitAdminPass = function() {
-    if (document.getElementById('admin-pass-input').value === SUP_PASSWORD) {
-        sessionStorage.setItem('isSupervisor', 'true'); // ยืนยันสิทธิ์ Admin
+    const input = document.getElementById('admin-pass-input');
+    if (input.value === SUP_PASSWORD) {
+        // บันทึกสิทธิ์ก่อนย้ายหน้า เพื่อป้องกันการเด้งกลับ
+        sessionStorage.setItem('selectedUser', 'Supervisor');
+        sessionStorage.setItem('isSupervisor', 'true');
         window.location.assign('supervisor.html');
     } else {
         alert("❌ Incorrect Password");
+        input.value = "";
     }
 };
 
@@ -87,9 +102,10 @@ window.closeAdminModal = function() {
     document.getElementById('admin-modal').style.display = 'none';
 };
 
-/* ===== 3. STOCK OPERATIONS (คงฟังก์ชันเดิมครบถ้วน) ===== */
+/* ===== 3. STOCK & TRANSACTIONS (คงฟังก์ชันเดิม) ===== */
 
 window.loadStockData = async function(mode) {
+    if (!sessionStorage.getItem('selectedUser')) return;
     try {
         const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}`);
         const res = await response.json();
@@ -118,7 +134,7 @@ window.renderTable = function(data, mode) {
             </td>
             <td align="center"><b>${(mode === 'withdraw' || mode === 'all') ? s0243 : sUser}</b></td>
             <td align="right">
-                <div style="display:flex; gap:5px; justify-content:flex-end;">
+                <div style="display:flex; gap:5px; justify-content:flex-end; align-items:center;">
                     ${mode === 'withdraw' ? `
                         <input type="number" id="qty_${item.Material}" value="1" min="1" style="width:40px; padding:6px; border:1px solid #ccc; border-radius:4px;">
                         <button onclick="executeTransaction('withdraw', '${item.Material}', document.getElementById('qty_${item.Material}').value)" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">Withdraw</button>
@@ -134,10 +150,8 @@ window.renderTable = function(data, mode) {
             </td>
         </tr>`;
     });
-    tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:20px;">No items found.</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:20px;">No data found.</td></tr>';
 };
-
-/* ===== 4. TRANSACTIONS & SEARCH ===== */
 
 window.executeTransaction = async function(type, mat, qty) {
     const user = sessionStorage.getItem('selectedUser');
@@ -164,5 +178,5 @@ window.logout = function() {
 // Map ฟังก์ชันเก่าให้ทำงานได้
 window.executeDeduct = window.handleDeductClick;
 
-// เช็คสิทธิ์ทันที
+// เช็คสิทธิ์ทันทีเมื่อโหลดหน้าเว็บ
 checkAuth();
