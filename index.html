@@ -1,32 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QIAGEN Stock - Login</title>
-    <style>
-        body { font-family: sans-serif; background: #003366; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 30px; border-radius: 15px; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; }
-        h2 { color: #003366; margin-top: 0; margin-bottom: 25px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 12px; background: #003366; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:active { transform: scale(0.98); }
-        .hint { font-size: 11px; color: #666; margin-top: 15px; line-height: 1.4; }
-    </style>
-</head>
-<body>
-    <div class="login-card">
-        <h2>QIAGEN STOCK</h2>
-        <input type="text" id="username-input" placeholder="Username (KM, TK, ...)">
-        <input type="password" id="password-input" placeholder="Password">
-        
-        <button onclick="handleLogin()">LOGIN</button>
-        
-        <p class="hint">
-            * ครั้งแรกที่ใช้งาน หรือถูกรีเซ็ต <br>
-            ระบบจะให้ตั้งรหัสผ่านใหม่หลังจากกด Login
-        </p>
-    </div>
-    <script src="js/app.js"></script>
-</body>
-</html>
+<div class="login-card" style="position: relative;">
+    <h2>QIAGEN STOCK</h2>
+    <input type="text" id="username-input" placeholder="Username (เช่น KM, TK)">
+    <input type="password" id="password-input" placeholder="Password">
+    <button onclick="handleLogin()">LOGIN</button>
+    
+    <div onclick="openAdminPanel()" style="position:absolute; bottom:5px; right:10px; font-size:9px; color:#ccc; cursor:pointer;">v4.0 Admin</div>
+</div>
