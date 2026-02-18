@@ -1,8 +1,9 @@
 /* ==========================================================================
-   QIAGEN INVENTORY - PROFESSIONAL UI & AUTH REPAIR
-   - FIXED: handleLogin ReferenceError
-   - FIXED: Supervisor Login UI (Professional Look)
-   - FEATURE: Red Alert for showall.html
+   QIAGEN INVENTORY - ULTIMATE REPAIR & UI RESTORE
+   - FIXED: executeDeduct is not defined (deduct.html error)
+   - FIXED: Product Name not showing in Supervisor Add Stock
+   - FIXED: Supervisor Login UI & Session stability
+   - FEATURE: Red Alert Row for showall.html
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbx2kq4lXAZXziJwFkbA3RRfI_aQIyhbOzQi4k-sm1a66elS-Pwl81995KElbpeORPJB/exec"; 
@@ -24,9 +25,8 @@ window.checkAuth = function() {
         return false;
     }
 
-    // แก้ไข: ให้หน้า supervisor.html รับค่าชื่อ 'Supervisor' ได้
     if (path.includes('supervisor') && user !== 'Supervisor') {
-        alert("🔒 Authorized Personnel Only");
+        alert("🔒 Access Denied: Authorized Personnel Only");
         window.location.replace('main.html');
         return false;
     }
@@ -36,7 +36,6 @@ window.checkAuth = function() {
     return true;
 };
 
-// ฟังก์ชัน Login หน้าแรก (สำหรับ Staff)
 window.handleLogin = async function() {
     const uInput = document.getElementById('username-input');
     const pInput = document.getElementById('password-input');
@@ -57,22 +56,23 @@ window.handleLogin = async function() {
     } catch (e) { alert("❌ Connection Error"); }
 };
 
-// ฟังก์ชัน Admin Login แบบมีหัวข้อสวยงาม
+// Admin Login UI - ปรับให้สวยงามและดูเป็นทางการ
 window.goToAdmin = function() {
-    // ปรับรูปแบบข้อความใน Prompt ให้ดูเป็นระเบียบและเป็นทางการขึ้น
-    const p = prompt("🔐 QIAGEN INVENTORY ADMINISTRATION\n" + 
+    const p = prompt("🔐 QIAGEN INVENTORY SYSTEM (ADMIN)\n" + 
                     "--------------------------------------------------\n" +
-                    "Please enter Admin Password to continue:");
+                    "Access restricted to authorized supervisors.\n" +
+                    "Please enter Admin Password:");
     
     if (p === SUP_PASSWORD) {
         sessionStorage.setItem('selectedUser', 'Supervisor');
+        // ตรวจสอบชื่อไฟล์หน้า Supervisor ให้ตรงกัน
         window.location.href = 'supervisor.html'; 
     } else if (p !== null) {
-        alert("❌ Access Denied: Incorrect Admin Password");
+        alert("❌ Access Denied: Incorrect Password");
     }
 };
 
-/* ===== 2. DATA RENDERING (พร้อมแถบสีแดง) ===== */
+/* ===== 2. DATA LOADING & RENDERING ===== */
 
 window.loadStockData = async function(mode) {
     try {
@@ -83,7 +83,7 @@ window.loadStockData = async function(mode) {
             if (mode === 'supervisor') renderStaffAudit(res.data);
             else renderTable(res.data, mode);
         }
-    } catch (e) { console.error("API Error"); }
+    } catch (e) { console.error("Load Error"); }
 };
 
 window.renderTable = function(data, mode) {
@@ -98,12 +98,11 @@ window.renderTable = function(data, mode) {
         
         if ((mode === 'deduct' || mode === 'return') && sUser <= 0) return;
 
-        // UI Logic: สีแดงเมื่อของหมด
         let rowStyle = 'border-bottom: 1px solid #eee; transition: 0.2s;';
         let statusTag = '<span style="color:#16a34a; font-weight:bold;">● In Stock</span>';
         
         if (mode === 'all' && s0243 <= 0) {
-            rowStyle += 'background-color: #fee2e2;'; // สีพื้นหลังแดงอ่อน
+            rowStyle += 'background-color: #fee2e2;'; 
             statusTag = '<span style="color:#ef4444; font-weight:bold;">⚠️ OUT OF STOCK</span>';
         }
 
@@ -133,7 +132,7 @@ window.renderTable = function(data, mode) {
     tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:20px; color:#94a3b8;">No records found</td></tr>';
 };
 
-/* ===== 3. TRANSACTIONS ENGINE ===== */
+/* ===== 3. CORE TRANSACTIONS & DEDUCT FIX ===== */
 
 window.executeTransaction = async function(type, mat, qty) {
     const user = sessionStorage.getItem('selectedUser');
@@ -145,31 +144,74 @@ window.executeTransaction = async function(type, mat, qty) {
     } catch (e) { alert("❌ Connection failed"); return {success:false}; }
 };
 
+// แก้ไขฟังก์ชันสำหรับการตัดอะไหล่ (Deduct)
 window.handleDeductClick = async function(mat, p1 = null, p2 = null) {
     let user, qty, wo;
-    if (p1 && !isNaN(p1)) { user = sessionStorage.getItem('selectedUser'); qty = p1; wo = p2; }
-    else {
+    if (p1 && !isNaN(p1)) { // มาจากหน้า deduct.html
+        user = sessionStorage.getItem('selectedUser'); qty = p1; wo = p2;
+    } else { // มาจากหน้า Supervisor
         user = p1 || sessionStorage.getItem('selectedUser');
         const woEl = document.getElementById('wo_' + mat);
         const qtyEl = document.getElementById('qty_' + mat);
-        wo = woEl ? woEl.value.trim() : (p1 ? "ADMIN_FORCE" : "");
+        wo = woEl ? woEl.value.trim() : (p1 ? "ADMIN_CORRECTION" : "");
         qty = qtyEl ? qtyEl.value : 1;
     }
     if(!wo) { alert("❌ Please enter Work Order (WO#)"); return {success:false}; }
+    return await window.executeDeduct(user, mat, qty, wo);
+};
+
+// ฟังก์ชันหลักในการส่งค่าไป API (แก้ปัญหา ReferenceError)
+window.executeDeduct = async function(user, mat, qty, wo) {
     const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
-        if (res && res.success) { alert("✅ Recorded!"); loadStockData(p1 && isNaN(p1) ? 'supervisor' : 'deduct'); return res; }
-        else { alert("❌ Failed"); return {success:false}; }
-    } catch (e) { return {success:false}; }
+        if (res && res.success) { 
+            alert("✅ Recorded Successfully!"); 
+            const isSup = sessionStorage.getItem('selectedUser') === 'Supervisor';
+            loadStockData(isSup ? 'supervisor' : 'deduct'); 
+            return res; 
+        } else { alert("❌ Failed: " + (res ? res.msg : "Error")); return {success:false}; }
+    } catch (e) { alert("❌ System Error"); return {success:false}; }
 };
 
-window.logout = function() { sessionStorage.clear(); window.location.replace('index.html'); };
-window.searchStock = function(query, mode) {
-    const q = query.toLowerCase().trim();
-    const filtered = window.allRows.filter(i => String(i.Material).toLowerCase().includes(q) || String(i['Product Name']).toLowerCase().includes(q));
-    if (mode === 'supervisor') renderStaffAudit(filtered); else renderTable(filtered, mode);
+/* ===== 4. SUPERVISOR ADD STOCK FUNCTIONS ===== */
+
+// ฟังก์ชันดึงชื่อสินค้ามาโชว์ทันทีเมื่อใส่ Material (แก้ปัญหาไม่โชว์ Product Name)
+window.updateProductName = function(matCode) {
+    matCode = matCode.trim().toUpperCase();
+    const nameDisplay = document.getElementById('s_name_display');
+    if (!nameDisplay) return;
+    
+    const item = window.allRows.find(r => String(r.Material).toUpperCase() === matCode);
+    if (item) {
+        nameDisplay.innerText = `📦 ${item['Product Name']}`;
+        nameDisplay.style.color = "#1e293b";
+        nameDisplay.style.fontWeight = "bold";
+    } else {
+        nameDisplay.innerText = matCode === "" ? "" : "❌ Material not found";
+        nameDisplay.style.color = "#ef4444";
+    }
 };
+
+window.addStockCentral = async function() {
+    const mat = document.getElementById('s_mat').value.trim().toUpperCase();
+    const qty = document.getElementById('s_qty').value;
+    if (!mat || !qty) { alert("❌ Please enter both Material and Quantity"); return; }
+    
+    const url = `${API}?action=addstock&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res && res.success) {
+            alert("✅ Central Stock Updated!");
+            document.getElementById('s_mat').value = '';
+            document.getElementById('s_qty').value = '1';
+            document.getElementById('s_name_display').innerText = '';
+            loadStockData('supervisor');
+        } else { alert("❌ Error: " + res.msg); }
+    } catch (e) { alert("❌ Connection failed"); }
+};
+
+/* ===== 5. UTILITIES ===== */
 
 window.renderStaffAudit = function(data) {
     const tbody = document.getElementById('staff-data');
@@ -187,6 +229,13 @@ window.renderStaffAudit = function(data) {
         });
     });
     tbody.innerHTML = html;
+};
+
+window.logout = function() { sessionStorage.clear(); window.location.replace('index.html'); };
+window.searchStock = function(query, mode) {
+    const q = query.toLowerCase().trim();
+    const filtered = window.allRows.filter(i => String(i.Material).toLowerCase().includes(q) || String(i['Product Name']).toLowerCase().includes(q));
+    if (mode === 'supervisor') renderStaffAudit(filtered); else renderTable(filtered, mode);
 };
 
 checkAuth();
