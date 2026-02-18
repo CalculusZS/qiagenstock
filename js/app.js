@@ -1,141 +1,182 @@
-/* ===== 1. Configuration ===== */
-const API = "https://script.google.com/macros/s/AKfycbz1gryP18WZJ_nTnDDwIHP7cofuIpeKp8a60wR025wFdvlnGfhvIha6aqAm8iUfES-C/exec"; // <--- นำ URL จาก Google Apps Script มาวางที่นี่
+/* ==========================================================================
+   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (V3.0 FULL)
+   Description: จัดการ Logic หน้าบ้าน, เชื่อมต่อ API, และระบบ Auth
+========================================================================== */
+
+// 1. CONFIGURATION (ใส่ URL ที่ได้จากการ Deploy Apps Script ของคุณ)
+const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec";           
 const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen";
-const TIMEOUT_MS = 15 * 60 * 1000; 
+const TIMEOUT_MS = 30 * 60 * 1000; // 30 นาที
 
-const USER_MAP = {
-    "KM": "Kitti", "TK": "Tatchai", "PSO": "Parinyachat", 
-    "PK": "Phurilap", "PST": "Penporn", "PA": "Phuriwat"
-};
+window.allRows = []; // เก็บข้อมูลสต็อกทั้งหมด
 
-let allRows = []; 
+/* ===== 2. AUTHENTICATION & SESSION ===== */
 
-/* ===== 2. Auth System ===== */
-window.handleLogin = async function() {
-    const userInp = document.getElementById('username').value.trim().toUpperCase();
-    const passInp = document.getElementById('password').value.trim();
-    
-    if (userInp === "ADMIN" && passInp === SUP_PASSWORD) {
-        sessionStorage.setItem('isLoggedIn', 'true');
-        sessionStorage.setItem('isSupervisor', 'true');
-        sessionStorage.setItem('selectedUser', 'Admin');
-        sessionStorage.setItem('lastActivity', new Date().getTime());
-        location.href = 'supervisor.html';
-        return;
-    }
-
-    const fullName = USER_MAP[userInp];
-    if (!fullName) return alert("❌ ไม่พบชื่อผู้ใช้งานนี้!");
-
-    try {
-        const response = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userInp)}&pass=${encodeURIComponent(passInp)}`);
-        const res = await response.json();
-
-        if (res.status === 'FIRST_TIME') {
-            document.getElementById('new_user_name').innerText = res.fullName;
-            document.getElementById('setupModal').style.display = 'flex';
-        } else if (res.success) {
-            sessionStorage.setItem('isLoggedIn', 'true');
-            sessionStorage.setItem('selectedUser', res.fullName);
-            sessionStorage.setItem('lastActivity', new Date().getTime());
-            location.href = 'main.html';
-        } else {
-            alert("❌ " + res.msg);
-        }
-    } catch (e) { alert("เชื่อมต่อล้มเหลว"); }
-};
-
-window.saveNewPassword = async function() {
-    const fullName = document.getElementById('new_user_name').innerText;
-    const newPass = document.getElementById('new_pass').value;
-    const confirmPass = document.getElementById('confirm_pass').value;
-    if (newPass.length < 4) return alert("รหัสผ่านต้องมี 4 ตัวอักษรขึ้นไป");
-    if (newPass !== confirmPass) return alert("รหัสผ่านไม่ตรงกัน!");
-
-    try {
-        const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(fullName)}&newPass=${encodeURIComponent(newPass)}`).then(r => r.json());
-        if (res.success) {
-            alert("✅ ตั้งรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบ");
-            location.reload();
-        }
-    } catch (e) { alert("Error"); }
-};
-
+// ตรวจสอบการ Login
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
-    if (!user) { location.href = 'index.html'; return false; }
+    const lastActivity = sessionStorage.getItem('lastActivity');
+    const now = new Date().getTime();
+
+    if (!user || !lastActivity || (now - lastActivity > TIMEOUT_MS)) {
+        sessionStorage.clear();
+        location.href = 'index.html';
+        return false;
+    }
+    sessionStorage.setItem('lastActivity', now); // Refresh activity
     return true;
 };
 
+// ออกจากระบบ
 window.logout = function() {
     sessionStorage.clear();
     location.href = 'index.html';
 };
 
-/* ===== 3. Stock Functions (Withdraw, Return, Read) ===== */
-window.loadStockData = async function(mode = 'withdraw') {
-    const container = document.getElementById('data') || document.getElementById('staff-data');
-    if(container) container.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading...</td></tr>';
-    
+// กลับหน้าก่อนหน้า
+window.goBack = () => history.back();
+
+/* ===== 3. DATA LOADING & SEARCH ===== */
+
+// โหลดข้อมูลสต็อกทั้งหมดจาก Google Sheets
+window.loadStockData = async function(mode) {
     try {
-        const res = await fetch(`${API}?action=read&password=${MASTER_PASS}`).then(r => r.json());
+        const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}`);
+        const res = await response.json();
         if (res.success) {
-            allRows = res.data;
-            renderTable(allRows, mode);
+            window.allRows = res.data;
+            // ถ้าอยู่ในหน้าที่มีฟังก์ชัน renderTable ให้ทำการวาดตาราง
+            if (typeof renderTable === "function") {
+                renderTable(res.data, mode);
+            }
+        } else {
+            console.error("API Error:", res.msg);
         }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error("Fetch Error:", e);
+    }
 };
 
-function renderTable(data, mode) {
-    const tbody = document.getElementById('data') || document.getElementById('staff-data');
-    if(!tbody) return;
-    const currentUser = sessionStorage.getItem('selectedUser');
+// ฟังก์ชันค้นหาในสต็อก
+window.searchStock = function(query, mode) {
+    const q = query.toLowerCase().trim();
+    const filtered = window.allRows.filter(item => {
+        return String(item.Material).toLowerCase().includes(q) || 
+               String(item['Product Name']).toLowerCase().includes(q) ||
+               String(item['Instrument']).toLowerCase().includes(q);
+    });
+    if (typeof renderTable === "function") {
+        renderTable(filtered, mode);
+    }
+};
+
+/* ===== 4. CORE TRANSACTIONS (Withdraw, Return, Deduct) ===== */
+
+// ฟังก์ชันเบิกของ (Withdraw) และ คืนของ (Return)
+window.executeTransaction = async function(type, mat, qty) {
+    const user = sessionStorage.getItem('selectedUser');
+    if (!user) return alert("User not found!");
+
+    const action = type.toLowerCase(); // 'withdraw' หรือ 'return'
+    const url = `${API}?action=${action}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
+
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) {
+            alert(`✅ ${type} Successful!`);
+            window.loadStockData(action); // โหลดข้อมูลใหม่
+        } else {
+            alert(`❌ Error: ${res.msg}`);
+        }
+    } catch (e) {
+        alert("❌ Network Error: ติดต่อเซิร์ฟเวอร์ไม่ได้");
+    }
+};
+
+// ฟังก์ชันตัดของใช้งาน (Deduct Part) พร้อม Work Order (WO)
+window.executeDeduct = async function(mat, qty, wo) {
+    const user = sessionStorage.getItem('selectedUser');
+    if (!user) return alert("User not found!");
+    if (!wo) return alert("กรุณาระบุเลข Work Order");
+
+    const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
+
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) {
+            alert("✅ บันทึกการตัดอะไหล่เรียบร้อยแล้ว");
+            return { success: true };
+        } else {
+            alert("❌ " + res.msg);
+            return { success: false };
+        }
+    } catch (e) {
+        alert("❌ Network Error");
+        return { success: false };
+    }
+};
+
+/* ===== 5. SUPERVISOR FUNCTIONS ===== */
+
+// เติมของเข้าคลังกลาง (Add Stock to 0243)
+window.doSupAdd = async function() {
+    const mat = document.getElementById('s_mat').value.trim();
+    const qty = document.getElementById('s_qty').value;
+    
+    if (!mat || !qty) return alert("กรุณากรอก Material และจำนวน");
+
+    const url = `${API}?action=add&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${SUP_PASSWORD}`;
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) {
+            alert("✅ เติมสต็อกกลางสำเร็จ");
+            location.reload();
+        } else {
+            alert("❌ " + res.msg);
+        }
+    } catch (e) { alert("Error"); }
+};
+
+/* ===== 6. HELPER FUNCTIONS ===== */
+
+// จัดการการแสดงผลตาราง (แบบรวมศูนย์)
+window.renderTable = function(data, mode) {
+    const tbody = document.getElementById('data');
+    if (!tbody) return;
+    
+    const user = sessionStorage.getItem('selectedUser');
     let html = '';
 
-    data.forEach((item, idx) => {
-        const stock0243 = item['0243'] || 0;
-        const myStock = item[currentUser] || 0;
-
-        if (mode === 'all') {
-            html += `<tr>
-                <td><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
-                <td align="center">${stock0243}</td>
-                <td><small>${item.Instrument}</small></td>
-            </tr>`;
-        } else if (mode === 'withdraw' && stock0243 > 0) {
-            html += `<tr>
-                <td><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
-                <td align="center"><span class="badge">${stock0243}</span></td>
-                <td align="right">
-                    <input type="number" id="qty-${idx}" value="1" min="1" max="${stock0243}" class="qty-input-sm">
-                    <button class="btn-action" onclick="doTransaction('${item.Material}', 'withdraw', ${idx})">Get</button>
+    data.forEach(item => {
+        const stockCentral = item['0243'] || 0;
+        const stockPersonal = item[user] || 0;
+        
+        html += `
+            <tr>
+                <td>
+                    <div style="font-weight:bold; color:#1e2937;">${item.Material}</div>
+                    <div style="font-size:12px; color:#64748b;">${item['Product Name']}</div>
+                    <div style="font-size:11px; color:#94a3b8;">Inst: ${item['Instrument'] || '-'}</div>
                 </td>
-            </tr>`;
-        } else if (mode === 'return' && myStock > 0) {
-            html += `<tr>
-                <td><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
-                <td align="center"><span class="badge" style="background:#16a34a">${myStock}</span></td>
-                <td align="right">
-                    <input type="number" id="qty-${idx}" value="1" min="1" max="${myStock}" class="qty-input-sm">
-                    <button class="btn-action" style="background:#16a34a" onclick="doTransaction('${item.Material}', 'return', ${idx})">Return</button>
+                <td align="center">
+                    <span style="font-size:16px; font-weight:bold; color:${mode === 'withdraw' ? '#003366' : '#16a34a'};">
+                        ${mode === 'withdraw' ? stockCentral : stockPersonal}
+                    </span>
                 </td>
-            </tr>`;
-        }
+                <td align="right">
+                    <div style="display:flex; gap:5px; justify-content:flex-end;">
+                        <input type="number" id="qty_${item.Material}" value="1" min="1" class="qty-input-sm" style="width:40px; text-align:center;">
+                        <button onclick="executeTransaction('${mode}', '${item.Material}', document.getElementById('qty_${item.Material}').value)" 
+                                class="${mode === 'withdraw' ? 'btn-danger' : 'btn-success'}" 
+                                style="padding:8px 12px; border:none; border-radius:6px; color:white; font-weight:bold; cursor:pointer; background:${mode === 'withdraw' ? '#003366' : '#16a34a'};">
+                            ${mode === 'withdraw' ? 'เบิก' : 'คืน'}
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
     });
-    tbody.innerHTML = html || '<tr><td colspan="3" align="center">No items found.</td></tr>';
-}
 
-window.doTransaction = async function(mat, type, idx) {
-    const qty = document.getElementById(`qty-${idx}`).value;
-    const user = sessionStorage.getItem('selectedUser');
-    if(!confirm(`Confirm ${type} ${qty} units?`)) return;
-
-    try {
-        const res = await fetch(`${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&password=${MASTER_PASS}`).then(r => r.json());
-        if(res.success) { alert("✅ Success!"); location.reload(); }
-        else { alert("❌ " + res.msg); }
-    } catch(e) { alert("Transaction Failed"); }
+    tbody.innerHTML = html || '<tr><td colspan="3" align="center">ไม่พบข้อมูล</td></tr>';
 };
-
-window.goBack = () => history.back();
