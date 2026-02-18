@@ -1,73 +1,96 @@
 /* ==========================================================================
-   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (MATCH WITH BACKEND V3.0)
+   QIAGEN STOCK MANAGEMENT SYSTEM - app.js (MODERN MODAL V4.0)
+   Features: Modern Modal, Confirm Password, English UI
 ========================================================================== */
 
-const API = "ใส่_URL_APPS_SCRIPT_ของคุณตรงนี้";
+const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec"; 
 const MASTER_PASS = "Service";
-const SUP_PASSWORD = "Qiagen"; 
+const SUP_PASSWORD = "Qiagen";
 
-window.allRows = []; 
+window.allRows = [];
+let currentUserData = null; // Store user info during password reset
 
-// --- 1. ระบบ LOGIN & FORCE PASSWORD CHANGE ---
+// --- 1. LOGIN & AUTHENTICATION ---
 window.handleLogin = async function() {
     const userInput = document.getElementById('username-input').value.trim().toUpperCase();
     const password = document.getElementById('password-input').value.trim();
 
     if (!userInput || !password) {
-        alert("กรุณากรอก Username และ Password");
+        alert("Please enter both Username and Password.");
         return;
     }
 
     try {
-        // เรียกใช้ action: 'checkauth' ตาม Backend V3.0
         const url = `${API}?action=checkauth&user=${encodeURIComponent(userInput)}&pass=${encodeURIComponent(password)}`;
         const res = await fetch(url).then(r => r.json());
 
         if (res.success) {
-            // กรณีใช้งานครั้งแรก (สถานะ FIRST_TIME จาก Backend)
             if (res.status === 'FIRST_TIME') {
-                const newPass = prompt(`ยินดีต้อนรับคุณ ${res.fullName}\nกรุณาตั้งรหัสผ่านใหม่ (4 ตัวขึ้นไป):`);
-                if (newPass && newPass.length >= 4) {
-                    // เรียกใช้ action: 'setpassword' ตาม Backend V3.0
-                    await setPasswordAPI(res.fullName, newPass);
-                } else {
-                    alert("การตั้งรหัสผ่านไม่สำเร็จ");
-                }
-                return;
+                // Show the modern modal instead of prompt
+                currentUserData = res;
+                document.getElementById('welcome-msg').innerText = `Welcome, ${res.fullName}!`;
+                document.getElementById('reset-modal').style.display = 'flex';
+            } else {
+                sessionStorage.setItem('selectedUser', res.fullName);
+                location.href = 'main.html';
             }
-            
-            // กรณีล็อกอินปกติ
-            sessionStorage.setItem('selectedUser', res.fullName);
-            location.href = 'main.html';
         } else {
-            alert("❌ " + res.msg);
+            alert("❌ " + (res.msg || "Incorrect Username or Password"));
         }
     } catch (e) {
-        alert("❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้");
+        alert("❌ Connection failed. Please try again.");
     }
 };
 
-async function setPasswordAPI(fullName, newPass) {
-    const url = `${API}?action=setpassword&user=${encodeURIComponent(fullName)}&newPass=${encodeURIComponent(newPass)}`;
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) {
-        alert("✅ ตั้งรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบอีกครั้งด้วยรหัสใหม่");
-        location.reload();
+// --- 2. PASSWORD RESET MODAL LOGIC ---
+window.submitNewPassword = async function() {
+    const newPass = document.getElementById('new-pass').value;
+    const confirmPass = document.getElementById('confirm-pass').value;
+
+    if (newPass.length < 4) {
+        alert("Password must be at least 4 characters long.");
+        return;
     }
-}
+
+    if (newPass !== confirmPass) {
+        alert("Passwords do not match. Please try again.");
+        return;
+    }
+
+    try {
+        const url = `${API}?action=setpassword&user=${encodeURIComponent(currentUserData.fullName)}&newPass=${encodeURIComponent(newPass)}`;
+        const res = await fetch(url).then(r => r.json());
+
+        if (res.success) {
+            alert("✅ Password updated successfully!");
+            sessionStorage.setItem('selectedUser', currentUserData.fullName);
+            location.href = 'main.html';
+        } else {
+            alert("❌ Failed to update password.");
+        }
+    } catch (e) {
+        alert("❌ Error connecting to server.");
+    }
+};
+
+window.closeModal = function() {
+    document.getElementById('reset-modal').style.display = 'none';
+};
 
 window.goToAdmin = function() {
-    const adminPass = prompt("กรุณากรอกรหัสผ่าน Supervisor:");
+    const adminPass = prompt("Enter Supervisor Password:");
     if (adminPass === SUP_PASSWORD) {
         location.href = 'supervisor.html';
     } else {
-        alert("รหัสผ่านไม่ถูกต้อง");
+        alert("Access Denied");
     }
 };
 
-/* ===== 2. AUTH & STOCK FUNCTIONS ===== */
+/* ===== 3. STOCK MANAGEMENT FUNCTIONS ===== */
 window.checkAuth = function() {
-    if (!sessionStorage.getItem('selectedUser')) location.href = 'index.html';
+    if (!sessionStorage.getItem('selectedUser')) {
+        location.href = 'index.html';
+    }
 };
 
 window.logout = function() {
@@ -83,7 +106,7 @@ window.loadStockData = async function(mode) {
             window.allRows = res.data;
             renderTable(res.data, mode);
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Fetch Error:", e); }
 };
 
 window.searchStock = function(query, mode) {
@@ -98,39 +121,50 @@ window.searchStock = function(query, mode) {
 window.renderTable = function(data, mode) {
     const tbody = document.getElementById('data');
     if (!tbody) return;
+    
     const user = sessionStorage.getItem('selectedUser');
     let html = '';
 
     data.forEach(item => {
-        const s0 = Number(item['0243'] || 0);
-        const sU = Number(item[user] || 0);
-        if ((mode === 'deduct' || mode === 'return') && sU <= 0) return;
+        const stock0243 = Number(item['0243'] || 0);
+        const stockUser = Number(item[user] || 0);
+        
+        if ((mode === 'deduct' || mode === 'return') && stockUser <= 0) return;
 
         html += `<tr>
-            <td><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
-            <td align="center">${(mode === 'all' || mode === 'withdraw') ? s0 : sU}</td>
+            <td>
+                <div style="font-weight:bold; font-size:14px;">${item.Material}</div>
+                <div style="font-size:11px; color:#64748b;">${item['Product Name']}</div>
+            </td>
+            <td align="center"><b>${(mode === 'all' || mode === 'withdraw') ? stock0243 : stockUser}</b></td>
             <td align="right">
-                ${mode === 'withdraw' ? `<button onclick="executeTransaction('withdraw','${item.Material}',1)">เบิก</button>` : 
-                  mode === 'deduct' ? `<input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:60px"> <button onclick="handleDeductClick('${item.Material}')">USE</button>` : 
-                  '●'}
+                ${mode === 'withdraw' ? `<button onclick="executeTransaction('withdraw','${item.Material}',1)" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">Withdraw</button>` : 
+                  mode === 'deduct' ? `<div style="display:flex; gap:4px;"><input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:60px; padding:5px; border-radius:4px; border:1px solid #ddd;"><button onclick="handleDeductClick('${item.Material}')" style="background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">USE</button></div>` : 
+                  mode === 'return' ? `<button onclick="executeTransaction('return','${item.Material}',1)" style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">Return</button>` : '●'}
             </td>
         </tr>`;
     });
-    tbody.innerHTML = html;
+    tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:20px;">No Data Found</td></tr>';
 };
 
 window.executeTransaction = async function(type, mat, qty) {
     const user = sessionStorage.getItem('selectedUser');
     const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) { alert("สำเร็จ!"); loadStockData(type); }
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { alert("✅ Success!"); loadStockData(type); }
+        else { alert("❌ " + res.msg); }
+    } catch (e) { alert("❌ Connection Error"); }
 };
 
 window.handleDeductClick = async function(mat) {
     const wo = document.getElementById('wo_' + mat).value.trim();
-    if(!wo) return alert("กรุณาใส่ WO");
+    if(!wo) { alert("❌ Please enter Work Order (WO#)"); return; }
     const user = sessionStorage.getItem('selectedUser');
     const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=1&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) { alert("ตัดสต็อกสำเร็จ"); loadStockData('deduct'); }
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { alert("✅ Usage Recorded"); loadStockData('deduct'); }
+        else { alert("❌ " + res.msg); }
+    } catch (e) { alert("❌ Connection Error"); }
 };
