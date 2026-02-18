@@ -6,55 +6,138 @@
   <title>Withdraw - Stock Management</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
-    /* สไตล์เพิ่มเติมเพื่อให้ UI สวยงามและใช้งานง่ายบนมือถือ */
+    /* UI Design ให้สอดคล้องกับระบบ QIAGEN */
     body { font-family: system-ui, -apple-system, sans-serif; background: #f4f6f8; margin: 0; }
-    .header { background: #1f2937; color: #fff; padding: 15px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    
+    /* Header สีเข้มแบบมืออาชีพ */
+    .header { 
+      background: #003366; 
+      color: #fff; 
+      padding: 15px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      position: sticky; 
+      top: 0; 
+      z-index: 1000; 
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
     .container { padding: 15px; max-width: 800px; margin: auto; }
-    .search-box { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 15px; font-size: 16px; box-sizing: border-box; }
-    .user-info { background: #fff; padding: 10px 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: #4b5563; font-size: 14px; }
+    
+    /* กล่องค้นหาแบบโค้งมน */
+    .search-box { 
+      width: 100%; 
+      padding: 12px; 
+      border: 1px solid #ddd; 
+      border-radius: 10px; 
+      margin-bottom: 15px; 
+      font-size: 16px; 
+      box-sizing: border-box; 
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    /* แสดงชื่อผู้ใช้งาน */
+    .user-info { 
+      background: #fff; 
+      padding: 10px 15px; 
+      border-radius: 10px; 
+      margin-bottom: 15px; 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+      color: #4b5563; 
+      font-size: 14px; 
+      border-left: 4px solid #003366;
+    }
+    
+    /* จัดการตารางให้บรรทัดเดียวและดูง่าย */
     table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    th { background: #f8fafc; color: #64748b; font-size: 12px; text-align: left; padding: 12px 10px; border-bottom: 1px solid #e2e8f0; }
-    .item-row { border-bottom: 1px solid #f1f5f9; }
-    .btn-back { background: transparent; border: 1px solid #fff; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
-    .qty-input-sm { width: 50px; height: 36px; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; }
-    .btn-danger { background: #ef4444; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    th { background: #f8fafc; color: #64748b; font-size: 12px; text-transform: uppercase; text-align: left; padding: 12px 10px; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    
+    /* ปุ่ม BACK ปรับปรุงใหม่ */
+    .btn-back { 
+      background: rgba(255,255,255,0.2); 
+      border: 1px solid #fff; 
+      color: #fff; 
+      padding: 7px 15px; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      font-weight: bold;
+      transition: 0.2s;
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.3); }
+    .btn-back:active { transform: scale(0.95); }
+
+    /* Input จำนวน และ ปุ่มเบิก */
+    .qty-input-sm { width: 50px; height: 36px; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    .btn-withdraw { 
+      background: #003366; 
+      color: #fff; 
+      border: none; 
+      padding: 8px 16px; 
+      border-radius: 6px; 
+      font-weight: bold; 
+      cursor: pointer; 
+      transition: 0.2s;
+    }
+    .btn-withdraw:active { opacity: 0.8; transform: scale(0.95); }
   </style>
 </head>
 <body onload="initWithdraw()">
+
   <div class="header">
-    <div style="font-weight: bold; font-size: 18px;">🔧 WITHDRAW</div>
-    <button class="btn-back" onclick="goBack()">BACK</button>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 20px;">📥</span>
+        <div style="font-weight: bold; font-size: 18px; letter-spacing: 0.5px;">WITHDRAW (0243)</div>
+    </div>
+    <button class="btn-back" onclick="location.href='main.html'">BACK</button>
   </div>
 
   <div class="container">
-    <div class="user-info">Logged in as: <strong id="current-user">-</strong></div>
+    <div class="user-info">
+        Logged in as: <strong id="current-user" style="color: #003366;">-</strong>
+    </div>
     
-    <input type="text" id="search" class="search-box" placeholder="🔍 Search Instrument, Material, or Name..." oninput="searchStock(this.value, 'withdraw')">
+    <input type="text" id="search" class="search-box" 
+           placeholder="🔍 Search Material or Product Name..." 
+           oninput="searchStock(this.value, 'withdraw')">
 
     <table>
       <thead>
         <tr>
-          <th>DETAILS</th>
-          <th style="text-align:center;">STOCK</th>
-          <th style="text-align:right; padding-right:10px;">ACTION</th>
+          <th style="width: 55%;">DETAILS</th>
+          <th style="text-align:center; width: 15%;">STOCK</th>
+          <th style="text-align:right; width: 30%; padding-right:15px;">ACTION</th>
         </tr>
       </thead>
       <tbody id="data">
-        </tbody>
+          </tbody>
     </table>
   </div>
 
   <script src="js/app.js"></script>
   <script>
     function initWithdraw() {
+      // ตรวจสอบการ Login ผ่านฟังก์ชันส่วนกลางใน app.js
+      if (typeof checkAuth === "function") {
+          if (!checkAuth()) return;
+      }
+
       const user = sessionStorage.getItem('selectedUser');
       if (!user) {
         alert("Please select a user first");
-        location.href = 'user-select.html';
+        location.href = 'index.html';
         return;
       }
+      
       document.getElementById('current-user').textContent = user;
-      window.loadStockData('withdraw');
+      
+      // โหลดข้อมูลสต็อกกลาง (0243)
+      if (typeof loadStockData === "function") {
+          window.loadStockData('withdraw');
+      } else {
+          console.error("Function loadStockData not found in app.js");
+      }
     }
   </script>
 </body>
