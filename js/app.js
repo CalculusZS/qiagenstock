@@ -6,7 +6,7 @@
    - FEATURES: Product Name Lookup, Force WO# on Deduct, Password Reset
    ========================================================================== */
 
-const API = "https://script.google.com/macros/s/AKfycbyH9BtHHVez1dRnW4N2lpvNT-vo-e5UlFg-jbLK0XDgPYmTVsYfQhzWh6LUl3tPmo5C/exec"; 
+const API = "https://script.google.com/macros/s/AKfycby8X9GKrYlyBx6JHsTtgsVE85RtnT_iCNEIcefKu9UQszc34bDATxJ7beUHqsHn42c/exec"; 
 const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen";
 
