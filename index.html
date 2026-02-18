@@ -3,37 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QIAGEN - Login</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>QIAGEN Stock - Login</title>
     <style>
         body { font-family: sans-serif; background: #003366; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .login-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 350px; text-align: center; }
-        .logo { font-size: 24px; font-weight: bold; color: #003366; margin-bottom: 20px; }
-        select, input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 12px; background: #003366; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        button:active { transform: scale(0.98); opacity: 0.9; }
+        .login-card { background: white; padding: 30px; border-radius: 15px; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        h2 { color: #003366; text-align: center; margin-bottom: 25px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #003366; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        .other-options { margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; text-align: center; }
+        .other-options a { display: block; color: #003366; text-decoration: none; font-size: 14px; margin: 8px 0; font-weight: bold; }
+        .hint { font-size: 11px; color: #666; margin-top: 5px; }
     </style>
 </head>
 <body>
-
     <div class="login-card">
-        <div class="logo">QIAGEN STOCK</div>
-        
-        <select id="user-select">
-            <option value="">Select Staff Name</option>
-            <option value="Kitti">Kitti</option>
-            <option value="Tatchai">Tatchai</option>
-            <option value="Parinyachat">Parinyachat</option>
-            <option value="Phurilap">Phurilap</option>
-            <option value="Penporn">Penporn</option>
-            <option value="Phuriwat">Phuriwat</option>
-        </select>
-
+        <h2>QIAGEN STOCK</h2>
+        <input type="text" id="username-input" placeholder="Username (KM, TK, ...)">
         <input type="password" id="password-input" placeholder="Password">
-
         <button onclick="handleLogin()">LOGIN</button>
-    </div>
+        <p class="hint">* ครั้งแรกให้ใส่ชื่อเต็มเป็น Password เพื่อตั้งค่า</p>
 
+            </div>
     <script src="js/app.js"></script>
 </body>
 </html>
