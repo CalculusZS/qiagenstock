@@ -3,26 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Status - QIAGEN</title>
+    <title>All Stock Status - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body onload="initShowAll()">
     <div class="header" style="background:#1e293b; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-weight:bold; font-size:18px;">📋 ALL STOCK STATUS</div>
+        <div style="font-weight:bold; font-size:18px;">📋 GLOBAL INVENTORY STATUS</div>
         <button onclick="location.href='main.html'" style="background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:5px;">BACK</button>
     </div>
     <div class="container" style="padding:15px;">
-        <input type="text" class="search-box" placeholder="🔍 Search Material or Product Name..." oninput="searchStock(this.value, 'all')" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px;">
-        <table style="width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden;">
+        <input type="text" class="search-box" placeholder="🔍 Search Stock Item..." oninput="searchStock(this.value, 'all')" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px; font-size:16px;">
+        <table style="width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
             <thead>
                 <tr style="background:#f1f5f9;">
                     <th style="padding:12px; text-align:left;">Material Details</th>
-                    <th style="padding:12px; text-align:center;">In Stock</th>
-                    <th style="padding:12px; text-align:right;">Status</th>
+                    <th style="padding:12px; text-align:center;">0243 Stock</th>
+                    <th style="padding:12px; text-align:right;">Availability</th>
                 </tr>
             </thead>
             <tbody id="data">
-                <tr><td colspan="3" align="center">กำลังโหลดข้อมูล...</td></tr>
+                <tr><td colspan="3" align="center">Fetching data...</td></tr>
             </tbody>
         </table>
     </div>
