@@ -3,79 +3,62 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Deduct - Stock Management</title>
+  <title>Deduct Part</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
-    /* คุมหน้าตาให้เหมือน Withdraw/Return เดิม */
     body { font-family: system-ui, -apple-system, sans-serif; background: #f4f6f8; margin: 0; }
     .header { background: #ef4444; color: #fff; padding: 15px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
     .container { padding: 15px; max-width: 800px; margin: auto; }
     .search-box { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 15px; font-size: 16px; box-sizing: border-box; }
-    .user-info { background: #fff; padding: 10px 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: #4b5563; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    th { background: #f8fafc; color: #64748b; font-size: 12px; text-transform: uppercase; padding: 12px; text-align: left; }
+    td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
     .btn-back { background: rgba(255,255,255,0.2); border: 1px solid #fff; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
     
-    table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    th { background: #f8fafc; color: #64748b; font-size: 12px; text-transform: uppercase; padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-    td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-    
-    /* Input สำหรับ Work Order และ Qty แบบบรรทัดเดียว */
-    .action-group { display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
-    .wo-input { width: 85px; height: 36px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
-    .qty-input-sm { width: 45px; height: 36px; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
-    .btn-deduct { background: #ef4444; color: #fff; border: none; height: 36px; padding: 0 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
+    /* การจัดวาง WO, Qty, ปุ่ม ให้ลงตัวในบรรทัดเดียว */
+    .action-row { display: flex; gap: 5px; justify-content: flex-end; align-items: center; }
+    .wo-input { width: 80px; height: 36px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; }
+    .qty-input-sm { width: 40px; height: 36px; text-align:center; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .btn-deduct { background: #ef4444; color: white; border: none; height: 36px; padding: 0 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
   </style>
 </head>
 <body onload="initDeduct()">
   <div class="header">
-    <div style="font-weight: bold; font-size: 18px;">📉 DEDUCT PART</div>
+    <div style="font-weight: bold; font-size: 18px;">📉 DEDUCT PART (USED)</div>
     <button class="btn-back" onclick="location.href='main.html'">BACK</button>
   </div>
-
   <div class="container">
-    <div class="user-info">Logged in as: <strong id="current-user">-</strong></div>
-    
-    <input type="text" id="search" class="search-box" placeholder="🔍 Search items in your stock..." oninput="searchStock(this.value, 'deduct')">
-
+    <div style="margin-bottom:10px; color:#64748b;">👤 พนักงาน: <strong id="display-user"></strong></div>
+    <input type="text" class="search-box" placeholder="🔍 ค้นหาอะไหล่เพื่อตัดใช้งาน..." oninput="searchStock(this.value, 'deduct')">
     <table>
       <thead>
         <tr>
           <th>DETAILS</th>
-          <th style="text-align:center;">MY STOCK</th>
-          <th style="text-align:right; padding-right:10px;">ACTION (WO)</th>
+          <th style="text-align:center;">STOCK</th>
+          <th style="text-align:right;">WO / QTY / ACTION</th>
         </tr>
       </thead>
       <tbody id="data">
         </tbody>
     </table>
   </div>
-
   <script src="js/app.js"></script>
   <script>
     function initDeduct() {
       if(!checkAuth()) return;
-      document.getElementById('current-user').innerText = sessionStorage.getItem('selectedUser');
+      document.getElementById('display-user').innerText = sessionStorage.getItem('selectedUser');
       loadStockData('deduct'); 
     }
 
     // ฟังก์ชันยิงคำสั่งตัดสต็อก
-    async function handleTableDeduct(mat) {
-        const woInput = document.getElementById(`wo_${mat}`);
-        const qtyInput = document.getElementById(`qty_${mat}`);
-        const wo = woInput.value.trim();
-        const qty = qtyInput.value;
-
-        if (!wo) {
-            alert("❌ Please enter Work Order Number");
-            woInput.focus();
-            return;
-        }
-
-        if (confirm(`Confirm Deduct ${mat} x${qty} for WO: ${wo}?`)) {
-            const res = await window.executeDeduct(mat, qty, wo);
-            if (res && res.success) {
-                window.loadStockData('deduct'); // Refresh ตาราง
-            }
-        }
+    async function handleDeductClick(mat) {
+      const wo = document.getElementById('wo_' + mat).value.trim();
+      const qty = document.getElementById('qty_' + mat).value;
+      if(!wo) { alert("❌ กรุณาใส่เลข Work Order"); return; }
+      if(confirm(`ยืนยันการใช้ ${mat} จำนวน ${qty} สำหรับ WO: ${wo}?`)) {
+        const res = await executeDeduct(mat, qty, wo);
+        if(res.success) loadStockData('deduct');
+      }
     }
   </script>
 </body>
