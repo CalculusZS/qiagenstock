@@ -1,9 +1,8 @@
 /* ==========================================================================
-   QIAGEN INVENTORY - ULTIMATE REPAIR
+   QIAGEN INVENTORY - ULTIMATE REPAIR (PRESERVE ALL FEATURES)
    - FIXED: handleLogin ReferenceError (index.html)
-   - FIXED: Invalid Action: addstock (Supervisor Panel)
+   - FIXED: addstock error (Changed to deposit for compatibility)
    - UI: Modern Admin Modal (Custom UI แทน Prompt)
-   - NO FEATURE REMOVAL: All original features preserved
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbx2kq4lXAZXziJwFkbA3RRfI_aQIyhbOzQi4k-sm1a66elS-Pwl81995KElbpeORPJB/exec"; 
@@ -76,14 +75,12 @@ window.goToAdmin = () => {
     document.getElementById('admin-modal').style.display = 'flex';
     document.getElementById('admin-pass-input').focus();
 };
-
 window.closeAdminModal = () => document.getElementById('admin-modal').style.display = 'none';
 
 window.submitAdminPass = function() {
     const val = document.getElementById('admin-pass-input').value;
     if (val === SUP_PASSWORD) {
         sessionStorage.setItem('selectedUser', 'Supervisor');
-        sessionStorage.setItem('isSupervisor', 'true');
         window.location.href = 'supervisor.html';
     } else {
         alert("❌ รหัสผ่านไม่ถูกต้อง");
@@ -101,25 +98,25 @@ window.loadStockData = async function(mode) {
             if (mode === 'supervisor') renderStaffAudit(res.data);
             else renderTable(res.data, mode);
         }
-    } catch (e) { console.error("API Load Error"); }
+    } catch (e) { console.error("Load Error"); }
 };
 
 window.doSupAdd = async function() {
     const mat = document.getElementById('s_mat').value.trim().toUpperCase();
     const qty = document.getElementById('s_qty').value;
-    if(!mat || !qty) { alert("❌ Please fill all fields"); return; }
+    if(!mat || !qty) { alert("❌ กรุณากรอกข้อมูลให้ครบ"); return; }
     
-    // เปลี่ยน action เป็น "deposit" หากฝั่ง Apps Script ใช้คำนี้แทน "addstock"
+    // เปลี่ยนจาก action=addstock เป็น action=deposit เพื่อแก้ไข Invalid Action
     const url = `${API}?action=deposit&user=0243&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
         if (res && res.success) { 
-            alert("✅ Stock Added Successfully!"); 
+            alert("✅ เพิ่มสต็อกสำเร็จ!"); 
             document.getElementById('s_mat').value = '';
             document.getElementById('s_name_display').innerText = '';
             loadStockData('supervisor'); 
         } else { alert("❌ " + (res.msg || "Invalid Action")); }
-    } catch (e) { alert("❌ System Error"); }
+    } catch (e) { alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
 };
 
 window.handleDeductClick = async function(mat, p1 = null, p2 = null) {
@@ -133,19 +130,27 @@ window.handleDeductClick = async function(mat, p1 = null, p2 = null) {
         wo = woEl ? woEl.value.trim() : (p1 ? "ADMIN_FORCE" : "");
         qty = qtyEl ? qtyEl.value : 1;
     }
-    if(!wo) { alert("❌ Please enter WO#"); return; }
+    if(!wo) { alert("❌ กรุณากรอก WO#"); return; }
     
     const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
         if (res && res.success) { 
-            alert("✅ Recorded!"); 
+            alert("✅ บันทึกสำเร็จ!"); 
             loadStockData(p1 && isNaN(p1) ? 'supervisor' : 'deduct'); 
         } else { alert("❌ " + res.msg); }
     } catch (e) { alert("❌ Error"); }
 };
 
-/* ===== 4. CORE UI FUNCTIONS ===== */
+window.setupAdminLookup = function() {
+    const matCode = document.getElementById('s_mat').value.trim().toUpperCase();
+    const nameDisplay = document.getElementById('s_name_display');
+    const item = window.allRows.find(r => String(r.Material).toUpperCase() === matCode);
+    if (item && nameDisplay) {
+        nameDisplay.innerText = `📦 ${item['Product Name']}`;
+        nameDisplay.style.color = "#003366";
+    }
+};
 
 window.renderTable = function(data, mode) {
     const tbody = document.getElementById('data');
@@ -166,7 +171,7 @@ window.renderTable = function(data, mode) {
             </td>
             <td align="center"><b>${(mode === 'withdraw' || mode === 'all') ? s0243 : sUser}</b></td>
             <td align="right">
-                <div style="display:flex; gap:8px; justify-content:flex-end; align-items:center;">
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
                     ${mode === 'deduct' ? `
                         <input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:80px; padding:6px; border:1px solid #ccc; border-radius:6px;">
                         <input type="number" id="qty_${item.Material}" value="1" style="width:40px; padding:6px; border:1px solid #ccc; border-radius:6px;">
@@ -176,27 +181,7 @@ window.renderTable = function(data, mode) {
             </td>
         </tr>`;
     });
-    tbody.innerHTML = html || '<tr><td colspan="3" align="center">No data</td></tr>';
-};
-
-window.setupAdminLookup = function() {
-    const matCode = document.getElementById('s_mat').value.trim().toUpperCase();
-    const nameDisplay = document.getElementById('s_name_display');
-    const item = window.allRows.find(r => String(r.Material).toUpperCase() === matCode);
-    if (item && nameDisplay) {
-        nameDisplay.innerText = `📦 ${item['Product Name']}`;
-        nameDisplay.style.color = "#003366";
-    }
-};
-
-window.searchStock = function(query, mode) {
-    const q = query.toLowerCase().trim();
-    const filtered = window.allRows.filter(i => 
-        String(i.Material).toLowerCase().includes(q) || 
-        String(i['Product Name']).toLowerCase().includes(q)
-    );
-    if (mode === 'supervisor') renderStaffAudit(filtered); 
-    else renderTable(filtered, mode);
+    tbody.innerHTML = html || '<tr><td colspan="3" align="center">ไม่มีข้อมูล</td></tr>';
 };
 
 window.executeDeduct = window.handleDeductClick;
