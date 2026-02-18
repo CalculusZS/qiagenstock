@@ -3,57 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Return - Stock Management</title>
+  <title>Return Stock</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
-    /* ใช้สไตล์เดียวกับหน้า Withdraw เพื่อความต่อเนื่องของ UI */
     body { font-family: system-ui, -apple-system, sans-serif; background: #f4f6f8; margin: 0; }
-    .header { background: #1f2937; color: #fff; padding: 15px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    .header { background: #16a34a; color: #fff; padding: 15px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
     .container { padding: 15px; max-width: 800px; margin: auto; }
     .search-box { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 15px; font-size: 16px; box-sizing: border-box; }
-    .user-info { background: #fff; padding: 10px 15px; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: #4b5563; font-size: 14px; }
-    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    th { background: #f8fafc; color: #64748b; font-size: 12px; text-align: left; padding: 12px 10px; border-bottom: 1px solid #e2e8f0; }
-    .item-row { border-bottom: 1px solid #f1f5f9; }
-    .btn-back { background: transparent; border: 1px solid #fff; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
-    .qty-input-sm { width: 50px; height: 36px; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; }
-    .btn-success { background: #22c55e; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    th { background: #f8fafc; color: #64748b; font-size: 12px; text-transform: uppercase; padding: 12px; text-align: left; }
+    td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .btn-back { background: rgba(255,255,255,0.2); border: 1px solid #fff; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+    .qty-input-sm { width: 45px; height: 36px; text-align:center; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .btn-return { background: #16a34a; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body onload="initReturn()">
-  <div class="header" style="background: #065f46;"> <div style="font-weight: bold; font-size: 18px;">🔄 RETURN</div>
-    <button class="btn-back" onclick="goBack()">BACK</button>
+  <div class="header">
+    <div style="font-weight: bold; font-size: 18px;">📤 RETURN TO 0243</div>
+    <button class="btn-back" onclick="location.href='main.html'">BACK</button>
   </div>
-
   <div class="container">
-    <div class="user-info">Logged in as: <strong id="current-user">-</strong></div>
-    
-    <input type="text" id="search" class="search-box" placeholder="🔍 Search items to return..." oninput="searchStock(this.value, 'return')">
-
+    <div id="user-info" style="margin-bottom:10px; color:#64748b;">Logged in as: <strong id="display-user"></strong></div>
+    <input type="text" class="search-box" placeholder="🔍 ค้นหาอะไหล่ในมือคุณ..." oninput="searchStock(this.value, 'return')">
     <table>
       <thead>
         <tr>
           <th>DETAILS</th>
-          <th style="text-align:center;">YOUR STOCK</th>
-          <th style="text-align:right; padding-right:10px;">ACTION</th>
+          <th style="text-align:center;">MY STOCK</th>
+          <th style="text-align:right;">ACTION</th>
         </tr>
       </thead>
       <tbody id="data">
         </tbody>
     </table>
   </div>
-
   <script src="js/app.js"></script>
   <script>
     function initReturn() {
-      const user = sessionStorage.getItem('selectedUser');
-      if (!user) {
-        alert("Please select a user first");
-        location.href = 'user-select.html';
-        return;
-      }
-      document.getElementById('current-user').textContent = user;
-      window.loadStockData('return');
+      if(!checkAuth()) return;
+      document.getElementById('display-user').innerText = sessionStorage.getItem('selectedUser');
+      loadStockData('return'); 
     }
   </script>
 </body>
