@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deduct Part - QIAGEN</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { font-family: sans-serif; background: #f1f5f9; margin: 0; }
+        .header { background: #1e293b; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #475569; }
+        .input-group input { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        .input-group input:focus { border-color: #0f172a; outline: none; }
+        .search-res { background: #f8fafc; padding: 10px; border-radius: 8px; margin-top: 5px; display: none; border: 1px solid #e2e8f0; }
+        .btn-confirm { width: 100%; padding: 15px; background: #ef4444; color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-confirm:disabled { background: #cbd5e1; cursor: not-allowed; }
+        .stock-info { display: flex; justify-content: space-between; margin-top: 10px; font-size: 14px; color: #64748b; }
+    </style>
+</head>
+<body onload="initDeduct()">
+    <div class="header">
+        <div style="font-weight: bold;">📉 DEDUCT PART (Used)</div>
+        <button onclick="location.href='main.html'" style="background:none; border:1px solid white; color:white; padding:5px 12px; border-radius:5px; cursor:pointer;">Back</button>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="input-group">
+                <label>1. Work Order Number (WO) *</label>
+                <input type="text" id="wo_number" placeholder="Enter WO (e.g. 12345678)" oninput="validateForm()">
+            </div>
+
+            <div class="input-group">
+                <label>2. Material Code</label>
+                <input type="text" id="mat_code" placeholder="Scan or Type Material..." oninput="lookupMaterial(this.value)">
+                <div id="search_res" class="search-res">
+                    <b id="res_name"></b><br>
+                    <div class="stock-info">
+                        <span>Your Stock: <b id="res_qty" style="color:#16a34a">0</b></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>3. Quantity to Deduct</label>
+                <input type="number" id="deduct_qty" value="1" min="1" oninput="validateForm()">
+            </div>
+
+            <button id="btn_submit" class="btn-confirm" onclick="confirmDeduct()" disabled>CONFIRM DEDUCT</button>
+        </div>
+        <p style="text-align: center; color: #94a3b8; font-size: 12px;">การกด Confirm จะเป็นการตัดยอดออกจากสต็อกส่วนตัวของคุณ</p>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let selectedItem = null;
+
+        function initDeduct() {
+            if (!window.checkAuth()) return;
+            window.loadStockData('supervisor'); // ใช้ข้อมูลสต็อกรวมเพื่อการค้นหา
+        }
+
+        function lookupMaterial(val) {
+            const resBox = document.getElementById('search_res');
+            const currentUser = sessionStorage.getItem('selectedUser');
+            
+            // ค้นหาจาก window.allRows ที่โหลดมาจาก app.js
+            const item = window.allRows.find(r => String(r.Material).toLowerCase() === val.toLowerCase().trim());
+            
+            if (item && item[currentUser] > 0) {
+                selectedItem = item;
+                document.getElementById('res_name').innerText = item['Product Name'];
+                document.getElementById('res_qty').innerText = item[currentUser];
+                document.getElementById('deduct_qty').max = item[currentUser];
+                resBox.style.display = 'block';
+            } else {
+                selectedItem = null;
+                resBox.style.display = 'none';
+            }
+            validateForm();
+        }
+
+        function validateForm() {
+            const wo = document.getElementById('wo_number').value.trim();
+            const qty = document.getElementById('deduct_qty').value;
+            const btn = document.getElementById('btn_submit');
+            
+            if (wo !== "" && selectedItem !== null && qty > 0 && qty <= selectedItem[sessionStorage.getItem('selectedUser')]) {
+                btn.disabled = false;
+            } else {
+                btn.disabled = true;
+            }
+        }
+
+        async function confirmDeduct() {
+            const wo = document.getElementById('wo_number').value.trim();
+            const qty = document.getElementById('deduct_qty').value;
+            const user = sessionStorage.getItem('selectedUser');
+            
+            if (!confirm(`ยืนยันการใช้ Material: ${selectedItem.Material}\nจำนวน: ${qty} ชิ้น\nสำหรับ WO: ${wo}?`)) return;
+
+            try {
+                // เรียกใช้ฟังก์ชัน deduct ใน app.js (ต้องเพิ่ม parameter wo)
+                const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(selectedItem.Material)}&qty=${qty}&wo=${encodeURIComponent(wo)}&password=${MASTER_PASS}`).then(r => r.json());
+                
+                if (res.success) {
+                    alert("✅ Deduct Success!");
+                    location.href = 'main.html';
+                } else {
+                    alert("❌ Error: " + res.msg);
+                }
+            } catch (e) {
+                alert("Connection Error");
+            }
+        }
+    </script>
+</body>
+</html>
