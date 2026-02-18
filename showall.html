@@ -9,24 +9,14 @@
 <body onload="loadStockData('all')">
     <div class="container" style="max-width: 100%; width: 95%; margin: 20px auto;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-            <button onclick="window.goBack()" style="padding:10px 15px; background:#f1f5f9; border:1px solid #ccc; border-radius:8px; cursor:pointer;">◀ Back</button>
+            <button onclick="location.href='main.html'" style="padding:10px 15px; background:#003366; color:white; border:none; border-radius:8px; cursor:pointer;">◀ Back</button>
             <h2 style="color:#003366; margin:0;">All Inventory (0243)</h2>
             <div style="width:60px;"></div>
         </div>
-
-        <input type="text" placeholder="Search Material or Product Name..." 
-               oninput="window.searchStock(this.value, 'all')" 
-               style="width:100%; padding:12px; margin-bottom:20px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box;">
-
-        <div class="card">
+        <input type="text" placeholder="Search..." oninput="searchStock(this.value, 'all')" style="width:100%; padding:12px; margin-bottom:20px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box;">
+        <div class="card" style="background:white; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.1); overflow:hidden;">
             <table style="width:100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="border-bottom: 2px solid #eee;">
-                        <th style="text-align:left; padding:12px;">Material & Product</th>
-                        <th style="text-align:center; padding:12px;">Stock 0243</th>
-                        <th style="text-align:right; padding:12px;">Status</th>
-                    </tr>
-                </thead>
+                <thead><tr style="background:#f1f5f9;"><th style="text-align:left; padding:12px;">Material & Product</th><th style="text-align:center; padding:12px;">Stock 0243</th><th style="text-align:right; padding:12px;">Status</th></tr></thead>
                 <tbody id="data"></tbody>
             </table>
         </div>
