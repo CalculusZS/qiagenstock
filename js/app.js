@@ -1,19 +1,19 @@
 /* ==========================================================================
-   QIAGEN INVENTORY - FINAL RECOVERY V10 (COMPLETE & STABLE)
-   - FIXED: Password Change Modal (Status NEW)
-   - FIXED: Add Stock to Central (0243) Action & Lookup
-   - FIXED: Supervisor Audit with Mandatory WO# Input
-   - FIXED: Staff Password Reset Logic
+   QIAGEN INVENTORY - ULTIMATE MASTER (NO-CUT VERSION)
+   - FIXED: Supervisor System Access (Modal & Prompt)
+   - FIXED: Password Change Modal (For Status NEW)
+   - FIXED: Central Stock (0243) Add & Product Lookup
+   - FIXED: Staff Audit (Mandatory WO# before Deduct)
    ========================================================================== */
 
-const API = "https://script.google.com/macros/s/AKfycby8X9GKrYlyBx6JHsTtgsVE85RtnT_iCNEIcefKu9UQszc34bDATxJ7beUHqsHn42c/exec"; 
+const API = "https://script.google.com/macros/s/AKfycbyH9BtHHVez1dRnW4N2lpvNT-vo-e5UlFg-jbLK0XDgPYmTVsYfQhzWh6LUl3tPmo5C/exec"; 
 const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen";
 
 window.allRows = []; 
 const STAFF_LIST = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
-/* ===== 1. AUTHENTICATION & CHANGE PASSWORD MODAL ===== */
+/* ===== 1. AUTHENTICATION & LOGIN (หน้าต่างเปลี่ยนรหัสกลับมาแล้ว) ===== */
 window.handleLogin = async function() {
     const uInput = document.getElementById('username-input');
     const pInput = document.getElementById('password-input');
@@ -25,43 +25,39 @@ window.handleLogin = async function() {
         const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userVal)}&pass=${encodeURIComponent(passVal)}`).then(r => r.json());
         if (res && res.success) {
             sessionStorage.setItem('selectedUser', res.fullName);
-            // ข้อ 1: ถ้าสถานะเป็น NEW ให้เปิด Modal ทันที
+            // ข้อ 1: ถ้าเป็นพนักงานใหม่ (NEW) บังคับเด้งหน้าต่างเปลี่ยนรหัส
             if (res.status === 'NEW') { 
-                showChangePasswordModal(userVal);
+                window.pendingUserKey = userVal;
+                const modal = document.getElementById('password-modal');
+                if (modal) modal.style.display = 'flex';
+                else alert("Status: NEW. Please use Change Password page.");
                 return; 
             }
             window.location.replace('main.html');
         } else { alert("❌ Login Failed: User หรือ Password ผิด"); }
-    } catch (e) { alert("❌ Connection Error"); }
-};
-
-// ฟังก์ชันเปิด Modal เปลี่ยนรหัส (กู้คืนจากไฟล์ต้นฉบับ)
-window.showChangePasswordModal = function(userKey) {
-    const modal = document.getElementById('password-modal');
-    if (modal) {
-        modal.style.display = 'flex';
-        window.pendingUserKey = userKey;
-    } else {
-        alert("Please change your password in the Change Password page.");
-    }
+    } catch (e) { alert("❌ Connection Error: ตรวจสอบ URL API"); }
 };
 
 window.submitChangePassword = async function() {
     const p1 = document.getElementById('new-pass').value;
     const p2 = document.getElementById('confirm-pass').value;
-    if (!p1 || p1 !== p2) return alert("❌ รหัสผ่านไม่ตรงกัน");
-
+    if (!p1 || p1 !== p2) return alert("❌ รหัสผ่านใหม่ไม่ตรงกัน");
     try {
         const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(window.pendingUserKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success) {
-            alert("✅ เปลี่ยนรหัสผ่านสำเร็จ กรุณา Login ใหม่");
-            window.location.reload();
-        }
-    } catch (e) { alert("❌ Error"); }
+        if (res.success) { alert("✅ เปลี่ยนรหัสสำเร็จ กรุณา Login ใหม่"); window.location.reload(); }
+    } catch (e) { alert("❌ เปลี่ยนรหัสล้มเหลว"); }
 };
 
-/* ===== 2. SUPERVISOR: ADD STOCK & RESET PASSWORD ===== */
-// ข้อ 2: ค้นหาและเพิ่มสต็อกกลาง (0243)
+/* ===== 2. SUPERVISOR SYSTEM ACCESS (เข้า Admin ได้แน่นอน) ===== */
+window.goToAdmin = function() {
+    const pass = prompt("Enter Supervisor Password:");
+    if (pass === SUP_PASSWORD) {
+        sessionStorage.setItem('selectedUser', 'Supervisor');
+        window.location.href = 'supervisor.html';
+    } else if (pass !== null) { alert("❌ Incorrect Password"); }
+};
+
+/* ===== 3. ADD STOCK TO CENTRAL (0243) & LOOKUP (แก้ข้อ 2) ===== */
 window.setupAdminLookup = function() {
     const mat = document.getElementById('s_mat').value.trim().toUpperCase();
     const item = window.allRows.find(r => String(r.Material).toUpperCase() === mat);
@@ -74,30 +70,19 @@ window.setupAdminLookup = function() {
 window.doSupAdd = async function() {
     const mat = document.getElementById('s_mat').value.trim().toUpperCase();
     const qty = document.getElementById('s_qty').value;
-    if (!mat || !qty) return alert("❌ กรุณากรอก Material และจำนวน");
-
+    if (!mat || !qty) return alert("❌ กรุณาใส่ Material และ จำนวน");
     try {
         const res = await fetch(`${API}?action=add&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`).then(r => r.json());
         if (res.success) {
-            alert("✅ เพิ่มสต็อกสำเร็จ!");
+            alert("✅ เพิ่มสต็อกกลาง (0243) สำเร็จ!");
             loadStockData('supervisor');
             document.getElementById('s_mat').value = '';
             document.getElementById('s_qty').value = '';
         }
-    } catch (e) { alert("❌ Error Connecting"); }
+    } catch (e) { alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
 };
 
-window.resetStaffPassword = async function(name) {
-    const newPass = prompt(`ตั้งรหัสผ่านใหม่ให้ ${name}:`, "1234");
-    if (!newPass) return;
-    try {
-        const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(name)}&newPass=${encodeURIComponent(newPass)}&pass=${SUP_PASSWORD}`).then(r => r.json());
-        if (res.success) alert(`✅ Reset รหัส ${name} เป็น ${newPass} สำเร็จ`);
-    } catch (e) { alert("❌ Failed"); }
-};
-
-/* ===== 3. STAFF INVENTORY AUDIT (บังคับ WO#) ===== */
-// ข้อ 3: หน้า Audit ต้องมีช่องกรอก WO# เหมือนหน้า Deduct
+/* ===== 4. STAFF INVENTORY AUDIT (บังคับใส่ WO# - แก้ข้อ 3) ===== */
 window.renderStaffAudit = function(data) {
     const tbody = document.getElementById('staff-data');
     if (!tbody) return;
@@ -108,44 +93,40 @@ window.renderStaffAudit = function(data) {
             if (qty > 0) {
                 html += `<tr>
                     <td><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
-                    <td align=\"center\">${staff}</td>
-                    <td align=\"center\"><b>${qty}</b></td>
-                    <td align=\"right\">
-                        <div style=\"display:flex; gap:5px; justify-content:flex-end;\">
-                            <input type=\"text\" id=\"audit_wo_${item.Material}_${staff}\" placeholder=\"WO#\" style=\"width:70px; padding:5px; border:1px solid #ccc; border-radius:5px;\">
-                            <button onclick=\"handleAuditDeduct('${item.Material}', '${staff}')\" style=\"background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;\">Deduct</button>
+                    <td align="center">${staff}</td>
+                    <td align="center"><b>${qty}</b></td>
+                    <td align="right">
+                        <div style="display:flex; gap:5px; justify-content:flex-end;">
+                            <input type="text" id="audit_wo_${item.Material}_${staff}" placeholder="WO#" style="width:70px; padding:5px; border:1px solid #ccc; border-radius:5px;">
+                            <button onclick="handleAuditDeduct('${item.Material}', '${staff}')" style="background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Deduct</button>
                         </div>
                     </td>
                 </tr>`;
             }
         });
     });
-    tbody.innerHTML = html || '<tr><td colspan=\"4\" align=\"center\">No staff inventory</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="4" align="center">No staff inventory found</td></tr>';
 };
 
 window.handleAuditDeduct = async function(mat, staff) {
     const wo = document.getElementById(`audit_wo_${mat}_${staff}`)?.value.trim();
-    if (!wo) return alert("❌ บังคับ: กรุณากรอก Work Order (WO#) ก่อนตัดสต็อก");
-
+    if (!wo) return alert("❌ บังคับ: ต้องระบุ Work Order (WO#) ก่อนตัดสต็อก");
     try {
         const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(staff)}&material=${encodeURIComponent(mat)}&qty=1&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success) {
-            alert("✅ ตัดสต็อกสำเร็จ!");
-            loadStockData('supervisor');
-        }
+        if (res.success) { alert("✅ ตัดสต็อกสำเร็จ!"); loadStockData('supervisor'); }
     } catch (e) { alert("❌ Error"); }
 };
 
-/* ===== 4. CORE & TRANSACTIONS ===== */
+/* ===== 5. CORE FUNCTIONS (HISTORY / TABLE / SEARCH) ===== */
 window.loadStockData = async function(mode) {
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res && res.success) {
+        if (res.success) {
             window.allRows = res.data;
             if (mode === 'supervisor') renderStaffAudit(res.data);
             else renderTable(res.data, mode);
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Data Load Fail", e); }
 };
 
 window.renderTable = function(data, mode) {
@@ -157,18 +138,13 @@ window.renderTable = function(data, mode) {
         const s0243 = Number(item['0243'] || 0);
         const sUser = Number(item[user] || 0);
         if ((mode === 'deduct' || mode === 'return') && sUser <= 0) return;
-        
         html += `<tr>
-            <td style=\"padding:12px;\"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
-            <td align=\"center\"><b>${(mode==='withdraw'||mode==='all') ? s0243 : sUser}</b></td>
-            <td align=\"right\">
-                ${mode === 'withdraw' ? `<button onclick=\"executeTransaction('withdraw','${item.Material}',1)\" style=\"background:#003366; color:white; border:none; padding:8px 12px; border-radius:8px;\">Withdraw</button>` : 
-                  mode === 'deduct' ? `
-                    <div style=\"display:flex; gap:5px; justify-content:flex-end;\">
-                        <input type=\"text\" id=\"wo_${item.Material}\" placeholder=\"WO#\" style=\"width:60px; padding:5px;\">
-                        <button onclick=\"handleDeductClick('${item.Material}')\" style=\"background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:8px;\">USE</button>
-                    </div>` : 
-                  mode === 'return' ? `<button onclick=\"executeTransaction('return','${item.Material}',1)\" style=\"background:#10b981; color:white; border:none; padding:8px 12px; border-radius:8px;\">Return</button>` : '●'}
+            <td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
+            <td align="center"><b>${(mode==='withdraw'||mode==='all') ? s0243 : sUser}</b></td>
+            <td align="right">
+                ${mode === 'withdraw' ? `<button onclick="executeTransaction('withdraw','${item.Material}',1)" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:8px;">Withdraw</button>` : 
+                  mode === 'deduct' ? `<div style="display:flex;gap:5px;justify-content:flex-end;"><input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:60px;"><button onclick="handleDeductClick('${item.Material}')" style="background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:8px;">USE</button></div>` : 
+                  mode === 'return' ? `<button onclick="executeTransaction('return','${item.Material}',1)" style="background:#10b981; color:white; border:none; padding:8px 12px; border-radius:8px;">Return</button>` : '●'}
             </td>
         </tr>`;
     });
@@ -186,12 +162,20 @@ window.loadHistory = async function() {
                     <td>${new Date(row[0]).toLocaleString('th-TH')}</td>
                     <td><b>${row[1] || ''}</b></td>
                     <td>${row[3] || ''}</td>
-                    <td style=\"color:#ef4444; font-weight:bold;\">${row[7] || '-'}</td>
-                    <td><span style=\"background:#eee; padding:3px 8px; border-radius:5px; font-size:12px;\">${row[4] || ''}</span></td>
-                </tr>
-            `).join('');
+                    <td style="color:#ef4444; font-weight:bold;">${row[7] || '-'}</td>
+                    <td><span style="background:#eee; padding:3px 8px; border-radius:5px; font-size:12px;">${row[4] || ''}</span></td>
+                </tr>`).join('');
         }
-    } catch (e) { container.innerHTML = '<tr><td colspan=\"5\">Error</td></tr>'; }
+    } catch (e) { container.innerHTML = '<tr><td colspan="5">Error</td></tr>'; }
+};
+
+window.resetStaffPassword = async function(name) {
+    const newPass = prompt(`Set Password for ${name}:`, "1234");
+    if (!newPass) return;
+    try {
+        const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(name)}&newPass=${encodeURIComponent(newPass)}&pass=${SUP_PASSWORD}`).then(r => r.json());
+        if (res.success) alert(`✅ Reset ${name} Success!`);
+    } catch (e) { alert("❌ Failed"); }
 };
 
 window.executeTransaction = async function(type, mat, qty) {
@@ -203,7 +187,7 @@ window.executeTransaction = async function(type, mat, qty) {
 window.handleDeductClick = async function(mat) {
     const user = sessionStorage.getItem('selectedUser');
     const wo = document.getElementById('wo_' + mat)?.value.trim();
-    if (!wo) return alert("❌ กรุณากรอก WO#");
+    if (!wo) return alert("❌ กรุณาระบุ WO#");
     const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=1&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
     if (res.success) { alert("✅ Success"); loadStockData('deduct'); }
 };
