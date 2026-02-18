@@ -1,8 +1,9 @@
 /* ==========================================================================
-   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (ULTIMATE STABLE V12.0)
-   - FIXED: Kick-out issue & Supervisor Auth
-   - ADDED: Admin Modal, Material Lookup & Product Name Display
-   - KEEP: All previous functions (Withdraw, Return, Deduct)
+   QIAGEN INVENTORY MANAGEMENT SYSTEM - app.js (RESTORATION & SUPERVISOR FIX)
+   - FIXED: Missing Withdraw/Return/USE buttons in all pages
+   - FIXED: Supervisor Auth & Admin Modal
+   - ADDED: Material Auto-Lookup (Product Name) in Admin
+   - ADDED: Staff Inventory Audit (Reference from deduct.html)
 ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec"; 
@@ -51,7 +52,7 @@ window.handleLogin = async function() {
     } catch (e) { alert("❌ Connection Error"); }
 };
 
-/* ===== 2. ADMIN MODAL & SUPERVISOR LOGIC ===== */
+/* ===== 2. ADMIN & SUPERVISOR LOGIC ===== */
 
 window.goToAdmin = function() {
     const modal = document.getElementById('admin-modal');
@@ -82,7 +83,7 @@ window.closeAdminModal = function() {
     document.getElementById('admin-modal').style.display = 'none';
 };
 
-// ค้นหาชื่อสินค้าในหน้า Supervisor
+// ค้นหาชื่อสินค้าอัตโนมัติเมื่อพิมพ์เลข Material
 window.setupAdminLookup = function() {
     const matCode = document.getElementById('s_mat').value.trim().toUpperCase();
     const nameDisplay = document.getElementById('s_name_display');
@@ -98,7 +99,7 @@ window.setupAdminLookup = function() {
     }
 };
 
-/* ===== 3. DATA RENDERING & AUDIT ===== */
+/* ===== 3. DATA RENDERING (RESTORED BUTTONS) ===== */
 
 window.loadStockData = async function(mode) {
     try {
@@ -112,6 +113,44 @@ window.loadStockData = async function(mode) {
     } catch (e) { console.error("Load Error"); }
 };
 
+window.renderTable = function(data, mode) {
+    const tbody = document.getElementById('data');
+    if (!tbody) return;
+    const user = sessionStorage.getItem('selectedUser');
+    let html = '';
+
+    data.forEach(item => {
+        const s0243 = Number(item['0243'] || 0);
+        const sUser = Number(item[user] || 0);
+        if ((mode === 'deduct' || mode === 'return') && sUser <= 0) return;
+
+        html += `<tr style="border-bottom: 1px solid #eee;">
+            <td style="padding:12px 8px;">
+                <div style="font-weight:bold; font-size:14px;">${item.Material}</div>
+                <div style="font-size:11px; color:#64748b;">${item['Product Name']}</div>
+            </td>
+            <td align="center"><b>${(mode === 'withdraw' || mode === 'all') ? s0243 : sUser}</b></td>
+            <td align="right">
+                <div style="display:flex; gap:5px; justify-content:flex-end; align-items:center;">
+                    ${mode === 'withdraw' ? `
+                        <input type="number" id="qty_${item.Material}" value="1" min="1" style="width:40px; padding:6px; border:1px solid #ccc; border-radius:4px;">
+                        <button onclick="executeTransaction('withdraw', '${item.Material}', document.getElementById('qty_${item.Material}').value)" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">Withdraw</button>
+                    ` : mode === 'return' ? `
+                        <input type="number" id="qty_${item.Material}" value="1" min="1" style="width:40px; padding:6px; border:1px solid #ccc; border-radius:4px;">
+                        <button onclick="executeTransaction('return', '${item.Material}', document.getElementById('qty_${item.Material}').value)" style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">Return</button>
+                    ` : mode === 'deduct' ? `
+                        <input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:100px; padding:8px; border:1px solid #334155; border-radius:6px;">
+                        <input type="number" id="qty_${item.Material}" value="1" style="width:40px; padding:8px; border:1px solid #334155; border-radius:6px;">
+                        <button onclick="handleDeductClick('${item.Material}')" style="background:#ef4444; color:white; border:none; padding:10px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">USE</button>
+                    ` : `<span>● ${s0243 > 0 ? 'In Stock' : 'Empty'}</span>`}
+                </div>
+            </td>
+        </tr>`;
+    });
+    tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:20px;">No items found.</td></tr>';
+};
+
+// ระบบ Inventory Audit ของ Supervisor
 window.renderStaffAudit = function(data) {
     const tbody = document.getElementById('staff-data');
     if (!tbody) return;
@@ -141,52 +180,42 @@ window.renderStaffAudit = function(data) {
     tbody.innerHTML = html || '<tr><td colspan="4" align="center">No staff inventory found.</td></tr>';
 };
 
-window.renderTable = function(data, mode) {
-    const tbody = document.getElementById('data');
-    if (!tbody) return;
-    const user = sessionStorage.getItem('selectedUser');
-    let html = '';
-
-    data.forEach(item => {
-        const s0243 = Number(item['0243'] || 0);
-        const sUser = Number(item[user] || 0);
-        if ((mode === 'deduct' || mode === 'return') && sUser <= 0) return;
-
-        html += `<tr style="border-bottom: 1px solid #eee;">
-            <td style="padding:12px 8px;">
-                <div style="font-weight:bold; font-size:14px;">${item.Material}</div>
-                <div style="font-size:11px; color:#64748b;">${item['Product Name']}</div>
-            </td>
-            <td align="center"><b>${(mode === 'withdraw' || mode === 'all') ? s0243 : sUser}</b></td>
-            <td align="right">
-                <div style="display:flex; gap:5px; justify-content:flex-end;">
-                    ${mode === 'deduct' ? `
-                        <input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:100px; padding:8px; border:1px solid #334155; border-radius:6px;">
-                        <input type="number" id="qty_${item.Material}" value="1" style="width:40px; padding:8px; border:1px solid #334155; border-radius:6px;">
-                        <button onclick="handleDeductClick('${item.Material}')" style="background:#ef4444; color:white; border:none; padding:10px 14px; border-radius:6px; font-weight:bold;">USE</button>
-                    ` : '...'}
-                </div>
-            </td>
-        </tr>`;
-    });
-    tbody.innerHTML = html;
-};
-
 /* ===== 4. CORE TRANSACTIONS ===== */
+
+window.executeTransaction = async function(type, mat, qty) {
+    const user = sessionStorage.getItem('selectedUser');
+    const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { alert("✅ Success!"); loadStockData(type); }
+    } catch (e) { alert("❌ Error"); }
+};
 
 window.handleDeductClick = async function(mat, overrideUser = null) {
     const user = overrideUser || sessionStorage.getItem('selectedUser');
-    const wo = document.getElementById('wo_' + mat)?.value.trim() || "ADMIN_FORCE";
+    const wo = document.getElementById('wo_' + mat)?.value.trim() || (overrideUser ? "ADMIN_FORCE" : "");
     const qty = document.getElementById('qty_' + mat)?.value || 1;
     
-    if(!wo && !overrideUser) return alert("❌ Enter WO#");
+    if(!wo) return alert("❌ Please enter Work Order (WO#)");
     
     const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) { 
-        alert("✅ Recorded"); 
-        loadStockData(overrideUser ? 'supervisor' : 'deduct'); 
-    }
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { 
+            alert("✅ Usage recorded!"); 
+            loadStockData(overrideUser ? 'supervisor' : 'deduct'); 
+        }
+    } catch (e) { alert("❌ Connection error"); }
+};
+
+window.searchStock = function(query, mode) {
+    const q = query.toLowerCase().trim();
+    const filtered = window.allRows.filter(item => 
+        String(item.Material || "").toLowerCase().includes(q) || 
+        String(item['Product Name'] || "").toLowerCase().includes(q)
+    );
+    if (mode === 'supervisor') renderStaffAudit(filtered);
+    else renderTable(filtered, mode);
 };
 
 window.logout = function() { sessionStorage.clear(); window.location.replace('index.html'); };
