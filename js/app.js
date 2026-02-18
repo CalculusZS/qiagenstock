@@ -1,6 +1,7 @@
 /* ==========================================================================
-   QIAGEN STOCK MANAGEMENT SYSTEM - app.js (MODERN MODAL V4.0)
-   Features: Modern Modal, Confirm Password, English UI
+   QIAGEN STOCK MANAGEMENT SYSTEM - app.js (FINAL VERSION)
+   - Support: KM, TK, PK Login
+   - Feature: Modern Password Reset Modal & English UI
 ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbzxXCnWLgfQTNlqucIsYNyDwNvkcA5nK4j9biFlvzowIw3XQOZ9g_JUaWjSotOEQpQf/exec"; 
@@ -8,9 +9,9 @@ const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen";
 
 window.allRows = [];
-let currentUserData = null; // Store user info during password reset
+let currentUserData = null; 
 
-// --- 1. LOGIN & AUTHENTICATION ---
+// --- 1. LOGIN SYSTEM ---
 window.handleLogin = async function() {
     const userInput = document.getElementById('username-input').value.trim().toUpperCase();
     const password = document.getElementById('password-input').value.trim();
@@ -26,11 +27,12 @@ window.handleLogin = async function() {
 
         if (res.success) {
             if (res.status === 'FIRST_TIME') {
-                // Show the modern modal instead of prompt
+                // เด้งหน้าต่าง Modal ให้ตั้งรหัสผ่านใหม่
                 currentUserData = res;
                 document.getElementById('welcome-msg').innerText = `Welcome, ${res.fullName}!`;
                 document.getElementById('reset-modal').style.display = 'flex';
             } else {
+                // บันทึกชื่อพนักงาน (เช่น Kitti, Phurilap) เข้า Session
                 sessionStorage.setItem('selectedUser', res.fullName);
                 location.href = 'main.html';
             }
@@ -38,11 +40,11 @@ window.handleLogin = async function() {
             alert("❌ " + (res.msg || "Incorrect Username or Password"));
         }
     } catch (e) {
-        alert("❌ Connection failed. Please try again.");
+        alert("❌ Connection Error. Please try again later.");
     }
 };
 
-// --- 2. PASSWORD RESET MODAL LOGIC ---
+// --- 2. PASSWORD RESET LOGIC ---
 window.submitNewPassword = async function() {
     const newPass = document.getElementById('new-pass').value;
     const confirmPass = document.getElementById('confirm-pass').value;
@@ -69,7 +71,7 @@ window.submitNewPassword = async function() {
             alert("❌ Failed to update password.");
         }
     } catch (e) {
-        alert("❌ Error connecting to server.");
+        alert("❌ Network Error.");
     }
 };
 
@@ -86,11 +88,9 @@ window.goToAdmin = function() {
     }
 };
 
-/* ===== 3. STOCK MANAGEMENT FUNCTIONS ===== */
+/* ===== 3. STOCK FUNCTIONS (Withdraw/Return/Deduct) ===== */
 window.checkAuth = function() {
-    if (!sessionStorage.getItem('selectedUser')) {
-        location.href = 'index.html';
-    }
+    if (!sessionStorage.getItem('selectedUser')) location.href = 'index.html';
 };
 
 window.logout = function() {
@@ -109,15 +109,6 @@ window.loadStockData = async function(mode) {
     } catch (e) { console.error("Fetch Error:", e); }
 };
 
-window.searchStock = function(query, mode) {
-    const q = query.toLowerCase().trim();
-    const filtered = window.allRows.filter(item => {
-        return String(item.Material).toLowerCase().includes(q) || 
-               String(item['Product Name']).toLowerCase().includes(q);
-    });
-    renderTable(filtered, mode);
-};
-
 window.renderTable = function(data, mode) {
     const tbody = document.getElementById('data');
     if (!tbody) return;
@@ -126,7 +117,7 @@ window.renderTable = function(data, mode) {
     let html = '';
 
     data.forEach(item => {
-        const stock0243 = Number(item['0243'] || 0);
+        const stockCentral = Number(item['0243'] || 0);
         const stockUser = Number(item[user] || 0);
         
         if ((mode === 'deduct' || mode === 'return') && stockUser <= 0) return;
@@ -136,35 +127,29 @@ window.renderTable = function(data, mode) {
                 <div style="font-weight:bold; font-size:14px;">${item.Material}</div>
                 <div style="font-size:11px; color:#64748b;">${item['Product Name']}</div>
             </td>
-            <td align="center"><b>${(mode === 'all' || mode === 'withdraw') ? stock0243 : stockUser}</b></td>
+            <td align="center"><b>${(mode === 'all' || mode === 'withdraw') ? stockCentral : stockUser}</b></td>
             <td align="right">
-                ${mode === 'withdraw' ? `<button onclick="executeTransaction('withdraw','${item.Material}',1)" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">Withdraw</button>` : 
-                  mode === 'deduct' ? `<div style="display:flex; gap:4px;"><input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:60px; padding:5px; border-radius:4px; border:1px solid #ddd;"><button onclick="handleDeductClick('${item.Material}')" style="background:#ef4444; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">USE</button></div>` : 
-                  mode === 'return' ? `<button onclick="executeTransaction('return','${item.Material}',1)" style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">Return</button>` : '●'}
+                ${mode === 'withdraw' ? `<button onclick="executeTransaction('withdraw','${item.Material}',1)" class="btn">Withdraw</button>` : 
+                  mode === 'deduct' ? `<div style="display:flex; gap:4px;"><input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:60px; border-radius:4px; border:1px solid #ddd;"><button onclick="handleDeductClick('${item.Material}')" class="btn btn-red">USE</button></div>` : 
+                  mode === 'return' ? `<button onclick="executeTransaction('return','${item.Material}',1)" class="btn btn-green">Return</button>` : '●'}
             </td>
         </tr>`;
     });
-    tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:20px;">No Data Found</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="3" align="center">No items found.</td></tr>';
 };
 
 window.executeTransaction = async function(type, mat, qty) {
     const user = sessionStorage.getItem('selectedUser');
     const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
-    try {
-        const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ Success!"); loadStockData(type); }
-        else { alert("❌ " + res.msg); }
-    } catch (e) { alert("❌ Connection Error"); }
+    const res = await fetch(url).then(r => r.json());
+    if (res.success) { alert("Success!"); loadStockData(type); }
 };
 
 window.handleDeductClick = async function(mat) {
     const wo = document.getElementById('wo_' + mat).value.trim();
-    if(!wo) { alert("❌ Please enter Work Order (WO#)"); return; }
+    if(!wo) return alert("Please enter WO#");
     const user = sessionStorage.getItem('selectedUser');
     const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=1&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
-    try {
-        const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ Usage Recorded"); loadStockData('deduct'); }
-        else { alert("❌ " + res.msg); }
-    } catch (e) { alert("❌ Connection Error"); }
+    const res = await fetch(url).then(r => r.json());
+    if (res.success) { alert("Usage Recorded"); loadStockData('deduct'); }
 };
