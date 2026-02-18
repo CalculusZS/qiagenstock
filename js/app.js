@@ -158,3 +158,17 @@ window.handleDeductClick = async function(mat) {
     const res = await fetch(url).then(r => r.json());
     if (res.success) { alert("✅ Recorded"); loadStockData('deduct'); }
 };
+/* ===== ฟังก์ชันค้นหา (Search Stock) - เพิ่มเติมเพื่อให้ปุ่มค้นหาทำงานได้ ===== */
+window.searchStock = function(query, mode) {
+    const q = query.toLowerCase().trim();
+    
+    // กรองข้อมูลจาก window.allRows ที่โหลดมาแล้ว
+    const filtered = window.allRows.filter(item => {
+        const materialMatch = String(item.Material || "").toLowerCase().includes(q);
+        const nameMatch = String(item['Product Name'] || "").toLowerCase().includes(q);
+        return materialMatch || nameMatch;
+    });
+
+    // ส่งข้อมูลที่กรองแล้วไปแสดงผลใหม่ในตาราง
+    renderTable(filtered, mode);
+};
