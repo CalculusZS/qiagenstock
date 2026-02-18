@@ -78,14 +78,15 @@
 
     <script src="js/app.js"></script>
     <script>
-        function initSup() {
-            if (sessionStorage.getItem('isSupervisor') !== 'true') {
-                location.href = 'index.html';
-                return;
-            }
-            renderUserList();
-            window.loadStockData('supervisor');
-        }
+     function initSup() {
+    // ต้องตรวจสอบ selectedUser ให้เป็น 'Supervisor' เท่านั้น
+    if (sessionStorage.getItem('selectedUser') !== 'Supervisor') {
+        window.location.replace('index.html');
+        return;
+    }
+    renderUserList();
+    window.loadStockData('supervisor');
+}
 
         // แสดงรายชื่อพนักงานสำหรับ Reset Password
         function renderUserList() {
