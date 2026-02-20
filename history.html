@@ -1,173 +1,91 @@
-/* ==========================================================================
-   QIAGEN INVENTORY - ABSOLUTE RESTORE VERSION
-   --------------------------------------------------------------------------
-   - RESTORED: Original Password Modal (p1, p2) from app(24).js
-   - RESTORED: Action Buttons (Colors & Layout)
-   - FIXED: PK -> Phurilap Mapping & User Display
-   - FIXED: History.html undefined error
-   ========================================================================== */
-
-const API = "https://script.google.com/macros/s/AKfycbxj7zJjHjGeOw0J3Q0UBR2EDodn10Zf8PEqYKN5TGYwjHURFblN97jIMMBlmyHqVys-/exec"; 
-const MASTER_PASS = "Service";
-const SUP_PASSWORD = "Qiagen";
-
-// ตารางเชื่อมตัวย่อเป็นชื่อเต็มเพื่อโชว์ในระบบ
-const USER_MAP = {
-    'KM': 'Kitti',
-    'TK': 'Tatchai',
-    'PSO': 'Parinyachat',
-    'PK': 'Phurilap',
-    'PST': 'Penporn',
-    'PA': 'Phuriwat'
-};
-
-window.allRows = []; 
-
-/* ===== 1. AUTH & USER DISPLAY (Fix: Logged in as) ===== */
-window.checkAuth = function() {
-    const userKey = sessionStorage.getItem('userKey'); 
-    const userFull = USER_MAP[userKey] || userKey;
-    
-    if (!userKey && !window.location.pathname.includes('index.html')) {
-        window.location.replace('index.html');
-        return;
-    }
-
-    const updateUI = () => {
-        // อัปเดตชื่อในทุกหน้า (Withdraw, Return, Deduct)
-        const displayIds = ['user_display', 'userName', 'display_user', 'username'];
-        displayIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (el && userKey) el.innerText = userFull;
-        });
-    };
-
-    updateUI();
-    window.addEventListener('load', updateUI);
-};
-
-window.handleLogin = async function() {
-    const uInput = document.getElementById('username-input');
-    const pInput = document.getElementById('password-input');
-    if (!uInput || !pInput) return;
-    
-    const userKey = uInput.value.trim().toUpperCase();
-    const passVal = pInput.value.trim();
-    
-    try {
-        const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`).then(r => r.json());
-        if (res && res.success) {
-            sessionStorage.setItem('userKey', userKey);
-            if (res.status === 'NEW') { 
-                window.showChangePasswordModal(userKey);
-                return; 
-            }
-            window.location.replace('main.html');
-        } else { alert("❌ Login Failed"); }
-    } catch (e) { alert("❌ Connection Error"); }
-};
-
-/* ===== 2. DATA RENDERING (Fix: Showall) ===== */
-window.loadStockData = async function(mode) {
-    try {
-        const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res && res.success) {
-            window.allRows = res.data;
-            if (mode === 'supervisor') renderStaffAudit(res.data);
-            else renderTable(res.data, mode);
-        }
-    } catch (e) { console.error(e); }
-};
-
-window.renderTable = function(data, mode) {
-    const tbody = document.getElementById('data') || document.getElementById('stock-data');
-    if (!tbody) return;
-    const userKey = sessionStorage.getItem('userKey');
-    
-    tbody.innerHTML = data.map(item => {
-        const s0243 = Number(item['0243'] || 0);
-        const sUser = Number(item[userKey] || 0);
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QIAGEN - Transaction History</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; margin: 0; }
+        .header { background: #003366; color: white; padding: 15px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .back-btn { background: none; border: 1px solid white; color: white; padding: 5px 12px; border-radius: 4px; cursor: pointer; }
         
-        if ((mode === 'deduct' || mode === 'return') && sUser <= 0) return '';
-        const displayQty = (mode === 'withdraw' || mode === 'all') ? s0243 : sUser;
+        .container { padding: 10px; width: 100%; box-sizing: border-box; }
+        .scroll-wrapper { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        return `<tr>
-            <td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
-            <td align="center"><b>${displayQty}</b></td>
-            <td align="right">
-                ${mode === 'withdraw' ? `<button onclick="executeAction('withdraw','${item.Material}',1)" style="background:#003366;color:white;padding:8px 12px;border:none;border-radius:8px;cursor:pointer;">Withdraw</button>` : 
-                  mode === 'deduct' ? `<div style="display:flex;gap:5px;justify-content:flex-end;"><input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:70px;padding:5px;border-radius:5px;border:1px solid #ccc;"><button onclick="handleDeduct('${item.Material}')" style="background:#ef4444;color:white;padding:8px 12px;border:none;border-radius:8px;">USE</button></div>` : 
-                  mode === 'return' ? `<button onclick="executeAction('return','${item.Material}',1)" style="background:#10b981;color:white;padding:8px 12px;border:none;border-radius:8px;">Return</button>` : '●'}
-            </td>
-        </tr>`;
-    }).join('');
-};
-
-/* ===== 3. PASSWORD MODAL (RESTORED FROM APP 24) ===== */
-function showModernModal(contentHtml) {
-    let overlay = document.getElementById('modern-modal-overlay') || document.createElement('div');
-    overlay.id = 'modern-modal-overlay';
-    overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; display:flex; justify-content:center; align-items:center;";
-    document.body.appendChild(overlay);
-    overlay.innerHTML = `<div style="background:white; padding:30px; border-radius:25px; width:360px; text-align:center;">${contentHtml}</div>`;
-    overlay.style.display = 'flex';
-}
-
-window.showChangePasswordModal = function(userKey) {
-    showModernModal(`
-        <h2 style="color:#003366;">Set New Password</h2>
-        <input type="password" id="new-p1" placeholder="New Password" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:10px; text-align:center;">
-        <input type="password" id="new-p2" placeholder="Confirm Password" style="width:100%; padding:12px; margin-bottom:20px; border:1px solid #ddd; border-radius:10px; text-align:center;">
-        <button onclick="processReset('${userKey}')" style="width:100%; padding:12px; background:#003366; color:white; border:none; border-radius:10px; font-weight:bold; width:100%; cursor:pointer;">Update</button>
-    `);
-};
-
-window.processReset = async function(userKey) {
-    const p1 = document.getElementById('new-p1').value;
-    const p2 = document.getElementById('new-p2').value;
-    if (!p1 || p1 !== p2) return alert("❌ Passwords do not match!");
-    const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(userKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ Success! Please login."); window.location.reload(); }
-};
-
-/* ===== 4. HISTORY (Fixed Undefined) ===== */
-window.loadHistory = async function() {
-    const container = document.getElementById('history-data') || document.getElementById('list');
-    if (!container) return;
-    try {
-        const res = await fetch(`${API}?action=gethistory&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success && res.data) {
-            container.innerHTML = res.data.map(row => `
-                <tr>
-                    <td>${new Date(row[0]).toLocaleString('th-TH')}</td>
-                    <td><b>${row[1] || ''}</b></td>
-                    <td>${row[3] || ''}</td>
-                    <td style="color:#ef4444; font-weight:bold;">${row[7] || '-'}</td>
-                    <td><span style="background:#eee; padding:3px 8px; border-radius:5px; font-size:12px;">${row[4] || ''}</span></td>
-                </tr>`).join('');
+        .history-row { 
+            display: flex; 
+            padding: 12px 10px; 
+            border-bottom: 1px solid #edf2f7; 
+            align-items: center; 
+            font-size: 13px;
+            min-width: 1100px; /* เพิ่มความกว้างเพื่อรองรับช่อง WO */
         }
-    } catch (e) { console.error(e); }
-};
 
-/* ===== 5. OTHER OPTIONS ===== */
-window.goToAdmin = function() {
-    const p = prompt("Supervisor Password:");
-    if (p === SUP_PASSWORD) { sessionStorage.setItem('userKey', 'Supervisor'); window.location.href = 'supervisor.html'; }
-};
+        /* ปรับสัดส่วนคอลัมน์ */
+        .col-date { flex: 0 0 160px; color: #475569; font-weight: 500; }
+        .col-mat  { flex: 0 0 90px; font-weight: bold; color: #003366; }
+        .col-inst { flex: 0 0 180px; color: #64748b; }
+        .col-pname { flex: 1; color: #1e293b; min-width: 200px; }
+        .col-wo   { flex: 0 0 120px; font-weight: bold; color: #ef4444; text-align: center; } /* ช่อง WO ใหม่ */
+        .col-type { flex: 0 0 100px; text-align: center; }
+        .col-qty  { flex: 0 0 50px; text-align: center; font-weight: bold; }
+        .col-user { flex: 0 0 100px; text-align: right; color: #003366; }
 
-window.handleDeduct = async function(mat) {
-    const userKey = sessionStorage.getItem('userKey');
-    const wo = document.getElementById('wo_' + mat)?.value.trim();
-    if (!wo) return alert("❌ Enter WO#");
-    const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(userKey)}&material=${encodeURIComponent(mat)}&qty=1&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ Success"); loadStockData('deduct'); }
-};
+        .type-tag { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .WITHDRAW { background: #fee2e2; color: #b91c1c; }
+        .RETURN { background: #dcfce7; color: #15803d; }
+        .DEDUCT_USED { background: #fef3c7; color: #92400e; }
+        .ADD_STOCK { background: #e0f2fe; color: #0369a1; }
+    </style>
+</head>
+<body onload="loadHistory()">
+    <div class="header">
+        <button class="back-btn" onclick="location.href='main.html'">◀ Back</button>
+        <b style="margin-left: 15px;">Transaction History</b>
+    </div>
 
-window.executeAction = async function(type, mat, qty) {
-    const userKey = sessionStorage.getItem('userKey');
-    const res = await fetch(`${API}?action=${type}&user=${encodeURIComponent(userKey)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ Success"); loadStockData(type); }
-};
+    <div class="container">
+        <div class="scroll-wrapper">
+            <div class="history-row" style="background: #f1f5f9; font-weight: bold; color: #475569;">
+                <div class="col-date">Date / Time</div>
+                <div class="col-mat">Material</div>
+                <div class="col-inst">Instrument</div>
+                <div class="col-pname">Product Name</div>
+                <div class="col-wo">Work Order</div> <div class="col-type">Type</div>
+                <div class="col-qty">Qty</div>
+                <div class="col-user">User</div>
+            </div>
+            <div id="list"></div>
+        </div>
+    </div>
 
-window.logout = () => { sessionStorage.clear(); window.location.replace('index.html'); };
-window.checkAuth();
+    <script>
+        const API = "https://script.google.com/macros/s/AKfycbxj7zJjHjGeOw0J3Q0UBR2EDodn10Zf8PEqYKN5TGYwjHURFblN97jIMMBlmyHqVys-/exec";
+        const PASS = "Service";
+
+        async function loadHistory() {
+            const listDiv = document.getElementById('list');
+            listDiv.innerHTML = '<p align="center">⌛ Loading Transactions...</p>';
+            try {
+                const response = await fetch(`${API}?action=gethistory&password=${PASS}&t=${Date.now()}`);
+                const res = await response.json();
+                if (!res.success) throw new Error(res.msg);
+                
+                listDiv.innerHTML = res.data.map(item => `
+                    <div class="history-row">
+                        <div class="col-date">${item['Date and Time']}</div>
+                        <div class="col-mat">${item['Material']}</div>
+                        <div class="col-inst">${item['Instrument'] || '-'}</div>
+                        <div class="col-pname">${item['Product Name']}</div>
+                        <div class="col-wo">${item['Work Order'] || '-'}</div> <div class="col-type"><span class="type-tag ${item['Transaction Type']}">${item['Transaction Type']}</span></div>
+                        <div class="col-qty">${item['Qty']}</div>
+                        <div class="col-user">${item['User']}</div>
+                    </div>
+                `).join('');
+            } catch (e) { 
+                listDiv.innerHTML = `<p align="center" style="color:red; padding:20px;">Error: ${e.message}</p>`; 
+            }
+        }
+    </script>
+</body>
+</html>
