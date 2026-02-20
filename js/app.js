@@ -1,16 +1,17 @@
 /* ==========================================================================
-   QIAGEN INVENTORY - ABSOLUTE RESTORE (FIXED FROM APP 24)
+   QIAGEN INVENTORY - ABSOLUTE RESTORE VERSION
    --------------------------------------------------------------------------
-   - FIXED: User Display (Phurilap) appearing correctly on all pages.
-   - FIXED: Password Modal (p1, p2) restored to original design.
-   - FIXED: History mapping corrected (No undefined).
-   - FIXED: Showall.html 0243 display logic.
+   - RESTORED: Original Password Modal (p1, p2) from app(24).js
+   - RESTORED: Action Buttons (Colors & Layout)
+   - FIXED: PK -> Phurilap Mapping & User Display
+   - FIXED: History.html undefined error
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbxj7zJjHjGeOw0J3Q0UBR2EDodn10Zf8PEqYKN5TGYwjHURFblN97jIMMBlmyHqVys-/exec"; 
 const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen";
 
+// ตารางเชื่อมตัวย่อเป็นชื่อเต็มเพื่อโชว์ในระบบ
 const USER_MAP = {
     'KM': 'Kitti',
     'TK': 'Tatchai',
@@ -22,7 +23,7 @@ const USER_MAP = {
 
 window.allRows = []; 
 
-/* ===== 1. AUTH & USER DISPLAY (แก้จุดที่ชื่อไม่ขึ้น) ===== */
+/* ===== 1. AUTH & USER DISPLAY (Fix: Logged in as) ===== */
 window.checkAuth = function() {
     const userKey = sessionStorage.getItem('userKey'); 
     const userFull = USER_MAP[userKey] || userKey;
@@ -31,16 +32,18 @@ window.checkAuth = function() {
         window.location.replace('index.html');
         return;
     }
-    
-    // ฟังก์ชันนี้จะทำงานซ้ำเพื่อให้แน่ใจว่าชื่อถูกใส่ลงใน HTML
-    const renderName = () => {
-        const display = document.getElementById('user_display') || document.getElementById('userName');
-        if (display && userKey) {
-            display.innerText = userFull;
-        }
+
+    const updateUI = () => {
+        // อัปเดตชื่อในทุกหน้า (Withdraw, Return, Deduct)
+        const displayIds = ['user_display', 'userName', 'display_user', 'username'];
+        displayIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && userKey) el.innerText = userFull;
+        });
     };
-    renderName();
-    window.addEventListener('load', renderName);
+
+    updateUI();
+    window.addEventListener('load', updateUI);
 };
 
 window.handleLogin = async function() {
@@ -64,7 +67,7 @@ window.handleLogin = async function() {
     } catch (e) { alert("❌ Connection Error"); }
 };
 
-/* ===== 2. DATA RENDERING (Showall & Inventory) ===== */
+/* ===== 2. DATA RENDERING (Fix: Showall) ===== */
 window.loadStockData = async function(mode) {
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
@@ -73,7 +76,7 @@ window.loadStockData = async function(mode) {
             if (mode === 'supervisor') renderStaffAudit(res.data);
             else renderTable(res.data, mode);
         }
-    } catch (e) { console.error("Error", e); }
+    } catch (e) { console.error(e); }
 };
 
 window.renderTable = function(data, mode) {
@@ -92,38 +95,19 @@ window.renderTable = function(data, mode) {
             <td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
             <td align="center"><b>${displayQty}</b></td>
             <td align="right">
-                ${mode === 'withdraw' ? `<button onclick="executeAction('withdraw','${item.Material}',1)" style="background:#003366;color:white;padding:8px 12px;border-radius:8px;border:none;cursor:pointer;">Withdraw</button>` : 
-                  mode === 'deduct' ? `<div style="display:flex;gap:5px;justify-content:flex-end;"><input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:70px;padding:5px;"><button onclick="handleDeduct('${item.Material}')" style="background:#ef4444;color:white;padding:8px 12px;border-radius:8px;border:none;">USE</button></div>` : 
-                  mode === 'return' ? `<button onclick="executeAction('return','${item.Material}',1)" style="background:#10b981;color:white;padding:8px 12px;border-radius:8px;border:none;">Return</button>` : '●'}
+                ${mode === 'withdraw' ? `<button onclick="executeAction('withdraw','${item.Material}',1)" style="background:#003366;color:white;padding:8px 12px;border:none;border-radius:8px;cursor:pointer;">Withdraw</button>` : 
+                  mode === 'deduct' ? `<div style="display:flex;gap:5px;justify-content:flex-end;"><input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:70px;padding:5px;border-radius:5px;border:1px solid #ccc;"><button onclick="handleDeduct('${item.Material}')" style="background:#ef4444;color:white;padding:8px 12px;border:none;border-radius:8px;">USE</button></div>` : 
+                  mode === 'return' ? `<button onclick="executeAction('return','${item.Material}',1)" style="background:#10b981;color:white;padding:8px 12px;border:none;border-radius:8px;">Return</button>` : '●'}
             </td>
         </tr>`;
     }).join('');
 };
 
-/* ===== 3. HISTORY (Fixed Undefined) ===== */
-window.loadHistory = async function() {
-    const container = document.getElementById('history-data');
-    if (!container) return;
-    try {
-        const res = await fetch(`${API}?action=gethistory&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success && res.data) {
-            container.innerHTML = res.data.map(row => `
-                <tr>
-                    <td>${new Date(row[0]).toLocaleString('th-TH')}</td>
-                    <td><b>${row[1] || ''}</b></td>
-                    <td>${row[3] || ''}</td>
-                    <td style="color:#ef4444; font-weight:bold;">${row[7] || '-'}</td>
-                    <td><span style="background:#eee; padding:3px 8px; border-radius:5px; font-size:12px;">${row[4] || ''}</span></td>
-                </tr>`).join('');
-        }
-    } catch (e) { container.innerHTML = '<tr><td colspan="5">Error loading history</td></tr>'; }
-};
-
-/* ===== 4. PASSWORD MODAL (Restored Original) ===== */
+/* ===== 3. PASSWORD MODAL (RESTORED FROM APP 24) ===== */
 function showModernModal(contentHtml) {
     let overlay = document.getElementById('modern-modal-overlay') || document.createElement('div');
     overlay.id = 'modern-modal-overlay';
-    overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; display:flex; justify-content:center; align-items:center; backdrop-filter:blur(10px); font-family:sans-serif;";
+    overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; display:flex; justify-content:center; align-items:center;";
     document.body.appendChild(overlay);
     overlay.innerHTML = `<div style="background:white; padding:30px; border-radius:25px; width:360px; text-align:center;">${contentHtml}</div>`;
     overlay.style.display = 'flex';
@@ -146,20 +130,29 @@ window.processReset = async function(userKey) {
     if (res.success) { alert("✅ Success! Please login."); window.location.reload(); }
 };
 
-/* ===== 5. OTHER ACTIONS (Audit, Supervisor) ===== */
-window.renderStaffAudit = function(data) {
-    const tbody = document.getElementById('staff-data');
-    if (!tbody) return;
-    let html = '';
-    Object.keys(USER_MAP).forEach(key => {
-        data.forEach(item => {
-            const qty = Number(item[key] || 0);
-            if (qty > 0) {
-                html += `<tr><td><b>${item.Material}</b></td><td>${USER_MAP[key]}</td><td align="center"><b>${qty}</b></td><td align="right"><input type="text" id="audit_wo_${item.Material}_${key}" placeholder="WO#" style="width:100px;padding:5px;"><button onclick="handleAuditDeduct('${item.Material}','${key}')" style="background:#ef4444;color:white;border:none;padding:5px 10px;border-radius:5px;margin-left:5px;">Deduct</button></td></tr>`;
-            }
-        });
-    });
-    tbody.innerHTML = html;
+/* ===== 4. HISTORY (Fixed Undefined) ===== */
+window.loadHistory = async function() {
+    const container = document.getElementById('history-data') || document.getElementById('list');
+    if (!container) return;
+    try {
+        const res = await fetch(`${API}?action=gethistory&pass=${MASTER_PASS}`).then(r => r.json());
+        if (res.success && res.data) {
+            container.innerHTML = res.data.map(row => `
+                <tr>
+                    <td>${new Date(row[0]).toLocaleString('th-TH')}</td>
+                    <td><b>${row[1] || ''}</b></td>
+                    <td>${row[3] || ''}</td>
+                    <td style="color:#ef4444; font-weight:bold;">${row[7] || '-'}</td>
+                    <td><span style="background:#eee; padding:3px 8px; border-radius:5px; font-size:12px;">${row[4] || ''}</span></td>
+                </tr>`).join('');
+        }
+    } catch (e) { console.error(e); }
+};
+
+/* ===== 5. OTHER OPTIONS ===== */
+window.goToAdmin = function() {
+    const p = prompt("Supervisor Password:");
+    if (p === SUP_PASSWORD) { sessionStorage.setItem('userKey', 'Supervisor'); window.location.href = 'supervisor.html'; }
 };
 
 window.handleDeduct = async function(mat) {
@@ -168,13 +161,6 @@ window.handleDeduct = async function(mat) {
     if (!wo) return alert("❌ Enter WO#");
     const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(userKey)}&material=${encodeURIComponent(mat)}&qty=1&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
     if (res.success) { alert("✅ Success"); loadStockData('deduct'); }
-};
-
-window.handleAuditDeduct = async function(mat, key) {
-    const wo = document.getElementById(`audit_wo_${mat}_${key}`)?.value.trim();
-    if (!wo) return alert("❌ Enter WO#");
-    const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(key)}&material=${encodeURIComponent(mat)}&qty=1&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ Success"); loadStockData('supervisor'); }
 };
 
 window.executeAction = async function(type, mat, qty) {
