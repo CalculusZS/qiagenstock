@@ -1,17 +1,18 @@
 /* ==========================================================================
-   QIAGEN INVENTORY - FULL OPTIONS (MAPPING FIX)
+   QIAGEN INVENTORY - MASTER RESTORE (FULL OPTIONS + NAME MAPPING)
    --------------------------------------------------------------------------
-   1. FIXED: Mapping Initials (KM, TK) to Full Names (Kitti, Tatchai)
-   2. FIXED: Showall displays 0243 central stock
-   3. FIXED: History displays correctly without undefined
-   4. FIXED: Audit Page shows correct staff stock with 150px WO# field
+   1. FIXED: Showall.html displays 0243 central stock
+   2. FIXED: Withdraw/Return/Deduct displays FULL NAME (Kitti, Tatchai)
+   3. FIXED: Using INITIALS (KM, TK) for Database Columns lookup
+   4. FIXED: History "undefined" mapping restored
+   5. ALL OPTIONS: Audit, Supervisor Add, Password Reset - NOT REMOVED
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbxj7zJjHjGeOw0J3Q0UBR2EDodn10Zf8PEqYKN5TGYwjHURFblN97jIMMBlmyHqVys-/exec"; 
 const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen";
 
-// ตาราง Mapping เพื่อเชื่อมโยงตัวย่อกับชื่อเต็ม
+// ตาราง Mapping สำหรับเชื่อมตัวย่อในชีท เข้ากับชื่อเต็มที่จะโชว์
 const USER_MAP = {
     'KM': 'Kitti',
     'TK': 'Tatchai',
@@ -23,19 +24,20 @@ const USER_MAP = {
 
 window.allRows = []; 
 
-/* ===== 1. AUTHENTICATION & DISPLAY (แก้เรื่องโชว์ชื่อผู้ใช้) ===== */
+/* ===== 1. AUTHENTICATION & USER DISPLAY (Fix Issues 2, 3, 4) ===== */
 window.checkAuth = function() {
-    const userKey = sessionStorage.getItem('userKey');
-    const userFull = USER_MAP[userKey] || userKey; // ถ้าหาชื่อเต็มไม่เจอ ให้ใช้ตัวย่อแทน
+    const userKey = sessionStorage.getItem('userKey'); 
+    const userFull = USER_MAP[userKey] || userKey;
     
     if (!userKey && !window.location.pathname.includes('index.html')) {
         window.location.replace('index.html');
         return;
     }
     
+    // โชว์ชื่อผู้ใช้งานที่มุมขวาบนของหน้า Withdraw, Return, Deduct
     const display = document.getElementById('user_display');
     if (display && userKey) {
-        display.innerText = userFull; // แสดงชื่อเต็มที่มุมขวาบน
+        display.innerText = userFull;
     }
 };
 
@@ -44,16 +46,16 @@ window.handleLogin = async function() {
     const pInput = document.getElementById('password-input');
     if (!uInput || !pInput) return;
     
-    const userVal = uInput.value.trim().toUpperCase(); // รับค่า KM, TK
+    const userKey = uInput.value.trim().toUpperCase(); // รับค่า KM, TK
     const passVal = pInput.value.trim();
     
     try {
-        const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userVal)}&pass=${encodeURIComponent(passVal)}`).then(r => r.json());
+        const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`).then(r => r.json());
         if (res && res.success) {
-            sessionStorage.setItem('userKey', userVal); // เก็บชื่อย่อไว้ใช้ดึงข้อมูลคอลัมน์
+            sessionStorage.setItem('userKey', userKey);
             
             if (res.status === 'NEW') { 
-                window.showChangePasswordModal(userVal);
+                window.showChangePasswordModal(userKey);
                 return; 
             }
             window.location.replace('main.html');
@@ -61,27 +63,31 @@ window.handleLogin = async function() {
     } catch (e) { alert("❌ Connection Error"); }
 };
 
-/* ===== 2. DATA RENDERING (แก้เรื่อง Showall และตัวเลขไม่ขึ้น) ===== */
+/* ===== 2. DATA RENDERING (Fix Issue 1: Show All) ===== */
 window.loadStockData = async function(mode) {
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
         if (res && res.success) {
             window.allRows = res.data;
-            if (mode === 'supervisor') renderStaffAudit(res.data);
-            else renderTable(res.data, mode);
+            if (mode === 'supervisor') {
+                renderStaffAudit(res.data);
+            } else {
+                renderTable(res.data, mode);
+            }
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Error", e); }
 };
 
 window.renderTable = function(data, mode) {
     const tbody = document.getElementById('data');
     if (!tbody) return;
-    const userKey = sessionStorage.getItem('userKey'); 
+    const userKey = sessionStorage.getItem('userKey');
     
     tbody.innerHTML = data.map(item => {
         const s0243 = Number(item['0243'] || 0);
-        const sUser = Number(item[userKey] || 0); // ใช้ KM, TK ดึงค่าจากคอลัมน์ได้ทันที
+        const sUser = Number(item[userKey] || 0); // ดึงค่าจากคอลัมน์ KM, TK ในชีท
         
+        // กรองการแสดงผลตามโหมด
         if ((mode === 'deduct' || mode === 'return') && sUser <= 0) return '';
         
         return `<tr>
@@ -96,7 +102,7 @@ window.renderTable = function(data, mode) {
     }).join('');
 };
 
-/* ===== 3. HISTORY & SUPERVISOR (Full Options) ===== */
+/* ===== 3. HISTORY (Fix Issue 5: undefined) ===== */
 window.loadHistory = async function() {
     const container = document.getElementById('history-data');
     if (!container) return;
@@ -112,14 +118,15 @@ window.loadHistory = async function() {
                     <td><span style="background:#eee; padding:3px 8px; border-radius:5px; font-size:12px;">${row[4] || ''}</span></td>
                 </tr>`).join('');
         }
-    } catch (e) { container.innerHTML = '<tr><td colspan="5">Error</td></tr>'; }
+    } catch (e) { container.innerHTML = '<tr><td colspan="5">Error loading history</td></tr>'; }
 };
 
+/* ===== 4. SUPERVISOR & AUDIT (Full Options) ===== */
 window.renderStaffAudit = function(data) {
     const tbody = document.getElementById('staff-data');
     if (!tbody) return;
     let html = '';
-    const STAFF_KEYS = Object.keys(USER_MAP); // ['KM', 'TK', ...]
+    const STAFF_KEYS = Object.keys(USER_MAP);
     
     data.forEach(item => {
         STAFF_KEYS.forEach(key => {
@@ -142,13 +149,29 @@ window.renderStaffAudit = function(data) {
     tbody.innerHTML = html;
 };
 
-/* ===== 4. CORE TRANSACTIONS ===== */
-window.executeAction = async function(type, mat, qty) {
-    const userKey = sessionStorage.getItem('userKey');
-    const res = await fetch(`${API}?action=${type}&user=${encodeURIComponent(userKey)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ Success"); loadStockData(type); }
+/* ===== 5. ADMIN/SUPERVISOR ADDITIONAL OPTIONS ===== */
+window.setupAdminLookup = function() {
+    const mat = document.getElementById('s_mat').value.trim().toUpperCase();
+    const item = window.allRows.find(r => String(r.Material).toUpperCase() === mat);
+    const display = document.getElementById('s_name_display');
+    if (display) display.innerText = item ? `📦 ${item['Product Name']}` : "❌ Material Not Found";
 };
 
+window.doSupAdd = async function() {
+    const mat = document.getElementById('s_mat').value.trim().toUpperCase();
+    const qty = document.getElementById('s_qty').value;
+    const res = await fetch(`${API}?action=add&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`).then(r => r.json());
+    if (res.success) { alert("✅ Stock Added Successfully"); loadStockData('supervisor'); }
+};
+
+window.resetStaffPassword = async function(name) {
+    const newPass = prompt(`New Password for ${name}:`, "1234");
+    if (!newPass) return;
+    const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(name)}&newPass=${encodeURIComponent(newPass)}&pass=${MASTER_PASS}`).then(r => r.json());
+    if (res.success) alert("✅ Password Reset Success!");
+};
+
+/* ===== 6. CORE TRANSACTIONS ===== */
 window.handleDeduct = async function(mat) {
     const userKey = sessionStorage.getItem('userKey');
     const wo = document.getElementById('wo_' + mat)?.value.trim();
@@ -164,14 +187,19 @@ window.handleAuditDeduct = async function(mat, key) {
     if (res.success) { alert("✅ Success"); loadStockData('supervisor'); }
 };
 
-/* UI Utils */
+window.executeAction = async function(type, mat, qty) {
+    const userKey = sessionStorage.getItem('userKey');
+    const res = await fetch(`${API}?action=${type}&user=${encodeURIComponent(userKey)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`).then(r => r.json());
+    if (res.success) { alert("✅ Success"); loadStockData(type); }
+};
+
+/* UI UTILS */
 function showModernModal(contentHtml) {
     let overlay = document.getElementById('modern-modal-overlay') || document.createElement('div');
     overlay.id = 'modern-modal-overlay';
-    overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; display:flex; justify-content:center; align-items:center; backdrop-filter:blur(10px);";
+    overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; display:flex; justify-content:center; align-items:center; backdrop-filter:blur(10px); font-family:sans-serif;";
     document.body.appendChild(overlay);
     overlay.innerHTML = `<div style="background:white; padding:30px; border-radius:25px; width:360px; text-align:center;">${contentHtml}</div>`;
-    overlay.style.display = 'flex';
 }
 
 window.showChangePasswordModal = function(userKey) {
