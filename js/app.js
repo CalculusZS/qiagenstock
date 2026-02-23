@@ -3,11 +3,7 @@
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
-/* ========================================================================== 
-   QIAGEN INVENTORY - UNIVERSAL FIX (FOR ALL PAGES)
-   ========================================================================== */
 
-const API = "https://script.google.com/macros/s/AKfycbxj7zJjHjGeOw0J3Q0UBR2EDodn10Zf8PEqYKN5TGYwjHURFblN97jIMMBlmyHqVys-/exec";
 const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen";
 
