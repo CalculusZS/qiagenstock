@@ -202,6 +202,50 @@ window.processReset = async function(userKey) {
     if (res.success) { alert("✅ Password updated! Please login again."); window.location.reload(); }
 };
 
+/* ===== 3. OPERATIONS (Withdraw / Return / Deduct) + EMAIL NOTIFICATION ===== */
+window.doAction = async function(type, mat, idx) {
+    const qty = document.getElementById('qty_' + idx).value;
+    const userInSheet = sessionStorage.getItem('selectedUser'); 
+    if (!confirm(`Confirm ${type} ${qty} unit(s)?`)) return;
+
+    try {
+        const url = `${API}?action=${type}&user=${encodeURIComponent(userInSheet)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
+        const res = await fetch(url).then(r => r.json());
+        
+        if (res.success) { 
+            alert("✅ Success");
+
+            // --- ส่วนส่งอีเมลเมื่อมีการ WITHDRAW ---
+            if (type === 'withdraw') {
+                const productName = window.allRows[idx]['Product Name'] || 'N/A';
+                const today = "9 Feb 2026"; // ตามที่พี่กำหนด หรือใช้ new Date().toLocaleDateString('en-GB')
+                
+                const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
+                const mailCc = "gthfss@qiagen.com";
+                const subject = `Spare parts transfer ${today}`;
+                
+                // รายละเอียดเนื้อหาอีเมล
+                let body = `Hi BO,\n\nPlease transfer the below spare parts.\n\n`;
+                body += `Catalog: ${mat}\n`;
+                body += `Product Name: ${productName}\n`;
+                body += `Amount: ${qty}\n`;
+                body += `From: 0243\n`;
+                body += `To: ${userInSheet}\n\n`;
+                body += `Best Regards,\n${userInSheet}`;
+
+                // เปิดหน้าเขียนอีเมล
+                const mailtoLink = `mailto:${mailTo}?cc=${mailCc}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                window.location.href = mailtoLink;
+            }
+
+            window.loadStockData(); 
+        } else { 
+            alert("❌ " + res.msg); 
+        }
+    } catch (e) { alert("❌ Request Error"); }
+};
+
+
 /* ===== 6. UTILS ===== */
 window.searchStock = (q, mode) => {
     const filtered = window.allRows.filter(r => 
