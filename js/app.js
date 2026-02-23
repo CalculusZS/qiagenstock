@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FULL STABLE VERSION + FIXED EMAIL SYSTEM
+   QIAGEN INVENTORY - FULL STABLE VERSION + OUTLOOK INTEGRATION
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
@@ -46,7 +46,7 @@ window.checkAuth = function() {
 /* ===== 2. DATA LOADING ===== */
 window.loadStockData = async function(mode) {
     const tbody = document.getElementById('data');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading Inventory...</td></tr>';
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
         if (res && res.success) {
@@ -56,7 +56,7 @@ window.loadStockData = async function(mode) {
     } catch (e) { console.error(e); }
 };
 
-/* ===== 3. OPERATIONS + FIXED EMAIL SYSTEM ===== */
+/* ===== 3. OPERATIONS + OUTLOOK TRIGGER ===== */
 window.doAction = async function(type, mat, idx) {
     const qtyInput = document.getElementById('qty_' + idx);
     const qty = qtyInput ? qtyInput.value : 1;
@@ -71,17 +71,14 @@ window.doAction = async function(type, mat, idx) {
         if (res.success) { 
             alert("✅ Transaction Success");
 
-            // --- แก้ไขส่วนส่งอีเมลให้ทำงานชัวร์ขึ้น ---
+            // --- ส่วนดึงโปรแกรม Outlook เมื่อมีการ WITHDRAW ---
             if (type === 'withdraw') {
                 const prod = window.allRows[idx]['Product Name'] || 'N/A';
-                
-                // ตั้งค่าผู้รับและเนื้อหา
                 const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
                 const mailCc = "gthfss@qiagen.com";
                 const subject = `Spare parts transfer 9 Feb 2026`;
                 
-                let body = `Hi BO,\n\n`;
-                body += `Please transfer the below spare parts.\n\n`;
+                let body = `Hi BO,\n\nPlease transfer the below spare parts.\n\n`;
                 body += `Catalog: ${mat}\n`;
                 body += `Product Name: ${prod}\n`;
                 body += `Amount: ${qty}\n`;
@@ -89,28 +86,31 @@ window.doAction = async function(type, mat, idx) {
                 body += `To: ${userInSheet}\n\n`;
                 body += `Best Regards,\nPhurilap\nphurilap.khonthong@qiagen.com`;
 
-                // ใช้ setTimeout เพื่อให้ Alert ปิดตัวลงก่อนแล้วค่อยเปิดเมล์
+                // สั่งเปิด Protocol Mailto (ซึ่ง Windows จะเรียก Outlook ตาม Default App)
+                const mailtoLink = `mailto:${mailTo}?cc=${mailCc}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                
+                // ใช้การเปิดผ่าน window.location แบบหน่วงเวลาเล็กน้อยเพื่อให้ระบบประมวลผลทัน
                 setTimeout(() => {
-                    const mailtoLink = `mailto:${mailTo}?cc=${mailCc}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                     window.location.href = mailtoLink;
-                }, 500);
+                }, 300);
             }
             window.loadStockData(); 
-        } else { 
-            alert("❌ " + res.msg); 
-        }
-    } catch (e) { alert("❌ Network Error"); }
+        } else { alert("❌ " + res.msg); }
+    } catch (e) { alert("❌ Error"); }
 };
 
-/* ===== 4. SUPERVISOR & OTHER FUNCTIONS (ครบถ้วน) ===== */
+/* ===== 4. SUPERVISOR FUNCTIONS (ไม่ตัดออก) ===== */
 window.doDeduct = async function(mat, idx) {
     const wo = document.getElementById('wo_' + idx).value.trim();
     const qty = document.getElementById('qty_' + idx).value;
     const userInSheet = sessionStorage.getItem('selectedUser');
     if (!wo) return alert("❌ Enter WO#");
-    const url = `${API}?action=deduct&user=${encodeURIComponent(userInSheet)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) { alert("✅ Success"); window.loadStockData(); } else { alert("❌ " + res.msg); }
+    try {
+        const url = `${API}?action=deduct&user=${encodeURIComponent(userInSheet)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { alert("✅ Success"); window.loadStockData(); }
+        else { alert("❌ " + res.msg); }
+    } catch (e) { alert("❌ Error"); }
 };
 
 window.doSupAdd = async function() {
@@ -127,6 +127,16 @@ window.resetStaffPassword = async function(staffName) {
     if (res.success) alert(`✅ Reset to: 1234`);
 };
 
+window.setupAdminLookup = function() {
+    const matInput = document.getElementById('s_mat');
+    if (!matInput) return;
+    const mat = matInput.value.toUpperCase();
+    const found = window.allRows.find(r => String(r.Material) === mat);
+    const display = document.getElementById('s_name_display');
+    if (display) display.innerText = found ? found['Product Name'] : "Not found";
+};
+
+/* ===== 5. TABLE RENDER (หน้าตาเดิม) ===== */
 window.renderTable = function(data, mode) {
     const tbody = document.getElementById('data');
     if (!tbody) return;
@@ -142,13 +152,13 @@ window.renderTable = function(data, mode) {
 
         let actionUI = "";
         if (path.includes('withdraw')) {
-            actionUI = qty0243 > 0 ? `<input type="number" id="qty_${index}" value="1" min="1" style="width:40px;"><button onclick="window.doAction('withdraw','${item.Material}',${index})">Withdraw</button>` : 'OUT';
+            actionUI = qty0243 > 0 ? `<div style="display:flex; gap:5px; justify-content:flex-end;"><input type="number" id="qty_${index}" value="1" min="1" style="width:40px; text-align:center;"><button onclick="window.doAction('withdraw','${item.Material}',${index})" style="background:#003366; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Withdraw</button></div>` : '<b style="color:red;">OUT</b>';
         } else if (path.includes('return')) {
-            actionUI = `<input type="number" id="qty_${index}" value="1" min="1"><button onclick="window.doAction('return','${item.Material}',${index})">Return</button>`;
+            actionUI = `<div style="display:flex; gap:5px; justify-content:flex-end;"><input type="number" id="qty_${index}" value="1" min="1" style="width:40px; text-align:center;"><button onclick="window.doAction('return','${item.Material}',${index})" style="background:#16a34a; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Return</button></div>`;
         } else if (path.includes('deduct')) {
-            actionUI = `<input type="text" id="wo_${index}" placeholder="WO#"><button onclick="window.doDeduct('${item.Material}',${index})">Deduct</button>`;
+            actionUI = `<div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;"><input type="text" id="wo_${index}" placeholder="WO#" style="width:80px; padding:5px;"><button onclick="window.doDeduct('${item.Material}',${index})" style="background:#ef4444; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">Deduct</button></div>`;
         }
-        return `<tr><td>${item.Material}<br><small>${item['Product Name']||''}</small></td><td>${displayQty}</td><td>${actionUI}</td></tr>`;
+        return `<tr><td style="padding:10px;"><b>${item.Material}</b><br><small>${item['Product Name']||''}</small></td><td align="center"><b>${displayQty}</b></td><td align="right">${actionUI}</td></tr>`;
     }).join('');
 };
 
