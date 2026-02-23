@@ -1,114 +1,48 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QIAGEN - Transaction History</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; margin: 0; }
-        .header { background: #003366; color: white; padding: 15px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; justify-content: space-between; }
-        .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+<script>
+    const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
+    const PASS = "Service";
+
+    async function loadHistory() {
+        const listDiv = document.getElementById('list');
+        if (!listDiv) return;
         
-        .container { padding: 10px; width: 100%; box-sizing: border-box; }
-        .scroll-wrapper { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        listDiv.innerHTML = '<p align="center">⌛ Loading All Transactions (Latest First)...</p>';
 
-        .table-header {
-            display: flex; background: #f1f5f9; padding: 12px 10px; font-weight: bold; font-size: 13px; min-width: 1150px; border-bottom: 2px solid #e2e8f0;
-        }
+        try {
+            const response = await fetch(`${API}?action=gethistory&password=${PASS}&t=${Date.now()}`);
+            const res = await response.json();
+            
+            if (res.success && res.data) {
+                // กรองแถวว่างออกก่อน แล้วใช้ .reverse() เพื่อเอาข้อมูลล่างสุดของ Sheet ขึ้นมาไว้บนสุด
+                const historyData = res.data.filter(row => row[0] !== "" && row[0] !== undefined).reverse();
 
-        .history-row { 
-            display: flex; padding: 12px 10px; border-bottom: 1px solid #edf2f7; align-items: center; font-size: 13px; min-width: 1150px;
-        }
-
-        /* ปรับความกว้างคอลัมน์ 1-8 */
-        .col-1 { width: 180px; } /* Date & Time  */
-        .col-2 { width: 140px; } /* Material  */
-        .col-3 { width: 140px; } /* Instrument  */
-        .col-4 { flex: 1; min-width: 250px; } /* Product Name  */
-        .col-5 { width: 100px; text-align: center; } /* WO#  */
-        .col-6 { width: 110px; text-align: center; } /* Action  */
-        .col-7 { width: 60px; text-align: center; } /* Qty  */
-        .col-8 { width: 120px; text-align: center; } /* User  */
-
-        /* สไตล์สีของ Action ตามสั่ง */
-        .type-tag { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; display: inline-block; min-width: 80px; text-align: center; }
-        
-        /* Withdraw = สีน้ำเงิน */
-        .withdraw { background: #e1effe; color: #1e42af; border: 1px solid #1e42af; }
-        /* Return = สีเขียว */
-        .return { background: #def7ec; color: #03543f; border: 1px solid #03543f; }
-        /* Deduct = สีแดง */
-        .deduct { background: #fde8e8; color: #9b1c1c; border: 1px solid #9b1c1c; }
-    </style>
-</head>
-<body>
-
-    <div class="header">
-        <button class="back-btn" onclick="location.href='main.html'">← Back</button>
-        <div style="font-weight:bold;">QIAGEN TRANSACTION LOG (LATEST FIRST)</div>
-        <div style="width:70px;"></div>
-    </div>
-
-    <div class="container">
-        <div class="scroll-wrapper">
-            <div class="table-header">
-                <div class="col-1">Date & Time</div>
-                <div class="col-2">Material</div>
-                <div class="col-3">Instrument</div>
-                <div class="col-4">Product Name</div>
-                <div class="col-5">WO#</div>
-                <div class="col-6">Action</div>
-                <div class="col-7">Qty</div>
-                <div class="col-8">User</div>
-            </div>
-
-            <div id="list">
-                <p align="center" style="padding:40px; color:#64748b;">⌛ Loading History...</p>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
-        const PASS = "Service";
-
-        async function loadHistory() {
-            const listDiv = document.getElementById('list');
-            try {
-                const response = await fetch(`${API}?action=gethistory&password=${PASS}&t=${Date.now()}`);
-                const res = await response.json();
-                
-                if (res.success && res.data) {
-                    // กรองข้อมูลและแมพลำดับ Index (A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7)
-                    // ใช้ .reverse() เพื่อเอาวันที่ล่าสุดไว้บนสุด
-                    listDiv.innerHTML = res.data.map(item => {
-                        const actionValue = String(item[4] || '').trim(); // Column E (Action)
-                        const actionClass = actionValue.toLowerCase(); // ใช้เป็น class เพื่อดึงสี
-                        
-                        return `
-                            <div class="history-row">
-                                <div class="col-1">${item[0] ? new Date(item[0]).toLocaleString() : '-'}</div>
-                                <div class="col-2">${item[1] || '-'}</div>
-                                <div class="col-3">${item[2] || '-'}</div>
-                                <div class="col-4">${item[3] || '-'}</div>
-                                <div class="col-5" style="color:#ef4444; font-weight:bold;">${item[7] || '-'}</div>
-                                <div class="col-6">
-                                    <span class="type-tag ${actionClass}">${actionValue.toUpperCase()}</span>
-                                </div>
-                                <div class="col-7" style="font-weight:bold; font-size:14px;">${item[5] || '0'}</div>
-                                <div class="col-8" style="color:#003366; font-weight:bold;">${item[6] || '-'}</div>
+                listDiv.innerHTML = historyData.map(item => {
+                    const actionValue = String(item[4] || '').trim(); // Index 4 คือ Column E (Action)
+                    const actionClass = actionValue.toLowerCase(); 
+                    
+                    return `
+                        <div class="history-row">
+                            <div class="col-1">${item[0] ? new Date(item[0]).toLocaleString() : '-'}</div>
+                            <div class="col-2">${item[1] || '-'}</div>
+                            <div class="col-3">${item[2] || '-'}</div>
+                            <div class="col-4">${item[3] || '-'}</div>
+                            <div class="col-5" style="color:#ef4444; font-weight:bold;">${item[7] || '-'}</div>
+                            <div class="col-6">
+                                <span class="type-tag ${actionClass}">${actionValue.toUpperCase()}</span>
                             </div>
-                        `;
-                    }).reverse().join(''); 
-                } else {
-                    listDiv.innerHTML = '<p align="center" style="padding:40px;">No transaction found.</p>';
-                }
-            } catch (e) { 
-                listDiv.innerHTML = `<p align="center" style="color:red; padding:40px;">❌ Error: ${e.message}</p>`; 
+                            <div class="col-7" style="font-weight:bold; font-size:14px;">${item[5] || '0'}</div>
+                            <div class="col-8" style="color:#003366; font-weight:bold;">${item[6] || '-'}</div>
+                        </div>
+                    `;
+                }).join(''); // แสดงผลข้อมูลที่กลับด้านแล้ว
+            } else {
+                listDiv.innerHTML = '<p align="center" style="padding:40px;">No transaction history found.</p>';
             }
+        } catch (e) { 
+            console.error(e);
+            listDiv.innerHTML = `<p align="center" style="color:red; padding:40px;">❌ Error: ไม่สามารถโหลดข้อมูลได้</p>`; 
         }
-        
-        window.onload = loadHistory;
-    </script>
-</body>
-</html>
+    }
+
+    window.onload = loadHistory;
+</script>
