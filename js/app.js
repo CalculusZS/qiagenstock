@@ -13,221 +13,175 @@ const USER_MAP = {
 
 window.allRows = [];
 
-/* ===== 1. AUTH & LOGIN (GLOBAL) ===== */
+/* ===== 1. AUTH & LOGIN (บังคับ Global) ===== */
 window.handleLogin = async function() {
-  const uInput = document.getElementById('username-input');
-  const pInput = document.getElementById('password-input');
-  if (!uInput || !pInput) return;
+    const uInput = document.getElementById('username-input');
+    const pInput = document.getElementById('password-input');
+    if (!uInput || !pInput) return;
 
-  const userKey = uInput.value.trim().toUpperCase();
-  const passVal = pInput.value.trim();
+    const userKey = uInput.value.trim().toUpperCase();
+    const passVal = pInput.value.trim();
 
-  if (passVal === SUP_PASSWORD || userKey === 'SUPERVISOR') {
-    sessionStorage.setItem('userKey', 'Supervisor');
-    sessionStorage.setItem('selectedUser', 'Supervisor');
-    window.location.href = 'supervisor.html';
-    return;
-  }
-
-  try {
-    const url = `${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`;
-    const res = await fetch(url).then(r => r.json());
-
-    if (res && res.success) {
-      sessionStorage.setItem('userKey', userKey);
-      sessionStorage.setItem('selectedUser', res.fullName || USER_MAP[userKey] || userKey);
-      if (res.status === 'NEW') {
-        window.showForcePasswordChange(userKey);
-      } else {
-        window.location.href = 'main.html';
-      }
-    } else {
-      alert("❌ Login Failed: Incorrect credentials");
+    if (passVal === SUP_PASSWORD || userKey === 'SUPERVISOR') {
+        sessionStorage.setItem('userKey', 'Supervisor');
+        sessionStorage.setItem('selectedUser', 'Supervisor');
+        window.location.href = 'supervisor.html';
+        return;
     }
-  } catch (e) {
-    alert("❌ API Connection Error");
-  }
+
+    try {
+        const url = `${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`;
+        const res = await fetch(url).then(r => r.json());
+        if (res && res.success) {
+            sessionStorage.setItem('userKey', userKey);
+            sessionStorage.setItem('selectedUser', res.fullName || USER_MAP[userKey] || userKey);
+            if (res.status === 'NEW') window.showForcePasswordChange(userKey);
+            else window.location.href = 'main.html';
+        } else { alert("❌ Login Failed"); }
+    } catch (e) { alert("❌ API Error"); }
 };
 
 window.checkAuth = function() {
-  const user = sessionStorage.getItem('selectedUser');
-  if (!user && !window.location.pathname.includes('index.html')) {
-    window.location.replace('index.html');
-    return false;
-  }
-  const ids = ['current-user', 'display-user', 'user_display', 'userName'];
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerText = user;
-  });
-  return true;
+    const user = sessionStorage.getItem('selectedUser');
+    if (!user && !window.location.pathname.includes('index.html')) {
+        window.location.replace('index.html');
+        return false;
+    }
+    const ids = ['current-user', 'display-user', 'user_display', 'userName'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = user;
+    });
+    return true;
 };
 
-/* ===== 2. DATA LOADING & RENDERING (QTY INPUT + COLORED BUTTONS) ===== */
+/* ===== 2. DATA RENDERING (เพิ่มปุ่ม QTY และ DEDUCT) ===== */
 window.loadStockData = async function(mode) {
-  const tbody = document.getElementById('data');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading Inventory...</td></tr>';
-  try {
-    const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res && res.success) {
-      window.allRows = res.data;
-      window.renderTable(res.data, mode);
-    }
-  } catch (e) { console.error(e); }
+    const tbody = document.getElementById('data');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading...</td></tr>';
+    try {
+        const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
+        if (res && res.success) {
+            window.allRows = res.data;
+            window.renderTable(res.data, mode);
+        }
+    } catch (e) { console.error(e); }
 };
 
 window.renderTable = function(data, mode) {
-  const tbody = document.getElementById('data');
-  if (!tbody) return;
+    const tbody = document.getElementById('data');
+    if (!tbody) return;
 
-  const user = sessionStorage.getItem('selectedUser');
-  const path = window.location.pathname.toLowerCase();
-  const isCentral = path.includes('withdraw') || path.includes('showall');
+    const user = sessionStorage.getItem('selectedUser');
+    const path = window.location.pathname.toLowerCase();
+    const isCentral = path.includes('withdraw') || path.includes('showall');
 
-  let html = data.map(item => {
-    const qty0243 = Number(item['0243'] || 0);
-    const qtyUser = Number(item[user] || 0);
-    const displayQty = isCentral ? qty0243 : qtyUser;
+    let html = data.map(item => {
+        const qty0243 = Number(item['0243'] || 0);
+        const qtyUser = Number(item[user] || 0);
+        const displayQty = isCentral ? qty0243 : qtyUser;
 
-    // Filter for personal stock pages
-    if ((path.includes('return') || path.includes('deduct')) && qtyUser <= 0) return '';
+        if ((path.includes('return') || path.includes('deduct')) && qtyUser <= 0) return '';
 
-    let actionUI = "";
-    if (path.includes('withdraw')) {
-        if (qty0243 <= 0) {
-            actionUI = `<span style="color:#ef4444; font-weight:bold;">OUT OF STOCK</span>`;
-        } else {
+        let actionUI = "";
+        // สร้าง ID ที่ปลอดภัยสำหรับ Input
+        const safeId = item.Material.replace(/[^a-zA-Z0-9]/g, '_');
+
+        if (path.includes('withdraw')) {
+            actionUI = qty0243 > 0 ? `
+                <div style="display:flex; align-items:center; gap:5px; justify-content:flex-end;">
+                    <input type="number" id="qty_${safeId}" value="1" min="1" style="width:50px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;">
+                    <button onclick="window.executeAction('withdraw','${item.Material}','${safeId}')" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">Withdraw</button>
+                </div>` : '<b style="color:red;">OUT</b>';
+        } else if (path.includes('return')) {
             actionUI = `
-            <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;">
-                <input type="number" id="qty_${item.Material}" value="1" min="1" max="${qty0243}" style="width:50px; padding:6px; border:1px solid #ddd; border-radius:6px; text-align:center;">
-                <button onclick="window.executeAction('withdraw','${item.Material}')" 
-                style="background:#003366; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">Withdraw</button>
-            </div>`;
+                <div style="display:flex; align-items:center; gap:5px; justify-content:flex-end;">
+                    <input type="number" id="qty_${safeId}" value="1" min="1" style="width:50px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;">
+                    <button onclick="window.executeAction('return','${item.Material}','${safeId}')" style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">Return</button>
+                </div>`;
+        } else if (path.includes('deduct')) {
+            actionUI = `
+                <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;">
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="wo_${safeId}" placeholder="WO#" style="width:80px; padding:6px; border-radius:6px; border:1px solid #ccc;">
+                        <input type="number" id="qty_${safeId}" value="1" min="1" style="width:50px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;">
+                    </div>
+                    <button onclick="window.handleDeductClick('${item.Material}','${safeId}')" style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:8px; font-weight:bold; width:140px; cursor:pointer;">DEDUCT</button>
+                </div>`;
+        } else {
+            actionUI = displayQty > 0 ? '<span style="color:green;">● Available</span>' : '<span style="color:red;">○ Empty</span>';
         }
-    } else if (path.includes('return')) {
-        actionUI = `
-        <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end;">
-            <input type="number" id="qty_${item.Material}" value="1" min="1" max="${qtyUser}" style="width:50px; padding:6px; border:1px solid #ddd; border-radius:6px; text-align:center;">
-            <button onclick="window.executeAction('return','${item.Material}')" 
-            style="background:#16a34a; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">Return</button>
-        </div>`;
-    } else if (path.includes('deduct')) {
-        actionUI = `
-        <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-end;">
-            <div style="display:flex; gap:5px;">
-                <input type="text" id="wo_${item.Material}" placeholder="WO#" style="width:80px; padding:6px; border:1px solid #ddd; border-radius:6px;">
-                <input type="number" id="qty_${item.Material}" value="1" min="1" max="${qtyUser}" style="width:50px; padding:6px; border:1px solid #ddd; border-radius:6px; text-align:center;">
-            </div>
-            <button onclick="window.handleDeductClick('${item.Material}')" 
-            style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold; width:135px;">DEDUCT</button>
-        </div>`;
-    } else if (path.includes('showall')) {
-        actionUI = qty0243 > 0 ? `<span style="color:#16a34a; font-weight:bold;">● Available</span>` : `<span style="color:#ef4444; font-weight:bold;">○ Empty</span>`;
-    }
 
-    return `
-      <tr>
-        <td style="padding:12px; border-bottom:1px solid #eee;">
-          <div style="font-weight:bold; color:#003366;">${item.Material}</div>
-          <div style="font-size:11px; color:#666;">${item['Product Name'] || ''}</div>
-        </td>
-        <td align="center" style="font-size:18px; font-weight:bold; color:${displayQty > 0 ? '#1e293b' : '#ef4444'}; border-bottom:1px solid #eee;">
-          ${displayQty}
-        </td>
-        <td align="right" style="padding-right:10px; border-bottom:1px solid #eee;">${actionUI}</td>
-      </tr>`;
-  }).join('');
+        return `<tr>
+            <td style="padding:12px; border-bottom:1px solid #eee;">
+                <div style="font-weight:bold; color:#003366;">${item.Material}</div>
+                <div style="font-size:11px; color:#666;">${item['Product Name'] || ''}</div>
+            </td>
+            <td align="center" style="font-size:18px; font-weight:bold; border-bottom:1px solid #eee;">${displayQty}</td>
+            <td align="right" style="padding-right:10px; border-bottom:1px solid #eee;">${actionUI}</td>
+        </tr>`;
+    }).join('');
 
-  tbody.innerHTML = html || '<tr><td colspan="3" align="center">No items found.</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="3" align="center">No data</td></tr>';
 };
 
-/* ===== 3. TRANSACTION ACTIONS ===== */
-window.executeAction = async function(type, mat) {
-  const qtyInput = document.getElementById('qty_' + mat);
-  const qty = qtyInput ? qtyInput.value : 1;
-  const user = sessionStorage.getItem('userKey');
+/* ===== 3. OPERATIONS (เบิก/คืน/ตัด) ===== */
+window.executeAction = async function(type, mat, safeId) {
+    const qty = document.getElementById('qty_' + safeId).value;
+    const user = sessionStorage.getItem('userKey');
+    if (!confirm(`Are you sure to ${type} ${qty} unit(s)?`)) return;
 
-  if (!confirm(`Are you sure to ${type} ${qty} unit(s) of ${mat}?`)) return;
-
-  try {
-    const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) {
-      alert("✅ Success");
-      window.loadStockData();
-    }
-  } catch (e) { alert("❌ Network Error"); }
+    try {
+        const url = `${API}?action=${type}&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { alert("✅ Success"); window.loadStockData(); }
+        else { alert("❌ Error: " + res.msg); }
+    } catch (e) { alert("❌ Connection Error"); }
 };
 
-window.handleDeductClick = async function(mat) {
-  const wo = document.getElementById('wo_' + mat).value.trim();
-  const qty = document.getElementById('qty_' + mat).value;
-  if (!wo) return alert("❌ Work Order (WO#) is required!");
-  
-  const user = sessionStorage.getItem('userKey');
-  try {
-    const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
-    const res = await fetch(url).then(r => r.json());
-    if (res.success) {
-      alert("✅ Deduct Successful");
-      window.loadStockData();
-    }
-  } catch (e) { alert("❌ Error: " + e); }
+window.handleDeductClick = async function(mat, safeId) {
+    const wo = document.getElementById('wo_' + safeId).value.trim();
+    const qty = document.getElementById('qty_' + safeId).value;
+    if (!wo) return alert("❌ Please enter WO#");
+    
+    const user = sessionStorage.getItem('userKey');
+    try {
+        const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { alert("✅ Deduct Success"); window.loadStockData(); }
+        else { alert("❌ Error: " + res.msg); }
+    } catch (e) { alert("❌ Connection Error"); }
 };
 
-/* ===== 4. SPECIAL FEATURES (HISTORY & PASS CHANGE) ===== */
-window.loadHistory = async function() {
-  const listDiv = document.getElementById('list');
-  if (!listDiv) return;
-  try {
-    const res = await fetch(`${API}?action=gethistory`).then(r => r.json());
-    if (res.success) {
-      listDiv.innerHTML = res.data.map(row => `
-        <div class="history-row" style="display:flex; border-bottom:1px solid #eee; padding:10px; font-size:12px;">
-          <div style="flex:1;">${new Date(row[0]).toLocaleString()}</div>
-          <div style="flex:1; font-weight:bold;">${row[1]}</div>
-          <div style="flex:1; color:#003366;">${row[4]}</div>
-          <div style="flex:0.5; text-align:center;">${row[5]}</div>
-          <div style="flex:1; text-align:right;">${row[6]}</div>
-          <div style="flex:1; text-align:right; color:#ef4444; font-weight:bold;">${row[7] || '-'}</div>
-        </div>`).join('');
-    }
-  } catch (e) { console.error(e); }
-};
-
-window.showForcePasswordChange = function(userKey) {
-  const overlay = document.createElement('div');
-  overlay.id = "pass-overlay";
-  overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:10000;";
-  overlay.innerHTML = `
-    <div style="background:white; padding:30px; border-radius:15px; text-align:center; width:300px;">
-      <h3 style="color:#003366; margin-bottom:20px;">Force Password Change</h3>
-      <input type="password" id="p1" placeholder="New Password" style="width:100%; padding:10px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
-      <input type="password" id="p2" placeholder="Confirm Password" style="width:100%; padding:10px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
-      <button onclick="window.processReset('${userKey}')" style="width:100%; padding:12px; background:#003366; color:white; border:none; border-radius:8px; cursor:pointer;">Update & Login</button>
-    </div>`;
-  document.body.appendChild(overlay);
-};
-
-window.processReset = async function(userKey) {
-  const p1 = document.getElementById('p1').value;
-  const p2 = document.getElementById('p2').value;
-  if (!p1 || p1 !== p2) return alert("❌ Passwords do not match!");
-  const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(userKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`).then(r => r.json());
-  if (res.success) { alert("✅ Success"); window.location.href = 'main.html'; }
-};
-
-/* ===== 5. UI UTILITIES ===== */
+/* ===== 4. MISC (Search, History, Logout) ===== */
 window.searchStock = function(q, mode) {
-  const filtered = window.allRows.filter(r => 
-    String(r.Material).toLowerCase().includes(q.toLowerCase()) || 
-    String(r['Product Name']).toLowerCase().includes(q.toLowerCase())
-  );
-  window.renderTable(filtered, mode);
+    const filtered = window.allRows.filter(r => 
+        String(r.Material).toLowerCase().includes(q.toLowerCase()) || 
+        String(r['Product Name']).toLowerCase().includes(q.toLowerCase())
+    );
+    window.renderTable(filtered, mode);
+};
+
+window.loadHistory = async function() {
+    const listDiv = document.getElementById('list');
+    if (!listDiv) return;
+    try {
+        const res = await fetch(`${API}?action=gethistory`).then(r => r.json());
+        if (res.success) {
+            listDiv.innerHTML = res.data.map(row => `
+                <div style="display:flex; border-bottom:1px solid #eee; padding:10px; font-size:12px;">
+                    <div style="flex:1;">${new Date(row[0]).toLocaleString()}</div>
+                    <div style="flex:1; font-weight:bold;">${row[1]}</div>
+                    <div style="flex:1; color:#003366;">${row[4]}</div>
+                    <div style="flex:0.5; text-align:center;">${row[5]}</div>
+                    <div style="flex:1; text-align:right;">${row[6]}</div>
+                    <div style="flex:1; text-align:right; color:red;">${row[7] || '-'}</div>
+                </div>`).join('');
+        }
+    } catch (e) { console.error(e); }
 };
 
 window.logout = () => { sessionStorage.clear(); window.location.replace('index.html'); };
-window.goBack = () => { window.history.back(); };
+window.goBack = () => { window.location.href = 'main.html'; };
 
-// Start app
 window.checkAuth();
