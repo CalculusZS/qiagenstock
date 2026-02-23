@@ -3,43 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Team Spare Parts - QIAGEN</title>
+    <title>Team Stock - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .header-box { background: #003366; padding: 15px; display: flex; justify-content: space-between; align-items: center; color: white; position: sticky; top: 0; z-index: 100; }
-        .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .user-tag { background: #e2e8f0; color: #003366; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-top: 5px; display: inline-block; }
+        .header-box { background: #003366; padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .card { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .user-tag { background: #e2e8f0; color: #003366; padding: 4px 8px; border-radius: 15px; font-size: 11px; font-weight: bold; margin-top: 5px; display: inline-block; }
         .qty-badge { font-size: 20px; font-weight: bold; color: #2563eb; }
         .btn-transfer { background: #f59e0b; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .qty-input { width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 6px; text-align: center; }
     </style>
 </head>
 <body style="margin:0; background:#f1f5f9; font-family: sans-serif;">
     <div class="header-box">
         <button onclick="location.href='main.html'" style="background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:6px;">◀ BACK</button>
-        <div style="text-align:right;"><b style="font-size:16px;">Team Stock</b><br><small id="display-user" style="opacity:0.8;"></small></div>
+        <div style="text-align:right;"><b style="font-size:16px;">Team Stock</b><br><small id="display-user"></small></div>
     </div>
 
     <div style="padding: 10px;">
-        <input type="text" id="searchInput" placeholder="🔍 Search material or staff..." onkeyup="filterTeamTable()" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box; font-size:16px;">
+        <input type="text" id="searchInput" placeholder="🔍 Search material or name..." onkeyup="filterTeamTable()" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box; font-size:16px; margin-bottom:10px;">
+        <div id="team-list"></div>
     </div>
-
-    <div id="team-list"></div>
 
     <script src="js/app.js"></script> 
     <script>
         let fullTeamData = [];
         const teamMembers = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
-        async function initTeamStock() {
+        async function init() {
             document.getElementById('display-user').innerText = sessionStorage.getItem('selectedUser');
             try {
-                const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}`);
-                const result = await response.json();
-                if (result.success) { fullTeamData = result.data; renderTeamTable(fullTeamData); }
-            } catch (e) { document.getElementById('team-list').innerHTML = '<p align="center">❌ Connection Error</p>'; }
+                const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
+                if (res.success) { fullTeamData = res.data; render(fullTeamData); }
+            } catch (e) { document.getElementById('team-list').innerHTML = '<p align="center">❌ Load Error</p>'; }
         }
 
-        function renderTeamTable(data) {
+        function render(data) {
             const container = document.getElementById('team-list');
             let html = '';
             data.forEach((item, idx) => {
@@ -50,28 +49,40 @@
                             <div class="card">
                                 <div style="flex:1;">
                                     <div style="font-weight:bold;color:#003366;">${item.Material}</div>
-                                    <div style="font-size:12px;color:#666;margin-bottom:5px;">${item['Product Name']}</div>
+                                    <div style="font-size:12px;color:#666;">${item['Product Name']}</div>
                                     <span class="user-tag">👤 ${member}</span>
                                 </div>
                                 <div style="text-align:right;">
                                     <div class="qty-badge">${qty}</div>
                                     <div style="margin-top:8px; display:flex; gap:5px; align-items:center;">
-                                        <input type="number" id="t_qty_${idx}_${member}" value="1" min="1" max="${qty}" style="width:35px;padding:6px;border:1px solid #ccc;border-radius:6px;text-align:center;">
-                                        <button class="btn-transfer" onclick="window.doTransfer('${item.Material}','${item['Product Name']}', document.getElementById('t_qty_${idx}_${member}').value, '${member}')">TRANSFER</button>
+                                        <input type="number" id="t_qty_${idx}_${member}" value="1" min="1" max="${qty}" class="qty-input">
+                                        <button class="btn-transfer" onclick="addToCartAuto('${item.Material}','${item['Product Name']}', document.getElementById('t_qty_${idx}_${member}').value, '${member}')">TRANSFER</button>
                                     </div>
                                 </div>
                             </div>`;
                     }
                 });
             });
-            container.innerHTML = html || '<p align="center">No inventory found.</p>';
+            container.innerHTML = html || '<p align="center">No data found.</p>';
+        }
+
+        function addToCartAuto(mat, prod, qty, fromUser) {
+            const targetUser = sessionStorage.getItem('selectedUser');
+            // ตรวจสอบไม่ให้โอนหาตัวเอง
+            if (fromUser === targetUser) {
+                alert("❌ Cannot transfer to yourself");
+                return;
+            }
+            window.cart.push({ type: 'transfer', mat, prod, qty, from: fromUser, target: targetUser });
+            window.updateCartUI();
+            alert(`✅ Added ${mat} (from ${fromUser}) to list`);
         }
 
         function filterTeamTable() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            renderTeamTable(fullTeamData.filter(item => String(item.Material + item['Product Name']).toLowerCase().includes(query)));
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            render(fullTeamData.filter(i => String(i.Material + i['Product Name'] + i.member).toLowerCase().includes(q)));
         }
-        window.onload = initTeamStock;
+        window.onload = init;
     </script>
 </body>
 </html>
