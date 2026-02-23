@@ -1,12 +1,12 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - TOTAL SOLUTION (STABLE & MAPPED)
+   QIAGEN INVENTORY - ABSOLUTE STABLE VERSION (ENGLISH & MAPPED)
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
 const MASTER_PASS = "Service";
 const SUP_PASSWORD = "Qiagen";
 
-// แมพชื่อให้ตรงกับหัวคอลัมน์ใน Google Sheet เป๊ะๆ
+// Mapped directly to your Google Sheet Column Headers
 const USER_MAP = {
   'KM': 'Kitti',
   'TK': 'Tatchai',
@@ -18,7 +18,7 @@ const USER_MAP = {
 
 window.allRows = [];
 
-/* ===== 1. AUTH & LOGIN (ระบบ Force Change Password) ===== */
+/* ===== 1. AUTH & LOGIN (With Force Reset) ===== */
 window.handleLogin = async function() {
     const uInput = document.getElementById('username-input');
     const pInput = document.getElementById('password-input');
@@ -40,8 +40,8 @@ window.handleLogin = async function() {
             } else {
                 window.location.replace('main.html');
             }
-        } else { alert("❌ Login Failed: Credentials incorrect"); }
-    } catch (e) { alert("❌ API Connection Error"); }
+        } else { alert("❌ Login Failed: Incorrect credentials"); }
+    } catch (e) { alert("❌ Server Connection Error"); }
 };
 
 window.checkAuth = function() {
@@ -58,10 +58,10 @@ window.checkAuth = function() {
     return true;
 };
 
-/* ===== 2. DATA RENDERING (พร้อมช่องใส่ QTY และปุ่มสีตามสั่ง) ===== */
+/* ===== 2. DATA RENDERING (Index-Based for Stability) ===== */
 window.loadStockData = async function(mode) {
     const tbody = document.getElementById('data');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading Inventory Data...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading Inventory...</td></tr>';
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
         if (res && res.success) {
@@ -87,13 +87,12 @@ window.renderTable = function(data, mode) {
         if ((path.includes('return') || path.includes('deduct')) && qtyUser <= 0) return '';
 
         let actionUI = "";
-        // ใช้ index ในการอ้างอิง ID เพื่อความแม่นยำ 100%
         if (path.includes('withdraw')) {
             actionUI = qty0243 > 0 ? `
                 <div style="display:flex; align-items:center; gap:5px; justify-content:flex-end;">
                     <input type="number" id="qty_${index}" value="1" min="1" max="${qty0243}" style="width:45px; padding:6px; border-radius:6px; border:1px solid #ccc; text-align:center;">
                     <button onclick="window.doAction('withdraw','${item.Material}', ${index})" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">Withdraw</button>
-                </div>` : '<b style="color:red;">OUT OF STOCK</b>';
+                </div>` : '<b style="color:red;">OUT</b>';
         } else if (path.includes('return')) {
             actionUI = `
                 <div style="display:flex; align-items:center; gap:5px; justify-content:flex-end;">
@@ -124,18 +123,18 @@ window.renderTable = function(data, mode) {
     }).join('');
 };
 
-/* ===== 3. OPERATIONS (เบิก/คืน/ตัด) ===== */
+/* ===== 3. OPERATIONS (Withdraw / Return / Deduct) ===== */
 window.doAction = async function(type, mat, idx) {
     const qty = document.getElementById('qty_' + idx).value;
     const userInSheet = sessionStorage.getItem('selectedUser'); 
-    if (!confirm(`Confirm ${type} ${qty} unit(s) of ${mat}?`)) return;
+    if (!confirm(`Confirm ${type} ${qty} unit(s)?`)) return;
 
     try {
         const url = `${API}?action=${type}&user=${encodeURIComponent(userInSheet)}&material=${encodeURIComponent(mat)}&qty=${qty}&pass=${MASTER_PASS}`;
         const res = await fetch(url).then(r => r.json());
         if (res.success) { alert("✅ Success"); window.loadStockData(); }
         else { alert("❌ " + res.msg); }
-    } catch (e) { alert("❌ Server Error"); }
+    } catch (e) { alert("❌ Request Error"); }
 };
 
 window.doDeduct = async function(mat, idx) {
@@ -149,14 +148,14 @@ window.doDeduct = async function(mat, idx) {
         const res = await fetch(url).then(r => r.json());
         if (res.success) { alert("✅ Deduct Success"); window.loadStockData(); }
         else { alert("❌ " + res.msg); }
-    } catch (e) { alert("❌ Server Error"); }
+    } catch (e) { alert("❌ Request Error"); }
 };
 
-/* ===== 4. HISTORY (แสดงข้อมูลทั้งหมดของทุก User) ===== */
+/* ===== 4. HISTORY (Showing All Transactions) ===== */
 window.loadHistory = async function() {
     const listDiv = document.getElementById('list');
     if (!listDiv) return;
-    listDiv.innerHTML = '<p align="center">⌛ Loading All Transactions...</p>';
+    listDiv.innerHTML = '<p align="center">⌛ Loading Transactions History...</p>';
     try {
         const res = await fetch(`${API}?action=gethistory`).then(r => r.json());
         if (res.success) {
@@ -178,19 +177,19 @@ window.loadHistory = async function() {
                 </div>`;
             }).reverse().join('');
         }
-    } catch (e) { listDiv.innerHTML = '<p align="center" style="color:red;">Error loading history.</p>'; }
+    } catch (e) { listDiv.innerHTML = '<p align="center">Error loading history.</p>'; }
 };
 
-/* ===== 5. FORCE PASSWORD CHANGE UI ===== */
+/* ===== 5. PASSWORD RESET UI ===== */
 window.showForcePasswordChange = function(userKey) {
     const div = document.createElement('div');
     div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;z-index:9999;";
     div.innerHTML = `<div style="background:white;padding:30px;border-radius:20px;text-align:center;width:300px;">
-        <h3 style="color:#003366;">Set New Password</h3>
-        <p style="font-size:12px; color:#666;">First time login, please update your password.</p>
-        <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:10px;margin:10px 0;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;">
-        <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:10px;margin:10px 0;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;">
-        <button onclick="window.processReset('${userKey}')" style="width:100%;padding:12px;background:#003366;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">Update & Login</button>
+        <h3 style="color:#003366;margin:0 0 10px 0;">New User Detected</h3>
+        <p style="font-size:12px; color:#666; margin-bottom:20px;">Please set your new password to continue.</p>
+        <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
+        <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
+        <button onclick="window.processReset('${userKey}')" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer;">Update Password</button>
     </div>`;
     document.body.appendChild(div);
 };
@@ -200,10 +199,10 @@ window.processReset = async function(userKey) {
     const p2 = document.getElementById('p2').value;
     if (!p1 || p1 !== p2) return alert("❌ Passwords do not match");
     const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(userKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ Success! Please login again."); window.location.reload(); }
+    if (res.success) { alert("✅ Password updated! Please login again."); window.location.reload(); }
 };
 
-/* ===== 6. UI UTILS ===== */
+/* ===== 6. UTILS ===== */
 window.searchStock = (q, mode) => {
     const filtered = window.allRows.filter(r => 
         String(r.Material).toLowerCase().includes(q.toLowerCase()) || 
