@@ -12,24 +12,23 @@
         .container { padding: 10px; width: 100%; box-sizing: border-box; }
         .scroll-wrapper { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-        /* ส่วนหัวตาราง */
         .table-header {
-            display: flex; background: #f1f5f9; padding: 12px 10px; font-weight: bold; font-size: 13px; min-width: 1100px; border-bottom: 2px solid #e2e8f0;
+            display: flex; background: #f1f5f9; padding: 12px 10px; font-weight: bold; font-size: 13px; min-width: 1150px; border-bottom: 2px solid #e2e8f0;
         }
 
         .history-row { 
-            display: flex; padding: 12px 10px; border-bottom: 1px solid #edf2f7; align-items: center; font-size: 13px; min-width: 1100px;
+            display: flex; padding: 12px 10px; border-bottom: 1px solid #edf2f7; align-items: center; font-size: 13px; min-width: 1150px;
         }
 
-        /* ปรับความกว้างตามลำดับที่พี่สั่ง */
-        .col-1 { width: 180px; } /* Date & Time (A) */
-        .col-2 { width: 150px; } /* Material (B) */
-        .col-3 { width: 150px; } /* Instrument (C) */
-        .col-4 { flex: 1; min-width: 200px; } /* Product Name (D) */
-        .col-5 { width: 100px; text-align: center; } /* WO# (H) */
-        .col-6 { width: 110px; text-align: center; } /* Action (E) */
-        .col-7 { width: 60px; text-align: center; } /* Qty (F) */
-        .col-8 { width: 120px; text-align: center; } /* User (G) */
+        /* ปรับความกว้าง 1-8 ตามลำดับคอลัมน์ */
+        .col-1 { width: 180px; } /* A: Date & Time */
+        .col-2 { width: 140px; } /* B: Material */
+        .col-3 { width: 140px; } /* C: Instrument */
+        .col-4 { flex: 1; min-width: 250px; } /* D: Product Name */
+        .col-5 { width: 100px; text-align: center; } /* H: WO# (Index 7) */
+        .col-6 { width: 110px; text-align: center; } /* E: Action (Index 4) */
+        .col-7 { width: 60px; text-align: center; } /* F: Qty (Index 5) */
+        .col-8 { width: 120px; text-align: center; } /* G: User (Index 6) */
 
         .type-tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; border: 1px solid; }
         .withdraw { background: #e1effe; color: #1e42af; border-color: #1e42af; }
@@ -41,25 +40,25 @@
 
     <div class="header">
         <button class="back-btn" onclick="location.href='main.html'">← Back</button>
-        <div style="font-weight:bold;">QIAGEN TRANSACTION LOG</div>
+        <div style="font-weight:bold;">QIAGEN TRANSACTION LOG (ALL USERS)</div>
         <div style="width:70px;"></div>
     </div>
 
     <div class="container">
         <div class="scroll-wrapper">
             <div class="table-header">
-                <div class="col-1">1. Date & Time</div>
-                <div class="col-2">2. Material</div>
-                <div class="col-3">3. Instrument</div>
-                <div class="col-4">4. Product Name</div>
-                <div class="col-5">5. WO#</div>
-                <div class="col-6">6. Action</div>
-                <div class="col-7">7. Qty</div>
-                <div class="col-8">8. User</div>
+                <div class="col-1">Date & Time (A)</div>
+                <div class="col-2">Material (B)</div>
+                <div class="col-3">Instrument (C)</div>
+                <div class="col-4">Product Name (D)</div>
+                <div class="col-5">WO# (H)</div>
+                <div class="col-6">Action (E)</div>
+                <div class="col-7">Qty (F)</div>
+                <div class="col-8">User (G)</div>
             </div>
 
             <div id="list">
-                <p align="center" style="padding:40px; color:#64748b;">⌛ Loading History...</p>
+                <p align="center" style="padding:40px; color:#64748b;">⌛ Loading Transactions...</p>
             </div>
         </div>
     </div>
@@ -71,4 +70,35 @@
         async function loadHistory() {
             const listDiv = document.getElementById('list');
             try {
-                const response =
+                const response = await fetch(`${API}?action=gethistory&password=${PASS}&t=${Date.now()}`);
+                const res = await response.json();
+                
+                if (res.success && res.data) {
+                    // เรียงลำดับคอลัมน์ตามที่พี่สั่ง (A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7)
+                    listDiv.innerHTML = res.data.map(item => {
+                        const actionType = String(item[4] || '').toLowerCase(); // Index 4 คือ Column E
+                        return `
+                            <div class="history-row">
+                                <div class="col-1">${item[0] ? new Date(item[0]).toLocaleString() : '-'}</div>
+                                <div class="col-2">${item[1] || '-'}</div>
+                                <div class="col-3">${item[2] || '-'}</div>
+                                <div class="col-4">${item[3] || '-'}</div>
+                                <div class="col-5" style="color:#ef4444; font-weight:bold;">${item[7] || '-'}</div>
+                                <div class="col-6"><span class="type-tag ${actionType}">${actionType}</span></div>
+                                <div class="col-7" style="font-weight:bold;">${item[5] || '0'}</div>
+                                <div class="col-8" style="color:#003366; font-weight:bold;">${item[6] || '-'}</div>
+                            </div>
+                        `;
+                    }).reverse().join(''); // ล่าสุดอยู่บนสุด
+                } else {
+                    listDiv.innerHTML = '<p align="center" style="padding:40px;">No transaction found.</p>';
+                }
+            } catch (e) { 
+                listDiv.innerHTML = `<p align="center" style="color:red; padding:40px;">❌ Error: ${e.message}</p>`; 
+            }
+        }
+        
+        window.onload = loadHistory;
+    </script>
+</body>
+</html>
