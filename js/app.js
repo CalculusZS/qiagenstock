@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FULL STABLE VERSION + OUTLOOK INTEGRATION
+   QIAGEN INVENTORY - MOBILE & OUTLOOK OPTIMIZED VERSION
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
@@ -43,7 +43,7 @@ window.checkAuth = function() {
     return true;
 };
 
-/* ===== 2. DATA LOADING ===== */
+/* ===== 2. LOAD DATA ===== */
 window.loadStockData = async function(mode) {
     const tbody = document.getElementById('data');
     if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading Inventory...</td></tr>';
@@ -56,7 +56,7 @@ window.loadStockData = async function(mode) {
     } catch (e) { console.error(e); }
 };
 
-/* ===== 3. OPERATIONS + OUTLOOK TRIGGER ===== */
+/* ===== 3. OPERATIONS + MOBILE OUTLOOK TRIGGER ===== */
 window.doAction = async function(type, mat, idx) {
     const qtyInput = document.getElementById('qty_' + idx);
     const qty = qtyInput ? qtyInput.value : 1;
@@ -71,7 +71,6 @@ window.doAction = async function(type, mat, idx) {
         if (res.success) { 
             alert("✅ Transaction Success");
 
-            // --- ส่วนดึงโปรแกรม Outlook เมื่อมีการ WITHDRAW ---
             if (type === 'withdraw') {
                 const prod = window.allRows[idx]['Product Name'] || 'N/A';
                 const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
@@ -86,31 +85,34 @@ window.doAction = async function(type, mat, idx) {
                 body += `To: ${userInSheet}\n\n`;
                 body += `Best Regards,\nPhurilap\nphurilap.khonthong@qiagen.com`;
 
-                // สั่งเปิด Protocol Mailto (ซึ่ง Windows จะเรียก Outlook ตาม Default App)
+                // --- เทคนิคพิเศษสำหรับมือถือ (Hidden Link Click) ---
                 const mailtoLink = `mailto:${mailTo}?cc=${mailCc}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                 
-                // ใช้การเปิดผ่าน window.location แบบหน่วงเวลาเล็กน้อยเพื่อให้ระบบประมวลผลทัน
+                const tempLink = document.createElement('a');
+                tempLink.href = mailtoLink;
+                tempLink.style.display = 'none';
+                document.body.appendChild(tempLink);
+                
+                // หน่วงเวลาเล็กน้อยให้หน้าจอหลักพร้อม
                 setTimeout(() => {
-                    window.location.href = mailtoLink;
-                }, 300);
+                    tempLink.click(); // สั่งคลิกเบาๆ เพื่อเรียก Outlook
+                    document.body.removeChild(tempLink);
+                }, 500);
             }
             window.loadStockData(); 
         } else { alert("❌ " + res.msg); }
     } catch (e) { alert("❌ Error"); }
 };
 
-/* ===== 4. SUPERVISOR FUNCTIONS (ไม่ตัดออก) ===== */
+/* ===== 4. SUPERVISOR & OTHER FUNCTIONS (ครบถ้วน) ===== */
 window.doDeduct = async function(mat, idx) {
     const wo = document.getElementById('wo_' + idx).value.trim();
     const qty = document.getElementById('qty_' + idx).value;
     const userInSheet = sessionStorage.getItem('selectedUser');
     if (!wo) return alert("❌ Enter WO#");
-    try {
-        const url = `${API}?action=deduct&user=${encodeURIComponent(userInSheet)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
-        const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ Success"); window.loadStockData(); }
-        else { alert("❌ " + res.msg); }
-    } catch (e) { alert("❌ Error"); }
+    const url = `${API}?action=deduct&user=${encodeURIComponent(userInSheet)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
+    const res = await fetch(url).then(r => r.json());
+    if (res.success) { alert("✅ Success"); window.loadStockData(); } else { alert("❌ " + res.msg); }
 };
 
 window.doSupAdd = async function() {
@@ -127,16 +129,6 @@ window.resetStaffPassword = async function(staffName) {
     if (res.success) alert(`✅ Reset to: 1234`);
 };
 
-window.setupAdminLookup = function() {
-    const matInput = document.getElementById('s_mat');
-    if (!matInput) return;
-    const mat = matInput.value.toUpperCase();
-    const found = window.allRows.find(r => String(r.Material) === mat);
-    const display = document.getElementById('s_name_display');
-    if (display) display.innerText = found ? found['Product Name'] : "Not found";
-};
-
-/* ===== 5. TABLE RENDER (หน้าตาเดิม) ===== */
 window.renderTable = function(data, mode) {
     const tbody = document.getElementById('data');
     if (!tbody) return;
