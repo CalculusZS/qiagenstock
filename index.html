@@ -11,49 +11,76 @@
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; padding: 12px; background: #003366; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
         .admin-link { display: block; margin-top: 20px; color: #888; text-decoration: none; font-size: 13px; cursor: pointer; }
+        .admin-link:hover { color: #003366; }
         
         /* Modal Style */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
+        #admin-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center;
+        }
     </style>
 </head>
 <body>
+
     <div class="login-card">
+        <div style="font-size: 40px; margin-bottom: 10px;">🧪</div>
         <h2>QIAGEN STOCK</h2>
-        <input type="text" id="username-input" placeholder="Username">
-        <input type="password" id="password-input" placeholder="Password">
+        <input type="text" id="username-input" placeholder="User Initial (e.g. KM)" onkeyup="if(event.key==='Enter') handleLogin()">
+        <input type="password" id="password-input" placeholder="Password" onkeyup="if(event.key==='Enter') handleLogin()">
         <button onclick="handleLogin()">LOGIN</button>
-        <a class="admin-link" onclick="goToAdmin()">Supervisor System (Admin)</a>
+        
+        <a class="admin-link" onclick="goToAdmin()">🛡️ Supervisor System</a>
     </div>
 
-    <div id="reset-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="color:#003366; margin-top:0;">Set New Password</h3>
-            <p id="welcome-msg" style="font-size:14px; color:#666;"></p>
-            <input type="password" id="new-pass" placeholder="New Password">
-            <input type="password" id="confirm-pass" placeholder="Confirm Password">
-            <button onclick="submitNewPassword()" style="background:#16a34a;">Save & Login</button>
-            <button onclick="closeModal()" style="background:#ccc; margin-top:8px;">Cancel</button>
+    <div id="admin-modal">
+        <div style="background:white; padding:30px; border-radius:20px; width:90%; max-width:320px; text-align:center;">
+            <div style="font-size:45px; margin-bottom:15px;">🛡️</div>
+            <h3 style="color:#003366; margin-bottom:10px;">Supervisor Access</h3>
+            <p style="font-size:14px; color:#64748b; margin-bottom:20px;">Enter administrative password</p>
+            
+            <input type="password" id="admin-pass-input" placeholder="Enter Password" style="margin-bottom:15px;">
+            <button onclick="submitAdminPass()" style="background:#003366;">Login</button>
+            <button onclick="closeAdminModal()" style="background:#ccc; color:#333; margin-top:8px;">Cancel</button>
         </div>
     </div>
 
     <script src="js/app.js"></script>
-    <div id="admin-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center; font-family: sans-serif;">
-    <div style="background:white; padding:30px; border-radius:20px; width:90%; max-width:320px; text-align:center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #e2e8f0;">
-        <div style="font-size:45px; margin-bottom:15px;">🛡️</div>
-        <h3 style="color:#003366; margin:0 0 10px 0; font-size:22px;">Supervisor Access</h3>
-        <p style="font-size:14px; color:#64748b; margin-bottom:25px;">Please enter administrative password to access supervisor panel.</p>
-        
-        <input type="password" id="admin-pass-input" placeholder="Enter Password" 
-               style="width:100%; padding:14px; border:2px solid #f1f5f9; border-radius:12px; margin-bottom:20px; text-align:center; font-size:18px; outline:none; box-sizing: border-box;">
-        
-        <button onclick="submitAdminPass()" 
-                style="width:100%; padding:14px; background:#003366; color:white; border:none; border-radius:12px; font-weight:bold; font-size:16px; cursor:pointer; margin-bottom:12px; transition: 0.3s;">
-                Login
-        </button>
-        
-        
-    </div>
-</div>
+
+    <script>
+        // ฟังก์ชันเปิดหน้ากากใส่รหัส
+        window.goToAdmin = function() {
+            const modal = document.getElementById('admin-modal');
+            if (modal) {
+                modal.style.display = 'flex';
+                document.getElementById('admin-pass-input').focus();
+            } else {
+                // ถ้าหา Modal ไม่เจอให้ใช้ Prompt พื้นฐาน
+                const p = prompt("Enter Supervisor Password:");
+                if(p === "Qiagen") window.location.href = 'admin.html';
+            }
+        };
+
+        // ฟังก์ชันตรวจสอบรหัสผ่าน
+        window.submitAdminPass = function() {
+            const passInput = document.getElementById('admin-pass-input');
+            if (passInput && passInput.value === "Qiagen") {
+                window.location.href = 'admin.html';
+            } else {
+                alert("❌ Incorrect Password");
+                passInput.value = "";
+            }
+        };
+
+        // ฟังก์ชันปิดหน้ากาก
+        window.closeAdminModal = function() {
+            document.getElementById('admin-modal').style.display = 'none';
+        };
+
+        // ให้กด Enter ในช่องรหัส Admin ได้ด้วย
+        document.getElementById('admin-pass-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') submitAdminPass();
+        });
+    </script>
+
 </body>
 </html>
