@@ -6,95 +6,64 @@
     <title>Team Stock - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .header-box { background: #003366; padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-        .card { background: white; border-radius: 12px; padding: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .user-tag { background: #e2e8f0; color: #003366; padding: 4px 8px; border-radius: 15px; font-size: 11px; font-weight: bold; margin-top: 5px; display: inline-block; }
-        .qty-badge { font-size: 20px; font-weight: bold; color: #2563eb; }
-        .btn-transfer { background: #f59e0b; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        .qty-input { width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 6px; text-align: center; }
-        /* สไตล์ Modal สำหรับ Preview */
-        #preview-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: none; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box; }
-        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 15px; padding: 20px; display: flex; flex-direction: column; gap: 10px; max-height: 90vh; overflow-y: auto; }
+        .card { background: white; border-radius: 12px; padding: 12px; margin: 10px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .info { flex: 1; min-width: 0; }
+        .actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .qty-badge { background: #e2e8f0; color: #003366; padding: 5px 10px; border-radius: 8px; font-weight: bold; min-width: 30px; text-align: center; }
+        .btn-transfer { background: #f59e0b; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        input[type="number"] { width: 40px; padding: 8px; border: 1px solid #ddd; border-radius: 6px; text-align: center; }
     </style>
 </head>
 <body style="margin:0; background:#f1f5f9; font-family: sans-serif;">
-    <div class="header-box">
-        <button onclick="location.href='main.html'" style="background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:6px;">◀ BACK</button>
-        <div style="text-align:right;"><b style="font-size:16px;">Team Stock</b><br><small id="display-user"></small></div>
+    <div style="background:#003366; padding:15px; color:white; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100;">
+        <button onclick="location.href='main.html'" style="background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:6px;">← Back</button>
+        <div id="display-user">Team Stock</div>
     </div>
 
     <div style="padding: 10px;">
-        <input type="text" id="searchInput" placeholder="🔍 Search material or name..." onkeyup="filterTeamTable()" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box; font-size:16px; margin-bottom:10px;">
+        <input type="text" id="searchInput" placeholder="🔍 Search material..." onkeyup="filterTeam()" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; box-sizing:border-box; margin-bottom:10px;">
         <div id="team-list"></div>
     </div>
 
-    <div id="preview-modal">
-        <div class="modal-content">
-            <h3 style="margin:0; color:#003366;">Confirm & Edit Email</h3>
-            <label style="font-size:12px; font-weight:bold;">Subject:</label>
-            <input id="edit-sub" style="width:100%; padding:8px; border-radius:5px; border:1px solid #ddd;">
-            <label style="font-size:12px; font-weight:bold;">Email Content:</label>
-            <textarea id="edit-body" style="width:100%; height:250px; padding:8px; border-radius:5px; border:1px solid #ddd; font-family:monospace; font-size:12px;"></textarea>
-            <div style="display:flex; gap:10px;">
-                <button onclick="document.getElementById('preview-modal').style.display='none'" style="flex:1; padding:12px; background:#ccc; border:none; border-radius:10px;">Cancel</button>
-                <button onclick="window.confirmSendOutlook()" style="flex:1; padding:12px; background:#0078d4; color:white; border:none; border-radius:10px; font-weight:bold;">Send to Outlook</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="js/app.js"></script> 
+    <script src="js/app.js"></script>
     <script>
-        let fullTeamData = [];
-        const teamMembers = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+        let teamData = [];
+        const staff = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
         async function init() {
-            const user = sessionStorage.getItem('selectedUser');
-            document.getElementById('display-user').innerText = user;
-            try {
-                const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-                if (res.success) { fullTeamData = res.data; render(fullTeamData); }
-            } catch (e) { document.getElementById('team-list').innerHTML = '<p align="center">❌ Load Error</p>'; }
+            const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
+            if (res.success) { teamData = res.data; render(teamData); }
         }
 
         function render(data) {
             const container = document.getElementById('team-list');
             let html = '';
             data.forEach((item, idx) => {
-                teamMembers.forEach(member => {
-                    const qty = Number(item[member] || 0);
-                    if (qty > 0) {
+                staff.forEach(name => {
+                    const q = Number(item[name] || 0);
+                    if (q > 0) {
                         html += `
-                            <div class="card">
-                                <div style="flex:1;">
-                                    <div style="font-weight:bold;color:#003366;">${item.Material}</div>
-                                    <div style="font-size:12px;color:#666;">${item['Product Name']}</div>
-                                    <span class="user-tag">👤 ${member}</span>
-                                </div>
-                                <div style="text-align:right;">
-                                    <div class="qty-badge">${qty}</div>
-                                    <div style="margin-top:8px; display:flex; gap:5px; align-items:center;">
-                                        <input type="number" id="t_qty_${idx}_${member}" value="1" min="1" max="${qty}" class="qty-input">
-                                        <button class="btn-transfer" onclick="addToCartAuto('${item.Material}','${item['Product Name']}', document.getElementById('t_qty_${idx}_${member}').value, '${member}')">TRANSFER</button>
-                                    </div>
-                                </div>
-                            </div>`;
+                        <div class="card">
+                            <div class="info">
+                                <div style="font-weight:bold; color:#003366; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.Material}</div>
+                                <div style="font-size:12px; color:#666;">${item['Product Name']}</div>
+                                <div style="font-size:11px; margin-top:4px; font-weight:bold; color:#2563eb;">👤 ${name}</div>
+                            </div>
+                            <div class="actions">
+                                <div class="qty-badge">${q}</div>
+                                <input type="number" id="t_qty_${idx}_${name}" value="1" min="1" max="${q}">
+                                <button class="btn-transfer" onclick="window.addToCart('transfer','${item.Material}','${item['Product Name']}',document.getElementById('t_qty_${idx}_${name}').value,'${name}')">TRANSFER</button>
+                            </div>
+                        </div>`;
                     }
                 });
             });
-            container.innerHTML = html || '<p align="center">No data found.</p>';
+            container.innerHTML = html || '<p align="center">No data</p>';
         }
 
-        function addToCartAuto(mat, prod, qty, fromUser) {
-            const targetUser = sessionStorage.getItem('selectedUser');
-            if (fromUser === targetUser) { alert("❌ Cannot transfer to yourself"); return; }
-            window.cart.push({ type: 'transfer', mat, prod, qty, from: fromUser, target: targetUser });
-            window.updateCartUI();
-            alert(`✅ Added ${mat} to cart`);
-        }
-
-        function filterTeamTable() {
+        function filterTeam() {
             const q = document.getElementById('searchInput').value.toLowerCase();
-            render(fullTeamData.filter(i => String(i.Material + i['Product Name']).toLowerCase().includes(q)));
+            render(teamData.filter(i => String(i.Material + i['Product Name']).toLowerCase().includes(q)));
         }
         window.onload = init;
     </script>
