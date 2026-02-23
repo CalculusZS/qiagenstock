@@ -20,29 +20,28 @@
             display: flex; padding: 12px 10px; border-bottom: 1px solid #edf2f7; align-items: center; font-size: 13px; min-width: 1150px;
         }
 
-        /* ปรับความกว้างคอลัมน์ 1-8 */
+        /* ความกว้างคอลัมน์ 1-8 ตามสั่ง */
         .col-1 { width: 180px; } /* A: Date & Time */
         .col-2 { width: 140px; } /* B: Material */
         .col-3 { width: 140px; } /* C: Instrument */
         .col-4 { flex: 1; min-width: 250px; } /* D: Product Name */
-        .col-5 { width: 100px; text-align: center; } /* H: WO# (Index 7) */
-        .col-6 { width: 110px; text-align: center; } /* E: Action (Index 4) */
-        .col-7 { width: 60px; text-align: center; } /* F: Qty (Index 5) */
-        .col-8 { width: 120px; text-align: center; } /* G: User (Index 6) */
+        .col-5 { width: 100px; text-align: center; } /* H: WO# */
+        .col-6 { width: 110px; text-align: center; } /* E: Action */
+        .col-7 { width: 60px; text-align: center; } /* F: Qty */
+        .col-8 { width: 120px; text-align: center; } /* G: User */
 
-        /* สี Action ตามสั่ง */
+        /* สไตล์สี Action */
         .type-tag { padding: 5px 12px; border-radius: 20px; font-size: 10px; font-weight: bold; text-transform: uppercase; display: inline-block; min-width: 90px; text-align: center; border: 1px solid; }
-        .withdraw { background: #e1effe; color: #1e42af; border-color: #1e42af; }
-        .return { background: #def7ec; color: #03543f; border-color: #03543f; }
-        .deduct_used, .deduct { background: #fde8e8; color: #9b1c1c; border-color: #9b1c1c; }
-        .add_stock { background: #f3f4f6; color: #374151; border-color: #374151; }
+        .withdraw { background: #e1effe !important; color: #1e42af !important; border-color: #1e42af !important; }
+        .return { background: #def7ec !important; color: #03543f !important; border-color: #03543f !important; }
+        .deduct, .deduct_used { background: #fde8e8 !important; color: #9b1c1c !important; border-color: #9b1c1c !important; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <button class="back-btn" onclick="location.href='main.html'">← Back</button>
-        <div style="font-weight:bold;">QIAGEN TRANSACTION LOG (LATEST ON TOP)</div>
+        <div style="font-weight:bold;">QIAGEN LOG (LATEST ON TOP)</div>
         <div style="width:70px;"></div>
     </div>
 
@@ -76,15 +75,15 @@
                 const res = await response.json();
                 
                 if (res.success && res.data) {
-                    // ขั้นตอนสำคัญ: กรองเฉพาะแถวที่มีข้อมูลวันที่ (Index 0) และไม่ใช่ค่าว่าง
-                    const validData = res.data.filter(item => item[0] && String(item[0]).trim() !== "");
+                    // กรองแถวว่าง และบังคับกลับด้าน Array เพื่อเอาบรรทัดล่างสุดของ Sheet ขึ้นมาไว้บนสุด
+                    let rawData = res.data.filter(item => item[0] && String(item[0]).trim() !== "");
+                    
+                    // บังคับสลับลำดับทันที
+                    let latestData = rawData.reverse();
 
-                    // สั่งสลับด้านข้อมูล: เอาแถวล่างสุดของ Sheet มาไว้บนสุด
-                    const latestFirst = validData.reverse();
-
-                    listDiv.innerHTML = latestFirst.map(item => {
-                        const actionVal = String(item[4] || '').trim(); // Index 4 = Column E
-                        const actionClass = actionVal.toLowerCase();
+                    listDiv.innerHTML = latestData.map(item => {
+                        const actionRaw = String(item[4] || '').trim();
+                        const actionClass = actionRaw.toLowerCase().replace(' ', '_');
                         
                         return `
                             <div class="history-row">
@@ -94,7 +93,7 @@
                                 <div class="col-4">${item[3] || '-'}</div>
                                 <div class="col-5" style="color:#ef4444; font-weight:bold;">${item[7] || '-'}</div>
                                 <div class="col-6">
-                                    <span class="type-tag ${actionClass}">${actionVal}</span>
+                                    <span class="type-tag ${actionClass}">${actionRaw.toUpperCase()}</span>
                                 </div>
                                 <div class="col-7" style="font-weight:bold; font-size:14px;">${item[5] || '0'}</div>
                                 <div class="col-8" style="color:#003366; font-weight:bold;">${item[6] || '-'}</div>
