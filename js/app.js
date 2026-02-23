@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - MOBILE & OUTLOOK OPTIMIZED VERSION
+   QIAGEN INVENTORY - FINAL MOBILE & OUTLOOK FORCED VERSION
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
@@ -56,7 +56,7 @@ window.loadStockData = async function(mode) {
     } catch (e) { console.error(e); }
 };
 
-/* ===== 3. OPERATIONS + MOBILE OUTLOOK TRIGGER ===== */
+/* ===== 3. OPERATIONS + FORCED OUTLOOK FOR MOBILE ===== */
 window.doAction = async function(type, mat, idx) {
     const qtyInput = document.getElementById('qty_' + idx);
     const qty = qtyInput ? qtyInput.value : 1;
@@ -85,26 +85,29 @@ window.doAction = async function(type, mat, idx) {
                 body += `To: ${userInSheet}\n\n`;
                 body += `Best Regards,\nPhurilap\nphurilap.khonthong@qiagen.com`;
 
-                // --- เทคนิคพิเศษสำหรับมือถือ (Hidden Link Click) ---
+                // --- เทคนิคบังคับเปิดแอปสำหรับมือถือ ---
                 const mailtoLink = `mailto:${mailTo}?cc=${mailCc}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                 
-                const tempLink = document.createElement('a');
-                tempLink.href = mailtoLink;
-                tempLink.style.display = 'none';
-                document.body.appendChild(tempLink);
+                // ใช้ iframe ช่วยในการดีดตัวแอป
+                const iframe = document.createElement("iframe");
+                iframe.style.display = "none";
+                iframe.src = mailtoLink;
+                document.body.appendChild(iframe);
                 
-                // หน่วงเวลาเล็กน้อยให้หน้าจอหลักพร้อม
+                // สำรองด้วยการคลิกลิงก์
                 setTimeout(() => {
-                    tempLink.click(); // สั่งคลิกเบาๆ เพื่อเรียก Outlook
-                    document.body.removeChild(tempLink);
-                }, 500);
+                    const a = document.createElement("a");
+                    a.href = mailtoLink;
+                    a.click();
+                    document.body.removeChild(iframe);
+                }, 300);
             }
             window.loadStockData(); 
         } else { alert("❌ " + res.msg); }
     } catch (e) { alert("❌ Error"); }
 };
 
-/* ===== 4. SUPERVISOR & OTHER FUNCTIONS (ครบถ้วน) ===== */
+/* ===== 4. SUPERVISOR & OTHER FUNCTIONS (คงไว้ครบถ้วน) ===== */
 window.doDeduct = async function(mat, idx) {
     const wo = document.getElementById('wo_' + idx).value.trim();
     const qty = document.getElementById('qty_' + idx).value;
