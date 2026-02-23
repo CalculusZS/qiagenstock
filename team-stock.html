@@ -3,120 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Team Spare Parts - QIAGEN</title>
+    <title>Team Stock - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .header-box { background: #003366; padding: 15px; display: flex; justify-content: space-between; align-items: center; color: white; position: sticky; top: 0; z-index: 100; }
-        .btn-back { background: rgba(255,255,255,0.2); border: 1px solid #fff; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
-        .user-tag { background: #e2e8f0; color: #003366; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 5px; }
-        .qty-badge { background: #2563eb; color: white; padding: 5px 12px; border-radius: 8px; font-weight: bold; font-size: 16px; }
-        .card { background: white; border-radius: 12px; padding: 10px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .product-line { display: flex; flex-direction: column; }
-        .mat-id { font-weight: bold; font-size: 15px; color: #1e293b; }
-        .prod-name { font-size: 13px; color: #64748b; line-height: 1.2; }
-        .search-container { padding: 10px; background: #f8fafc; position: sticky; top: 60px; z-index: 90; }
-        #searchInput { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 16px; }
-        
-        /* ปุ่ม Transfer ที่เพิ่มใหม่ */
-        .btn-transfer { background: #f59e0b; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 5px; }
-        .qty-input { width: 45px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; margin-right: 5px; }
+        .card { background: white; padding: 12px; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .user-tag { background: #eee; padding: 3px 8px; border-radius: 10px; font-size: 11px; color: #003366; font-weight: bold; display: inline-block; margin-top: 5px; }
+        .qty-badge { font-size: 20px; font-weight: bold; color: #2563eb; }
+        .btn-transfer { background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .qty-input { width: 40px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
     </style>
 </head>
 <body style="margin:0; background:#f1f5f9; font-family: -apple-system, sans-serif;">
-
-    <div class="header-box">
-        <button class="btn-back" onclick="location.href='main.html'">← Back</button>
-        <div style="text-align: right;">
-            <div style="font-size: 16px; font-weight: bold;">Team Stock</div>
-            <div id="display-user" style="font-size: 12px; opacity: 0.8;">Loading...</div>
+    <div style="background:#003366; padding:15px; color:white; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100;">
+        <button onclick="location.href='main.html'" style="background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:5px;">← Back</button>
+        <div style="text-align:right;">
+            <div style="font-weight:bold;">Team Inventory</div>
+            <div id="display-user" style="font-size:12px; opacity:0.8;">Loading...</div>
         </div>
     </div>
 
-    <div class="search-container">
-        <input type="text" id="searchInput" placeholder="🔍 Search Material or Staff Name..." onkeyup="filterTeamTable()">
-    </div>
-
-    <div style="padding: 10px;">
-        <table width="100%" cellspacing="0" cellpadding="0" id="team-table">
-            <tbody id="team-data-body">
-                <tr><td align="center" style="padding:50px;">⌛ Loading Team Data...</td></tr>
-            </tbody>
-        </table>
+    <div style="padding:10px;">
+        <input type="text" id="searchInput" placeholder="🔍 Search Material or Name..." onkeyup="filterTable()" style="width:100%; padding:12px; border-radius:8px; border:1px solid #ccc; box-sizing:border-box; margin-bottom:10px; font-size:16px;">
+        <div id="team-list-container"></div>
     </div>
 
     <script src="js/app.js"></script>
     <script>
-        let fullTeamData = [];
-        const teamMembers = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+        let rawData = [];
+        const members = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
-        async function loadTeamStock() {
-            const user = sessionStorage.getItem('selectedUser');
-            document.getElementById('display-user').innerText = user;
-
+        async function load() {
+            document.getElementById('display-user').innerText = sessionStorage.getItem('selectedUser');
             try {
                 const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-                if (res && res.success) {
-                    fullTeamData = res.data;
-                    renderTeamTable(fullTeamData);
-                }
-            } catch (e) {
-                document.getElementById('team-data-body').innerHTML = '<tr><td align="center">❌ Error loading data</td></tr>';
-            }
+                if (res.success) { rawData = res.data; render(rawData); }
+            } catch (e) { alert("Load Error"); }
         }
 
-        function renderTeamTable(data) {
-            const tbody = document.getElementById('team-data-body');
+        function render(data) {
+            const container = document.getElementById('team-list-container');
             let html = '';
-            let hasData = false;
-
-            data.forEach((item, index) => {
-                teamMembers.forEach(member => {
-                    const qty = Number(item[member] || 0);
-                    if (qty > 0) {
-                        hasData = true;
+            data.forEach((item, idx) => {
+                members.forEach(m => {
+                    const q = Number(item[m] || 0);
+                    if (q > 0) {
                         html += `
-                            <tr>
-                                <td style="padding-bottom: 10px;">
-                                    <div class="card">
-                                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                            <div class="product-line">
-                                                <span class="mat-id">${item.Material}</span>
-                                                <span class="prod-name">${item['Product Name'] || ''}</span>
-                                                <div><span class="user-tag">👤 ${member}</span></div>
-                                            </div>
-                                            <div style="text-align: right;">
-                                                <div class="qty-badge">${qty}</div>
-                                                <div style="margin-top: 10px; display: flex; align-items: center; justify-content: flex-end;">
-                                                    <input type="number" id="qty_t_${index}_${member}" class="qty-input" value="1" min="1" max="${qty}">
-                                                    <button class="btn-transfer" onclick="window.doTransfer('${item.Material}', '${item['Product Name']}', document.getElementById('qty_t_${index}_${member}').value, '${member}')">
-                                                        TRANSFER
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        `;
+                        <div class="card">
+                            <div style="flex:1;">
+                                <div style="font-weight:bold; color:#1e293b;">${item.Material}</div>
+                                <div style="font-size:12px; color:#64748b;">${item['Product Name']}</div>
+                                <span class="user-tag">👤 ${m}</span>
+                            </div>
+                            <div style="text-align:right;">
+                                <div class="qty-badge">${q}</div>
+                                <div style="margin-top:10px; display:flex; gap:5px; align-items:center;">
+                                    <input type="number" id="t_qty_${idx}_${m}" class="qty-input" value="1" min="1" max="${q}">
+                                    <button class="btn-transfer" onclick="window.doTransfer('${item.Material}','${item['Product Name']}', document.getElementById('t_qty_${idx}_${m}').value, '${m}')">
+                                        TRANSFER
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
                     }
                 });
             });
-
-            tbody.innerHTML = hasData ? html : '<tr><td align="center" style="padding:30px; color:#64748b;">No inventory found in team.</td></tr>';
+            container.innerHTML = html || '<div align="center" style="padding:50px; color:#94a3b8;">No stock found.</div>';
         }
 
-        function filterTeamTable() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = fullTeamData.filter(item => {
-                const matchProduct = String(item.Material).toLowerCase().includes(query) || 
-                                     String(item['Product Name']).toLowerCase().includes(query);
-                const matchStaff = teamMembers.some(m => m.toLowerCase().includes(query) && Number(item[m] || 0) > 0);
-                return matchProduct || matchStaff;
-            });
-            renderTeamTable(filtered);
+        function filterTable() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = rawData.filter(i => 
+                String(i.Material).toLowerCase().includes(q) || 
+                String(i['Product Name']).toLowerCase().includes(q)
+            );
+            render(filtered);
         }
-
-        window.onload = loadTeamStock;
+        window.onload = load;
     </script>
 </body>
 </html>
