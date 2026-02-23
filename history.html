@@ -20,45 +20,50 @@
             display: flex; padding: 12px 10px; border-bottom: 1px solid #edf2f7; align-items: center; font-size: 13px; min-width: 1150px;
         }
 
-        /* ปรับความกว้าง 1-8 ตามลำดับคอลัมน์ */
-        .col-1 { width: 180px; } /* A: Date & Time */
-        .col-2 { width: 140px; } /* B: Material */
-        .col-3 { width: 140px; } /* C: Instrument */
-        .col-4 { flex: 1; min-width: 250px; } /* D: Product Name */
-        .col-5 { width: 100px; text-align: center; } /* H: WO# (Index 7) */
-        .col-6 { width: 110px; text-align: center; } /* E: Action (Index 4) */
-        .col-7 { width: 60px; text-align: center; } /* F: Qty (Index 5) */
-        .col-8 { width: 120px; text-align: center; } /* G: User (Index 6) */
+        /* ปรับความกว้างคอลัมน์ 1-8 */
+        .col-1 { width: 180px; } /* Date & Time (A) */
+        .col-2 { width: 140px; } /* Material (B) */
+        .col-3 { width: 140px; } /* Instrument (C) */
+        .col-4 { flex: 1; min-width: 250px; } /* Product Name (D) */
+        .col-5 { width: 100px; text-align: center; } /* WO# (H) */
+        .col-6 { width: 110px; text-align: center; } /* Action (E) */
+        .col-7 { width: 60px; text-align: center; } /* Qty (F) */
+        .col-8 { width: 120px; text-align: center; } /* User (G) */
 
-        .type-tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; border: 1px solid; }
-        .withdraw { background: #e1effe; color: #1e42af; border-color: #1e42af; }
-        .return { background: #def7ec; color: #03543f; border-color: #03543f; }
-        .deduct { background: #fde8e8; color: #9b1c1c; border-color: #9b1c1c; }
+        /* สไตล์สีของ Action ตามสั่ง */
+        .type-tag { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; display: inline-block; min-width: 80px; text-align: center; }
+        
+        /* Withdraw = สีน้ำเงิน */
+        .withdraw { background: #e1effe; color: #1e42af; border: 1px solid #1e42af; }
+        /* Return = สีเขียว */
+        .return { background: #def7ec; color: #03543f; border: 1px solid #03543f; }
+        /* Deduct = สีแดง */
+        .deduct { background: #fde8e8; color: #9b1c1c; border: 1px solid #9b1c1c; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <button class="back-btn" onclick="location.href='main.html'">← Back</button>
-        <div style="font-weight:bold;">QIAGEN TRANSACTION LOG (ALL USERS)</div>
+        <div style="font-weight:bold;">QIAGEN TRANSACTION LOG (LATEST FIRST)</div>
         <div style="width:70px;"></div>
     </div>
 
     <div class="container">
         <div class="scroll-wrapper">
             <div class="table-header">
-                <div class="col-1">Date & Time (A)</div>
-                <div class="col-2">Material (B)</div>
-                <div class="col-3">Instrument (C)</div>
-                <div class="col-4">Product Name (D)</div>
-                <div class="col-5">WO# (H)</div>
-                <div class="col-6">Action (E)</div>
-                <div class="col-7">Qty (F)</div>
-                <div class="col-8">User (G)</div>
+                <div class="col-1">Date & Time</div>
+                <div class="col-2">Material</div>
+                <div class="col-3">Instrument</div>
+                <div class="col-4">Product Name</div>
+                <div class="col-5">WO#</div>
+                <div class="col-6">Action</div>
+                <div class="col-7">Qty</div>
+                <div class="col-8">User</div>
             </div>
 
             <div id="list">
-                <p align="center" style="padding:40px; color:#64748b;">⌛ Loading Transactions...</p>
+                <p align="center" style="padding:40px; color:#64748b;">⌛ Loading History...</p>
             </div>
         </div>
     </div>
@@ -74,9 +79,12 @@
                 const res = await response.json();
                 
                 if (res.success && res.data) {
-                    // เรียงลำดับคอลัมน์ตามที่พี่สั่ง (A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7)
+                    // กรองข้อมูลและแมพลำดับ Index (A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7)
+                    // ใช้ .reverse() เพื่อเอาวันที่ล่าสุดไว้บนสุด
                     listDiv.innerHTML = res.data.map(item => {
-                        const actionType = String(item[4] || '').toLowerCase(); // Index 4 คือ Column E
+                        const actionValue = String(item[4] || '').trim(); // Column E (Action)
+                        const actionClass = actionValue.toLowerCase(); // ใช้เป็น class เพื่อดึงสี
+                        
                         return `
                             <div class="history-row">
                                 <div class="col-1">${item[0] ? new Date(item[0]).toLocaleString() : '-'}</div>
@@ -84,12 +92,14 @@
                                 <div class="col-3">${item[2] || '-'}</div>
                                 <div class="col-4">${item[3] || '-'}</div>
                                 <div class="col-5" style="color:#ef4444; font-weight:bold;">${item[7] || '-'}</div>
-                                <div class="col-6"><span class="type-tag ${actionType}">${actionType}</span></div>
-                                <div class="col-7" style="font-weight:bold;">${item[5] || '0'}</div>
+                                <div class="col-6">
+                                    <span class="type-tag ${actionClass}">${actionValue.toUpperCase()}</span>
+                                </div>
+                                <div class="col-7" style="font-weight:bold; font-size:14px;">${item[5] || '0'}</div>
                                 <div class="col-8" style="color:#003366; font-weight:bold;">${item[6] || '-'}</div>
                             </div>
                         `;
-                    }).reverse().join(''); // ล่าสุดอยู่บนสุด
+                    }).reverse().join(''); 
                 } else {
                     listDiv.innerHTML = '<p align="center" style="padding:40px;">No transaction found.</p>';
                 }
