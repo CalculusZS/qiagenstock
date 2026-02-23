@@ -1,46 +1,108 @@
-<script>
-    // ใช้ API URL ตัวล่าสุดของพี่
-    const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
-    const PASS = "Service";
-
-    async function loadHistory() {
-        const listDiv = document.getElementById('list');
-        listDiv.innerHTML = '<p align="center">⌛ Loading All Transactions...</p>';
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QIAGEN - Transaction History</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; margin: 0; }
+        .header { background: #003366; color: white; padding: 15px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; justify-content: space-between; }
+        .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         
-        try {
-            // ดึงข้อมูลประวัติทั้งหมดจาก Sheet TRANSACTION_LOG
-            const response = await fetch(`${API}?action=gethistory&password=${PASS}&t=${Date.now()}`);
-            const res = await response.json();
-            
-            if (res.success && res.data) {
-                // แสดงผลโดยใช้ Index [0, 1, 2...] เพื่อป้องกันค่า undefined
-                // เพราะ API ของพี่ส่งมาเป็นแถว (Array) ไม่ได้ส่งมาเป็นชื่อคอลัมน์
-                listDiv.innerHTML = res.data.map(item => {
-                    const type = String(item[5] || '').toLowerCase(); // ประเภท (withdraw/return/deduct)
-                    return `
-                        <div class="history-row">
-                            <div class="col-date">${new Date(item[0]).toLocaleString()}</div>
-                            <div class="col-mat">${item[1] || '-'}</div>
-                            <div class="col-inst">${item[4] || '-'}</div>
-                            <div class="col-pname">${item[3] || '-'}</div>
-                            <div class="col-wo" style="color:#ef4444; font-weight:bold;">${item[8] || '-'}</div>
-                            <div class="col-type">
-                                <span class="type-tag ${type}">${type.toUpperCase()}</span>
-                            </div>
-                            <div class="col-qty" style="font-weight:bold; font-size:14px;">${item[6] || '0'}</div>
-                            <div class="col-user" style="color:#003366; font-weight:bold;">${item[7] || '-'}</div>
-                        </div>
-                    `;
-                }).reverse().join(''); // ใช้ .reverse() เพื่อให้รายการล่าสุดอยู่บนสุดเสมอ
-            } else {
-                listDiv.innerHTML = '<p align="center" style="padding:20px;">No transaction history found.</p>';
-            }
-        } catch (e) { 
-            console.error(e);
-            listDiv.innerHTML = `<p align="center" style="color:red; padding:20px;">Error: ไม่สามารถโหลดข้อมูลได้ (${e.message})</p>`; 
-        }
-    }
+        .container { padding: 10px; width: 100%; box-sizing: border-box; }
+        .scroll-wrapper { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-    // โหลดข้อมูลทันทีเมื่อเปิดหน้า
-    window.onload = loadHistory;
-</script>
+        /* หัวตาราง */
+        .table-header {
+            display: flex; background: #f1f5f9; padding: 12px 10px; font-weight: bold; font-size: 13px; min-width: 1100px; border-bottom: 2px solid #e2e8f0;
+        }
+
+        .history-row { 
+            display: flex; padding: 12px 10px; border-bottom: 1px solid #edf2f7; align-items: center; font-size: 13px; min-width: 1100px;
+        }
+
+        /* กำหนดความกว้างแต่ละคอลัมน์ */
+        .col-date { width: 180px; }
+        .col-mat { width: 150px; }
+        .col-inst { width: 150px; }
+        .col-pname { flex: 1; min-width: 250px; }
+        .col-wo { width: 100px; text-align: center; }
+        .col-type { width: 100px; text-align: center; }
+        .col-qty { width: 60px; text-align: center; }
+        .col-user { width: 120px; text-align: center; }
+
+        .type-tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .withdraw { background: #e1effe; color: #1e42af; }
+        .return { background: #def7ec; color: #03543f; }
+        .deduct { background: #fde8e8; color: #9b1c1c; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button class="back-btn" onclick="location.href='main.html'">← Back</button>
+        <div style="font-weight:bold;">ALL TRANSACTION HISTORY</div>
+        <div style="width:60px;"></div> </div>
+
+    <div class="container">
+        <div class="scroll-wrapper">
+            <div class="table-header">
+                <div class="col-date">Date & Time</div>
+                <div class="col-mat">Material</div>
+                <div class="col-inst">Instrument</div>
+                <div class="col-pname">Product Name</div>
+                <div class="col-wo">WO#</div>
+                <div class="col-type">Action</div>
+                <div class="col-qty">Qty</div>
+                <div class="col-user">User</div>
+            </div>
+
+            <div id="list">
+                <p align="center" style="padding:40px; color:#64748b;">⌛ Loading history data...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
+        const PASS = "Service";
+
+        async function loadHistory() {
+            const listDiv = document.getElementById('list');
+            if (!listDiv) return; // ป้องกัน Error ถ้าหา id list ไม่เจอ
+
+            try {
+                // ดึงข้อมูลประวัติทั้งหมด (ไม่แยก User)
+                const response = await fetch(`${API}?action=gethistory&password=${PASS}&t=${Date.now()}`);
+                const res = await response.json();
+                
+                if (res.success && res.data) {
+                    // แมพข้อมูลตามลำดับ Index 0, 1, 2... ป้องกัน Undefined
+                    listDiv.innerHTML = res.data.map(item => {
+                        const type = String(item[5] || '').toLowerCase();
+                        return `
+                            <div class="history-row">
+                                <div class="col-date">${item[0] ? new Date(item[0]).toLocaleString() : '-'}</div>
+                                <div class="col-mat">${item[1] || '-'}</div>
+                                <div class="col-inst">${item[4] || '-'}</div>
+                                <div class="col-pname">${item[3] || '-'}</div>
+                                <div class="col-wo" style="color:#ef4444; font-weight:bold;">${item[8] || '-'}</div>
+                                <div class="col-type"><span class="type-tag ${type}">${type.toUpperCase()}</span></div>
+                                <div class="col-qty" style="font-weight:bold;">${item[6] || '0'}</div>
+                                <div class="col-user" style="color:#003366; font-weight:bold;">${item[7] || '-'}</div>
+                            </div>
+                        `;
+                    }).reverse().join(''); // ล่าสุดอยู่บนสุด
+                } else {
+                    listDiv.innerHTML = '<p align="center" style="padding:40px;">No transaction history found.</p>';
+                }
+            } catch (e) { 
+                listDiv.innerHTML = `<p align="center" style="color:red; padding:40px;">❌ Error: ${e.message}</p>`; 
+            }
+        }
+        
+        // รันทันทีเมื่อโหลดหน้า
+        window.onload = loadHistory;
+    </script>
+</body>
+</html>
