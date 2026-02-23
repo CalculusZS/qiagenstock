@@ -1,20 +1,19 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - MULTI-ITEM CART + TABLE SUMMARY (STABLE)
+   QIAGEN INVENTORY - AUTO-FORMAT LIST FOR OUTLOOK (NO PASTE REQUIRED)
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
 const MASTER_PASS = "Service";
-const SUP_PASSWORD = "Qiagen";
 
 const USER_MAP = {
   'KM': 'Kitti', 'TK': 'Tatchai', 'PSO': 'Parinyachat',
   'PK': 'Phurilap', 'PST': 'Penporn', 'PA': 'Phuriwat'
 };
 
-window.withdrawCart = []; // ตะกร้าเก็บของสำหรับส่งเมล์ทีเดียว
+window.withdrawCart = []; 
 window.allRows = [];
 
-/* ===== 1. AUTH & LOGIN (Fixed Refresh) ===== */
+/* ===== 1. AUTH & LOGIN ===== */
 window.handleLogin = async function() {
     const uInput = document.getElementById('username-input');
     const pInput = document.getElementById('password-input');
@@ -31,25 +30,14 @@ window.handleLogin = async function() {
 
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
-    const isLogin = window.location.pathname.includes('index.html');
-    if (!user && !isLogin) return window.location.replace('index.html');
+    if (!user && !window.location.pathname.includes('index.html')) {
+        window.location.replace('index.html');
+        return false;
+    }
     return true;
 };
 
-/* ===== 2. DATA LOADING ===== */
-window.loadStockData = async function(mode) {
-    const tbody = document.getElementById('data') || document.getElementById('staff-data');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading Inventory...</td></tr>';
-    try {
-        const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res && res.success) {
-            window.allRows = res.data;
-            window.renderTable(res.data, mode);
-        }
-    } catch (e) { }
-};
-
-/* ===== 3. WITHDRAW SYSTEM (ADD TO CART) ===== */
+/* ===== 2. WITHDRAW (ADD TO LIST) ===== */
 window.doAction = async function(type, mat, idx) {
     const qtyInput = document.getElementById('qty_' + idx);
     const qty = qtyInput ? qtyInput.value : 1;
@@ -62,10 +50,9 @@ window.doAction = async function(type, mat, idx) {
         const res = await fetch(url).then(r => r.json());
         
         if (res.success) { 
-            alert("✅ " + type.toUpperCase() + " Success!");
+            alert("✅ Added to list");
             if (type === 'withdraw') {
                 const prod = window.allRows[idx]['Product Name'] || 'N/A';
-                // เพิ่มเข้าตะกร้า
                 window.withdrawCart.push({ mat, prod, qty });
                 window.updateCartUI();
             }
@@ -74,7 +61,7 @@ window.doAction = async function(type, mat, idx) {
     } catch (e) { alert("❌ Error"); }
 };
 
-/* ===== 4. SUMMARY TABLE & EMAIL (ฟอร์มที่พี่ต้องการ) ===== */
+/* ===== 3. AUTO FORMAT FOR OUTLOOK ===== */
 window.updateCartUI = function() {
     let cartBtn = document.getElementById('cart-floating-btn');
     if (!cartBtn) {
@@ -84,80 +71,55 @@ window.updateCartUI = function() {
         document.body.appendChild(cartBtn);
     }
     if (window.withdrawCart.length > 0) {
-        cartBtn.innerHTML = `<button onclick="window.showSummary()" style="background:#16a34a; color:white; padding:15px 25px; border-radius:50px; border:none; box-shadow:0 5px 15px rgba(0,0,0,0.3); cursor:pointer; font-weight:bold;">📧 Send Summary (${window.withdrawCart.length})</button>`;
+        cartBtn.innerHTML = `<button onclick="window.sendToOutlook()" style="background:#003366; color:white; padding:15px 25px; border-radius:50px; border:none; box-shadow:0 5px 15px rgba(0,0,0,0.3); cursor:pointer; font-weight:bold;">📧 Send to Outlook (${window.withdrawCart.length} items)</button>`;
     } else { cartBtn.innerHTML = ''; }
 };
 
-window.showSummary = function() {
+window.sendToOutlook = function() {
     const user = sessionStorage.getItem('selectedUser');
-    const dateStr = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
+    const mailCc = "gthfss@qiagen.com";
+    const subject = `Spare parts transfer - ${user}`;
     
-    let tableHtml = `
-        <div id="summary-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto; font-family: 'Calibri', sans-serif;">
-            <div style="max-width:600px; margin:auto;">
-                <button onclick="document.getElementById('summary-overlay').remove()" style="float:right; padding:10px; background:#eee; border:none; border-radius:5px;">[X] Close</button>
-                <h3 style="color:#003366;">Confirm & Send Email</h3>
-                <p style="background:#fff3cd; padding:10px; border-radius:5px; font-size:14px;">1. Press <b>"Copy & Open Outlook"</b><br>2. When Outlook opens, <b>Paste (Ctrl+V)</b> in the message body.</p>
-                
-                <div id="copy-area" style="padding:10px; background:white;">
-                    <p>Hi BO,</p>
-                    <p>Please transfer the below spare parts.</p>
-                    <table style="border-collapse: collapse; width: 100%; border: 1px solid #4472c4;">
-                        <thead>
-                            <tr style="background-color: #4472c4; color: white;">
-                                <th style="border: 1px solid #4472c4; padding: 8px;">Catalog</th>
-                                <th style="border: 1px solid #4472c4; padding: 8px;">Product Name</th>
-                                <th style="border: 1px solid #4472c4; padding: 8px; text-align:center;">Amount</th>
-                                <th style="border: 1px solid #4472c4; padding: 8px; text-align:center;">From</th>
-                                <th style="border: 1px solid #4472c4; padding: 8px; text-align:center;">To</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${window.withdrawCart.map(item => `
-                                <tr style="background-color: #d9e1f2;">
-                                    <td style="border: 1px solid #4472c4; padding: 8px;">${item.mat}</td>
-                                    <td style="border: 1px solid #4472c4; padding: 8px;">${item.prod}</td>
-                                    <td style="border: 1px solid #4472c4; padding: 8px; text-align:center;">${item.qty}</td>
-                                    <td style="border: 1px solid #4472c4; padding: 8px; text-align:center;">0243</td>
-                                    <td style="border: 1px solid #4472c4; padding: 8px; text-align:center;">${user}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                    <p>Best Regards,<br>${user}</p>
-                </div>
-                <br>
-                <button onclick="window.copyAndOpenOutlook()" style="width:100%; padding:20px; background:#003366; color:white; font-size:18px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">📋 Copy Table & Open Outlook</button>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', tableHtml);
-};
-
-window.copyAndOpenOutlook = function() {
-    const range = document.createRange();
-    range.selectNode(document.getElementById("copy-area"));
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
+    // สร้างเนื้อหาแบบจัดบรรทัดให้อ่านง่าย (ทดแทนตาราง)
+    let body = `Hi BO,\n\nPlease transfer the spare parts as listed below:\n\n`;
+    body += `------------------------------------------\n`;
     
-    try {
-        document.execCommand('copy');
-        alert("✅ Table Copied! Opening Outlook...");
-        
-        const user = sessionStorage.getItem('selectedUser');
-        const subject = `Spare parts transfer ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })} - ${user}`;
-        const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
-        const mailCc = "gthfss@qiagen.com";
-        
-        // เปิด Outlook
-        window.location.href = `mailto:${mailTo}?cc=${mailCc}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent("--- PASTE THE TABLE HERE (Ctrl+V) ---")}`;
+    window.withdrawCart.forEach((item, i) => {
+        body += `Item ${i+1}:\n`;
+        body += `Catalog: ${item.mat}\n`;
+        body += `Product Name: ${item.prod}\n`;
+        body += `Amount: ${item.qty}\n`;
+        body += `From: 0243  To: ${user}\n`;
+        body += `------------------------------------------\n`;
+    });
 
-        window.withdrawCart = []; // เคลียร์ของ
+    body += `\nBest Regards,\n${user}`;
+
+    // ส่งเข้า Outlook ทันที
+    const mailtoLink = `mailto:${mailTo}?cc=${mailCc}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
+
+    // เคลียร์รายการ
+    if(confirm("Outlook opened? Clear the list?")) {
+        window.withdrawCart = [];
         window.updateCartUI();
-    } catch (err) { alert("❌ Copy Failed"); }
+    }
 };
 
-/* ===== 5. RENDERING ===== */
+/* ===== 4. DATA LOAD & RENDER ===== */
+window.loadStockData = async function(mode) {
+    const tbody = document.getElementById('data') || document.getElementById('staff-data');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading...</td></tr>';
+    try {
+        const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
+        if (res && res.success) {
+            window.allRows = res.data;
+            window.renderTable(res.data, mode);
+        }
+    } catch (e) { }
+};
+
 window.renderTable = function(data, mode) {
     const tbody = document.getElementById('data') || document.getElementById('staff-data');
     if (!tbody) return;
@@ -168,8 +130,8 @@ window.renderTable = function(data, mode) {
         const q0243 = item['0243'] || 0;
         const qUser = item[user] || 0;
         const disp = path.includes('withdraw') ? q0243 : qUser;
-        let actionUI = `<div style="display:flex; gap:5px; justify-content:flex-end;"><input type="number" id="qty_${index}" value="1" min="1" style="width:40px; text-align:center;"><button onclick="window.doAction('${path.includes('withdraw')?'withdraw':'return'}','${item.Material}',${index})" style="background:#003366; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">${path.includes('withdraw')?'Withdraw':'Return'}</button></div>`;
-        return `<tr><td style="padding:10px;"><b>${item.Material}</b><br><small>${item['Product Name']||''}</small></td><td align="center"><b>${disp}</b></td><td align="right">${actionUI}</td></tr>`;
+        let btn = `<div style="display:flex; gap:5px; justify-content:flex-end;"><input type="number" id="qty_${index}" value="1" min="1" style="width:40px; text-align:center;"><button onclick="window.doAction('${path.includes('withdraw')?'withdraw':'return'}','${item.Material}',${index})" style="background:#003366; color:white; border:none; padding:8px; border-radius:5px; cursor:pointer;">${path.includes('withdraw')?'Withdraw':'Return'}</button></div>`;
+        return `<tr><td style="padding:10px;"><b>${item.Material}</b><br><small>${item['Product Name']||''}</small></td><td align="center"><b>${disp}</b></td><td align="right">${btn}</td></tr>`;
     }).join('');
 };
 
