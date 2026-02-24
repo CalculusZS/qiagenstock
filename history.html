@@ -25,7 +25,7 @@
         .col-1 { width: 180px; } /* Date & Time */
         .col-2 { width: 110px; } /* Material */
         .col-3 { width: 130px; } /* Instrument */
-        .col-4 { flex: 1; min-width: 220px; } /* Product Name */
+        .col-4 { flex: 1; min-width: 180px; } /* Product Name */
         .col-5 { width: 120px; text-align: center; } /* Action */
         .col-6 { width: 60px; text-align: center; }  /* Qty */
         .col-7 { width: 110px; text-align: center; } /* From (คอลัมน์ G ใน Sheet) */
@@ -98,13 +98,13 @@
                                 <div class="col-2"><b>${item[1] || '-'}</b></div>
                                 <div class="col-3">${item[2] || '-'}</div>
                                 <div class="col-4">${item[3] || '-'}</div>
-                                <div class="col-9" style="color:#ef4444; font-weight:bold;">${item[8] || '-'}</div>
                                 <div class="col-5">
                                     <span class="type-tag ${actionClass}">${actionRaw.toUpperCase()}</span>
                                 </div>
                                 <div class="col-6" style="font-weight:bold;">${item[5] || '0'}</div>
                                 <div class="col-7" style="color:#64748b;">${item[6] || '-'}</div>
                                 <div class="col-8" style="color:#003366; font-weight:bold;">${item[7] || '-'}</div>
+                                  <div class="col-9" style="color:#ef4444; font-weight:bold;">${item[8] || '-'}</div>
                             </div>
                         `;
                     }).join(''); 
