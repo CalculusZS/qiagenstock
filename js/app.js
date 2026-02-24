@@ -28,13 +28,13 @@ window.handleLogin = async function() {
             } else {
                 window.location.replace('main.html');
             }
-        } else alert("❌ Login Failed: Credentials incorrect");
+        } else alert("❌ Login Failed: Check User/Pass");
     } catch (e) { alert("❌ Connection Error"); }
 };
 
-/* ===== 2. PASSWORD RESET & AUTO-ACTIVE (แก้ไขจุดที่พี่ติด) ===== */
+/* ===== 2. PASSWORD RESET (แก้จุดที่กด Saving แล้วนิ่ง) ===== */
 
-// สร้างฟังก์ชันชื่อ handleSetPassword ไว้รองรับปุ่ม "Saving..." ใน HTML ของพี่
+// สร้างฟังก์ชันชื่อ handleSetPassword เพื่อให้ตรงกับที่ปุ่มใน HTML เรียกหา
 window.handleSetPassword = function() {
     const userKey = sessionStorage.getItem('userKey');
     window.processReset(userKey);
@@ -47,7 +47,7 @@ window.showForcePasswordChange = function(userKey) {
     div.innerHTML = `
         <div style="background:white;padding:30px;border-radius:20px;text-align:center;width:100%;max-width:350px;">
             <h3 style="color:#003366;margin-top:0;">New User Detected</h3>
-            <p style="font-size:14px; color:#666; margin-bottom:20px;">Please set a new password for your first login (4+ digits).</p>
+            <p style="font-size:14px; color:#666; margin-bottom:20px;">Please set a new password (4+ digits).</p>
             <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin-bottom:10px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
             <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin-bottom:20px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
             <button id="reset-btn" onclick="window.handleSetPassword()" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer;">Update & Activate</button>
@@ -64,7 +64,7 @@ window.processReset = async function(userKey) {
     btn.innerText = "Activating..."; btn.disabled = true;
 
     try {
-        // ใช้ action=setpassword และ newPass (P ใหญ่) เพื่อให้ Google Script เปลี่ยนสถานะเป็น ACTIVE
+        // ใช้ action=setpassword และ newPass เพื่อให้ Google Script เปลี่ยนสถานะเป็น ACTIVE
         const url = `${API}?action=setpassword&user=${encodeURIComponent(userKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`;
         const res = await fetch(url).then(r => r.json());
         if (res.success) {
@@ -75,7 +75,7 @@ window.processReset = async function(userKey) {
     finally { btn.innerText = "Update & Activate"; btn.disabled = false; }
 };
 
-/* ===== 3. DATA RENDERING & DEDUCT ===== */
+/* ===== 3. DATA RENDERING & DEDUCT (ครบทุกออปชั่น) ===== */
 window.loadStockData = async function() {
     const tbody = document.getElementById('data');
     if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Updating...</td></tr>';
@@ -106,7 +106,7 @@ window.renderTable = function(data) {
     }).join('');
 };
 
-/* ===== 4. CART & SYNC (WITH ALL OPTIONS) ===== */
+/* ===== 4. CART & SYNC ===== */
 window.addToCart = function(type, mat, idx, fromUser = null) {
     const qtyInput = document.getElementById('qty_' + idx);
     const qty = qtyInput ? qtyInput.value : 1;
@@ -114,10 +114,8 @@ window.addToCart = function(type, mat, idx, fromUser = null) {
     const currentUser = sessionStorage.getItem('selectedUser');
     let finalFrom = fromUser || (type === 'withdraw' ? '0243' : currentUser);
     let finalTo = (type === 'withdraw' || type === 'transfer') ? currentUser : '0243';
-
     window.cart.push({ type, mat, prod, qty, from: finalFrom, target: finalTo });
     window.updateCartUI();
-    
     const btn = event.target;
     btn.innerText = "Added!"; btn.disabled = true;
     setTimeout(() => { btn.innerText = "Add"; btn.disabled = false; }, 700);
@@ -168,6 +166,7 @@ window.confirmSendAndSync = async function() {
     } catch (e) { alert("❌ Sync Failed"); }
 };
 
+/* ===== 5. UTILS ===== */
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
     if (!user && !window.location.pathname.includes('index.html')) { window.location.replace('index.html'); return false; }
