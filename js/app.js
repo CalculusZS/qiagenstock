@@ -1,83 +1,93 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - AUTO-SYNC & FIXED LOGIN (COMPATIBLE WITH V8)
+   QIAGEN INVENTORY - ENGLISH VERSION (CORS FIX & AUTO-SYNC)
    ========================================================================== */
 
-const API = "https://script.google.com/macros/s/AKfycbzH2UPTJbENUpj1gx9LQUHWLkCfa1xLocE8Dxy9JG4KswJcBWqpr_wXjnOjF-BvW_x/exec";
+// Use your latest verified URL
+const API = "https://script.google.com/macros/s/AKfycbzlkvbbY_5jyz6_K6UYj7lX_sDbFLDWnZ-Ox_jTfft8g969gyFUcPvVctS9QPKWyk-I/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
 
 window.allRows = [];
 window.cart = [];
 
-/* ===== 1. AUTH & LOGIN (รองรับสถานะ NEW และแก้ปัญหา CORS) ===== */
+/* ===== 1. AUTH & LOGIN ===== */
 window.handleLogin = async function() {
     const uInput = document.getElementById('username-input'), pInput = document.getElementById('password-input');
     if (!uInput || !pInput) return;
-    const userKey = uInput.value.trim().toUpperCase(), passVal = pInput.value.trim();
     
+    const userKey = uInput.value.trim().toUpperCase();
+    const passVal = pInput.value.trim();
+    
+    const btn = document.querySelector('button[onclick="window.handleLogin()"]') || event.target;
+    const originalText = btn.innerText;
+    btn.innerText = "Connecting..."; btn.disabled = true;
+
     try {
-        // ใช้ fetch พร้อม encode ค่าเพื่อป้องกันปัญหาอักขระพิเศษ
-        const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`).then(r => r.json());
-        
+        const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`)
+            .then(r => r.json());
+
         if (res && res.success) {
             const sheetColumnName = USER_MAP[userKey] || res.fullName || "User";
             sessionStorage.setItem('selectedUser', sheetColumnName);
             sessionStorage.setItem('userKey', userKey);
 
-            // ถ้าสถานะเป็น NEW ให้แสดง Modal เปลี่ยนรหัสผ่านทันที
             if (res.status === 'NEW') {
                 window.showForcePasswordChange(userKey);
             } else {
                 window.location.replace('main.html');
             }
         } else {
-            alert("❌ Login Failed: " + (res.msg || "Invalid User/Pass"));
+            alert("❌ Login Failed: " + (res.msg || "Invalid Credentials"));
         }
     } catch (e) { 
-        alert("❌ Connection Error: กรุณาตรวจสอบการ Deploy Script เป็น 'Anyone'"); 
+        alert("❌ Connection Error! Please ensure Deployment is set to 'Anyone'."); 
+    } finally {
+        btn.innerText = originalText; btn.disabled = false;
     }
 };
 
-/* ===== 2. FORCE PASSWORD CHANGE (ฟังก์ชันที่หายไป กลับมาแล้ว) ===== */
+/* ===== 2. FORCE PASSWORD CHANGE (English UI) ===== */
 window.showForcePasswordChange = function(userKey) {
     const div = document.createElement('div');
     div.id = "force-pass-modal";
-    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;z-index:9999;padding:15px;";
+    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;justify-content:center;align-items:center;z-index:9999;padding:20px;box-sizing:border-box;";
     div.innerHTML = `
-        <div style="background:white;padding:30px;border-radius:20px;text-align:center;width:100%;max-width:320px;">
+        <div style="background:white;padding:30px;border-radius:20px;text-align:center;width:100%;max-width:350px;">
             <h3 style="color:#003366;margin-top:0;">New User Detected</h3>
-            <p style="font-size:13px; color:#666; margin-bottom:20px;">First time login! Please set a new password (4+ digits).</p>
+            <p style="font-size:14px; color:#666; margin-bottom:20px;">Please set a new password for your first login (4+ digits).</p>
             <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin-bottom:10px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
             <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin-bottom:20px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
-            <button id="reset-btn" onclick="window.processReset('${userKey}')" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;width:100%;">Update & Login</button>
+            <button id="reset-btn" onclick="window.processReset('${userKey}')" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer;width:100%;">Update & Login</button>
         </div>`;
     document.body.appendChild(div);
 };
 
 window.processReset = async function(userKey) {
     const p1 = document.getElementById('p1').value, p2 = document.getElementById('p2').value;
-    if (!p1 || p1.length < 4) return alert("❌ Password must be at least 4 digits");
-    if (p1 !== p2) return alert("❌ Passwords do not match");
+    if (!p1 || p1.length < 4) return alert("❌ Password must be at least 4 characters.");
+    if (p1 !== p2) return alert("❌ Passwords do not match.");
+
+    const btn = document.getElementById('reset-btn');
+    btn.innerText = "Saving..."; btn.disabled = true;
 
     try {
-        // ใช้ action=setpassword และ parameter newPass ตาม Backend V8 เป๊ะๆ
         const url = `${API}?action=setpassword&user=${encodeURIComponent(userKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`;
         const res = await fetch(url).then(r => r.json());
         if (res.success) {
-            alert("✅ Success! Please login again.");
+            alert("✅ Success! Please login with your new password.");
             window.location.reload();
-        } else { alert("❌ Error: " + res.msg); }
-    } catch (e) { alert("❌ Reset Error"); }
+        } else { alert("❌ " + res.msg); }
+    } catch (e) { alert("❌ Server Error during reset"); }
+    finally { btn.innerText = "Update & Login"; btn.disabled = false; }
 };
 
-/* ===== 3. CART SYSTEM & AUTO-SYNC (Withdraw/Return/Transfer) ===== */
+/* ===== 3. CORE CART & SYNC ===== */
 window.addToCart = function(type, mat, idx, fromUser = null) {
     const qtyInput = document.getElementById('qty_' + idx) || document.getElementById('t_qty_' + idx + '_' + fromUser);
     const qty = qtyInput ? qtyInput.value : 1;
     const prod = (idx !== null && window.allRows[idx]) ? window.allRows[idx]['Product Name'] : "Spare Part";
     const currentUser = sessionStorage.getItem('selectedUser');
 
-    // From (คอลัมน์ G) | To (คอลัมน์ H)
     let finalFrom = fromUser || (type === 'withdraw' ? '0243' : currentUser);
     let finalTo = (type === 'withdraw' || type === 'transfer') ? currentUser : '0243';
 
@@ -110,9 +120,10 @@ window.showEmailPreview = function() {
     const modal = document.createElement('div');
     modal.id = "email-modal";
     modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
-    modal.innerHTML = `<div style="background:white; width:100%; max-width:500px; border-radius:15px; padding:20px;">
-        <h3 style="margin:0 0 5px 0;">Preview & Auto-Sync</h3>
-        <p style="font-size:11px; color:red;">*กด Confirm เพื่อหักสต็อกใน Sheet และเปิด Outlook</p>
+    modal.innerHTML = `
+    <div style="background:white; width:100%; max-width:500px; border-radius:15px; padding:20px;">
+        <h3 style="margin:0 0 10px 0;">Preview & Auto-Sync</h3>
+        <p style="font-size:11px; color:red;">*Sheet inventory will be updated immediately after clicking Confirm.</p>
         <input id="edit-sub" value="${sub}" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ddd; border-radius:8px;">
         <textarea id="edit-body" style="width:100%; height:180px; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:monospace; font-size:12px;">${intro}\n\n${table}\n\nBest Regards,\n${user}</textarea>
         <div style="display:flex; gap:10px; margin-top:15px;">
@@ -125,31 +136,40 @@ window.showEmailPreview = function() {
 
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
-    btn.innerText = "Syncing Sheet..."; btn.disabled = true;
+    btn.innerText = "Syncing..."; btn.disabled = true;
 
-    for (const item of window.cart) {
-        // ส่งค่าไปหา Backend V8 (action: withdraw/return/transfer)
-        const url = `${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`;
-        await fetch(url);
-    }
+    try {
+        for (const item of window.cart) {
+            const url = `${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`;
+            await fetch(url, { mode: 'no-cors' }); 
+        }
 
-    const sub = document.getElementById('edit-sub').value, body = document.getElementById('edit-body').value;
-    const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com", mailCc = "gthfss@qiagen.com";
-    window.location.href = `ms-outlook://compose?to=${mailTo}&cc=${mailCc}&subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;
-    setTimeout(() => { if (document.visibilityState === 'visible') window.location.href = `mailto:${mailTo}?cc=${mailCc}&subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`; }, 800);
-
-    document.getElementById('email-modal').remove();
-    window.cart = []; window.updateCartUI(); window.loadStockData();
-    alert("✅ Sheet Updated!");
+        const sub = document.getElementById('edit-sub').value, body = document.getElementById('edit-body').value;
+        window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;
+        
+        document.getElementById('email-modal').remove();
+        alert("✅ Inventory Updated & Email Triggered");
+        window.cart = []; window.updateCartUI(); window.loadStockData();
+    } catch (e) { alert("❌ Sync Failed"); }
 };
 
-/* ===== 4. DEDUCT & RENDER & HISTORY ===== */
-window.doDeduct = async function(mat, idx) {
-    const wo = document.getElementById('wo_' + idx).value, qty = document.getElementById('qty_' + idx).value;
+/* ===== 4. UI RENDER ===== */
+window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
-    if (!wo) return alert("❌ Please enter WO#");
-    const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ Deducted Successfully"); window.loadStockData(); }
+    if (!user && !window.location.pathname.includes('index.html')) { window.location.replace('index.html'); return false; }
+    ['current-user', 'display-user', 'user_display', 'userName'].forEach(id => {
+        if (document.getElementById(id)) document.getElementById(id).innerText = user;
+    });
+    return true;
+};
+
+window.loadStockData = async function() {
+    const tbody = document.getElementById('data');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading Data...</td></tr>';
+    try {
+        const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
+        if (res && res.success) { window.allRows = res.data; window.renderTable(res.data); }
+    } catch (e) { console.error(e); }
 };
 
 window.renderTable = function(data) {
@@ -165,34 +185,7 @@ window.renderTable = function(data) {
     }).join('');
 };
 
-window.loadHistory = async function() {
-    const listDiv = document.getElementById('list'); if (!listDiv) return;
-    const res = await fetch(`${API}?action=gethistory`).then(r => r.json());
-    if (res.success) {
-        listDiv.innerHTML = res.data.reverse().map(r => `
-            <div style="padding:10px; border-bottom:1px solid #eee; font-size:12px;">
-                <b>${new Date(r[0]).toLocaleDateString()}</b> | ${r[1]}<br>
-                Type: <b style="color:#0078d4">${r[4]}</b> | From: <b>${r[6]||'-'}</b> | To: <b>${r[7]||'-'}</b> | Qty: <b>${r[5]}</b>
-            </div>`).join('');
-    }
-};
-
-window.checkAuth = function() {
-    const user = sessionStorage.getItem('selectedUser');
-    if (!user && !window.location.pathname.includes('index.html')) { window.location.replace('index.html'); return false; }
-    ['current-user', 'display-user', 'user_display', 'userName'].forEach(id => {
-        if (document.getElementById(id)) document.getElementById(id).innerText = user;
-    });
-    return true;
-};
-
-window.loadStockData = async function() {
-    const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { window.allRows = res.data; window.renderTable(res.data); }
-};
-
 window.logout = () => { sessionStorage.clear(); window.location.replace('index.html'); };
 
-// Start
 window.checkAuth();
 if (!window.location.pathname.includes('index.html') && !window.location.pathname.includes('team-stock')) window.loadStockData();
