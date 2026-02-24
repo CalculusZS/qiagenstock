@@ -30,7 +30,7 @@
         <a href="main.html" class="btn-back">BACK</a>
     </div>
     <div class="search-area">
-        <input type="text" id="search" class="search-input" placeholder="Search Material or Member..." oninput="window.filterTeam()">
+        <input type="text" id="search" class="search-input" placeholder="ค้นหา Material หรือชื่อพนักงาน..." oninput="window.filterTeam()">
     </div>
     <div class="list-container" id="team-list"></div>
     <script src="js/app.js"></script>
@@ -59,7 +59,7 @@
                     }
                 });
             });
-            container.innerHTML = html || '<div style="text-align:center; padding:50px;">No items.</div>';
+            container.innerHTML = html || '<div style="text-align:center; padding:50px;">ไม่มีข้อมูลสต็อกในทีม</div>';
         };
         window.filterTeam = () => {
             const q = document.getElementById('search').value.toLowerCase();
