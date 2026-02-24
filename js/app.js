@@ -2,7 +2,6 @@
    QIAGEN INVENTORY - TOTAL SOLUTION (FIXED RESET & ACTIVE STATUS)
    ========================================================================== */
 
-// 1. API URL ล่าสุด (ตรวจสอบให้แน่ใจว่า Deploy เป็น 'Anyone')
 const API = "https://script.google.com/macros/s/AKfycbzlkvbbY_5jyz6_K6UYj7lX_sDbFLDWnZ-Ox_jTfft8g969gyFUcPvVctS9QPKWyk-I/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
@@ -28,13 +27,11 @@ window.handleLogin = async function() {
             } else {
                 window.location.replace('main.html');
             }
-        } else alert("❌ Login Failed: Check User/Pass");
+        } else alert("❌ Login Failed: Check credentials");
     } catch (e) { alert("❌ Connection Error"); }
 };
 
-/* ===== 2. PASSWORD RESET (แก้จุดที่กด Saving แล้วนิ่ง) ===== */
-
-// สร้างฟังก์ชันชื่อ handleSetPassword เพื่อให้ตรงกับที่ปุ่มใน HTML เรียกหา
+/* ===== 2. PASSWORD RESET & ACTIVE STATUS (CRITICAL FIX) ===== */
 window.handleSetPassword = function() {
     const userKey = sessionStorage.getItem('userKey');
     window.processReset(userKey);
@@ -43,11 +40,11 @@ window.handleSetPassword = function() {
 window.showForcePasswordChange = function(userKey) {
     const div = document.createElement('div');
     div.id = "force-pass-modal";
-    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;justify-content:center;align-items:center;z-index:9999;padding:20px;box-sizing:border-box;";
+    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;justify-content:center;align-items:center;z-index:9999;padding:20px;";
     div.innerHTML = `
         <div style="background:white;padding:30px;border-radius:20px;text-align:center;width:100%;max-width:350px;">
             <h3 style="color:#003366;margin-top:0;">New User Detected</h3>
-            <p style="font-size:14px; color:#666; margin-bottom:20px;">Please set a new password (4+ digits).</p>
+            <p style="font-size:14px; color:#666; margin-bottom:20px;">Please set 4+ digit password to activate account.</p>
             <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin-bottom:10px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
             <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin-bottom:20px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
             <button id="reset-btn" onclick="window.handleSetPassword()" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer;">Update & Activate</button>
@@ -57,56 +54,75 @@ window.showForcePasswordChange = function(userKey) {
 
 window.processReset = async function(userKey) {
     const p1 = document.getElementById('p1').value, p2 = document.getElementById('p2').value;
-    if (!p1 || p1.length < 4) return alert("❌ Password must be at least 4 digits.");
-    if (p1 !== p2) return alert("❌ Passwords do not match.");
+    if (!p1 || p1 !== p2 || p1.length < 4) return alert("❌ Passwords do not match or too short");
 
     const btn = document.getElementById('reset-btn');
     btn.innerText = "Activating..."; btn.disabled = true;
 
     try {
-        // ใช้ action=setpassword และ newPass เพื่อให้ Google Script เปลี่ยนสถานะเป็น ACTIVE
+        // ต้องใช้ action=setpassword และ newPass (P ใหญ่) เพื่อให้ Google Script เปลี่ยน Status เป็น ACTIVE
         const url = `${API}?action=setpassword&user=${encodeURIComponent(userKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`;
         const res = await fetch(url).then(r => r.json());
         if (res.success) {
-            alert("✅ Success! Your status is now ACTIVE. Please login again.");
-            window.logout(); 
-        } else alert("❌ " + res.msg);
+            alert("✅ Account Activated! Status: ACTIVE. Please login again.");
+            sessionStorage.clear();
+            window.location.reload(); 
+        } else alert("❌ Failed: " + res.msg);
     } catch (e) { alert("❌ Server Error"); }
     finally { btn.innerText = "Update & Activate"; btn.disabled = false; }
 };
 
-/* ===== 3. DATA RENDERING & DEDUCT (ครบทุกออปชั่น) ===== */
+/* ===== 3. STOCK DATA & RENDERING (Full Options) ===== */
 window.loadStockData = async function() {
     const tbody = document.getElementById('data');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Updating...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading Inventory...</td></tr>';
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res && res.success) { window.allRows = res.data; window.renderTable(res.data); }
-    } catch (e) { console.error(e); }
-};
-
-window.doDeduct = async function(mat, idx) {
-    const wo = document.getElementById('wo_' + idx).value, qty = document.getElementById('qty_' + idx).value;
-    const user = sessionStorage.getItem('selectedUser');
-    if (!wo) return alert("❌ Please enter WO#");
-    const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ Deducted Successfully"); window.loadStockData(); }
+        if (res && res.success) {
+            window.allRows = res.data;
+            window.renderTable(res.data);
+        }
+    } catch (e) { console.error("Load Error:", e); }
 };
 
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); if (!tbody) return;
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
+    
     tbody.innerHTML = data.map((item, index) => {
         const q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0), disp = path.includes('withdraw') ? q0 : qU;
         if ((path.includes('return') || path.includes('deduct')) && qU <= 0) return '';
-        let btn = path.includes('withdraw') ? (q0 > 0 ? `<button onclick="window.addToCart('withdraw','${item.Material}',${index})" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:8px;">Add</button>` : '<b style="color:red">OUT</b>') :
-                  path.includes('return') ? `<button onclick="window.addToCart('return','${item.Material}',${index})" style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:8px;">Add</button>` :
-                  `<div style="display:flex; flex-direction:column; gap:4px;"><input type="text" id="wo_${index}" placeholder="WO#" style="width:70px; padding:4px;"><button onclick="window.doDeduct('${item.Material}',${index})" style="background:#ef4444; color:white; border:none; padding:6px; border-radius:5px;">Deduct</button></div>`;
+        
+        let btn = "";
+        if (path.includes('withdraw')) {
+            btn = q0 > 0 ? `<button onclick="window.addToCart('withdraw','${item.Material}',${index})" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:8px;">Add</button>` : '<b style="color:red">OUT</b>';
+        } else if (path.includes('return')) {
+            btn = `<button onclick="window.addToCart('return','${item.Material}',${index})" style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:8px;">Add</button>`;
+        } else if (path.includes('deduct')) {
+            btn = `<div style="display:flex; flex-direction:column; gap:4px;"><input type="text" id="wo_${index}" placeholder="WO#" style="width:70px; padding:4px;"><button onclick="window.doDeduct('${item.Material}',${index})" style="background:#ef4444; color:white; border:none; padding:6px; border-radius:5px;">Deduct</button></div>`;
+        } else {
+            btn = `<button onclick="window.addToCart('transfer','${item.Material}',${index})" style="background:#0078d4; color:white; border:none; padding:8px 12px; border-radius:8px;">Add</button>`;
+        }
+
         return `<tr><td style="padding:10px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td><td align="center"><b>${disp}</b></td><td align="right" style="white-space:nowrap;"><input type="number" id="qty_${index}" value="1" style="width:35px; text-align:center;"> ${btn}</td></tr>`;
     }).join('');
 };
 
-/* ===== 4. CART & SYNC ===== */
+/* ===== 4. SEARCH & DEDUCT ===== */
+window.searchStock = (q) => {
+    const filtered = window.allRows.filter(r => String(r.Material).toLowerCase().includes(q.toLowerCase()) || String(r['Product Name']).toLowerCase().includes(q.toLowerCase()));
+    window.renderTable(filtered);
+};
+
+window.doDeduct = async function(mat, idx) {
+    const wo = document.getElementById('wo_' + idx).value, qty = document.getElementById('qty_' + idx).value;
+    const user = sessionStorage.getItem('selectedUser');
+    if (!wo) return alert("❌ Enter WO#");
+    const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
+    if (res.success) { alert("✅ Deduct Success"); window.loadStockData(); }
+};
+
+/* ===== 5. CART & EMAIL SYNC (Auto-Sync Support) ===== */
 window.addToCart = function(type, mat, idx, fromUser = null) {
     const qtyInput = document.getElementById('qty_' + idx);
     const qty = qtyInput ? qtyInput.value : 1;
@@ -114,8 +130,10 @@ window.addToCart = function(type, mat, idx, fromUser = null) {
     const currentUser = sessionStorage.getItem('selectedUser');
     let finalFrom = fromUser || (type === 'withdraw' ? '0243' : currentUser);
     let finalTo = (type === 'withdraw' || type === 'transfer') ? currentUser : '0243';
+
     window.cart.push({ type, mat, prod, qty, from: finalFrom, target: finalTo });
     window.updateCartUI();
+    
     const btn = event.target;
     btn.innerText = "Added!"; btn.disabled = true;
     setTimeout(() => { btn.innerText = "Add"; btn.disabled = false; }, 700);
@@ -134,15 +152,15 @@ window.updateCartUI = function() {
 window.showEmailPreview = function() {
     const user = sessionStorage.getItem('selectedUser'), today = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
     let sub = `Spare parts transfer ${user} ${today}`;
-    let intro = `Hi BO,\n\nPlease process the following spare parts:`;
     let table = `Catalog | Name | Qty | From | To\n` + "-".repeat(45) + "\n";
     window.cart.forEach(i => { table += `${i.mat} | ${i.prod} | ${i.qty} | ${i.from} | ${i.target}\n`; });
+
     const modal = document.createElement('div');
     modal.id = "email-modal";
     modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
     modal.innerHTML = `<div style="background:white; width:100%; max-width:500px; border-radius:15px; padding:20px;">
-        <h3 style="margin:0;">Preview & Sync</h3>
-        <textarea id="edit-body" style="width:100%; height:180px; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:monospace; font-size:12px; box-sizing:border-box;">${intro}\n\n${table}\n\nBest Regards,\n${user}</textarea>
+        <h3 style="margin:0;">Confirm Transaction</h3>
+        <textarea id="edit-body" style="width:100%; height:180px; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:monospace; font-size:12px; box-sizing:border-box;">Hi BO,\n\nPlease process:\n\n${table}\n\nBest Regards,\n${user}</textarea>
         <div style="display:flex; gap:10px; margin-top:15px;">
             <button onclick="document.getElementById('email-modal').remove()" style="flex:1; padding:12px; background:#eee; border:none; border-radius:10px;">Cancel</button>
             <button id="sync-btn" onclick="window.confirmSendAndSync()" style="flex:1; padding:12px; background:#0078d4; color:white; border:none; border-radius:10px; font-weight:bold;">Confirm & Sync</button>
@@ -152,8 +170,7 @@ window.showEmailPreview = function() {
 };
 
 window.confirmSendAndSync = async function() {
-    const btn = document.getElementById('sync-btn');
-    btn.innerText = "Syncing..."; btn.disabled = true;
+    const btn = document.getElementById('sync-btn'); btn.innerText = "Syncing..."; btn.disabled = true;
     try {
         for (const item of window.cart) {
             const url = `${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`;
@@ -161,12 +178,26 @@ window.confirmSendAndSync = async function() {
         }
         window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Inventory Update&body=${encodeURIComponent(document.getElementById('edit-body').value)}`;
         document.getElementById('email-modal').remove();
-        alert("✅ Stock Updated!");
+        alert("✅ Sync Complete & Stock Updated!");
         window.cart = []; window.updateCartUI(); window.loadStockData();
     } catch (e) { alert("❌ Sync Failed"); }
 };
 
-/* ===== 5. UTILS ===== */
+/* ===== 6. HISTORY & UTILS ===== */
+window.loadHistory = async function() {
+    const listDiv = document.getElementById('list'); if (!listDiv) return;
+    try {
+        const res = await fetch(`${API}?action=gethistory`).then(r => r.json());
+        if (res.success) {
+            listDiv.innerHTML = res.data.reverse().map(r => `
+                <div style="padding:10px; border-bottom:1px solid #eee; font-size:12px;">
+                    <b>${new Date(r[0]).toLocaleDateString()}</b> | ${r[1]}<br>
+                    Type: <b style="color:#0078d4">${r[4]}</b> | From: <b>${r[6]}</b> | To: <b>${r[7]}</b> | Qty: <b>${r[5]}</b> | WO: ${r[8]||'-'}
+                </div>`).join('');
+        }
+    } catch(e) {}
+};
+
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
     if (!user && !window.location.pathname.includes('index.html')) { window.location.replace('index.html'); return false; }
@@ -179,4 +210,7 @@ window.checkAuth = function() {
 window.logout = () => { sessionStorage.clear(); window.location.replace('index.html'); };
 
 window.checkAuth();
-if (!window.location.pathname.includes('index.html')) window.loadStockData();
+if (!window.location.pathname.includes('index.html')) {
+    window.loadStockData();
+    if (window.location.pathname.includes('history')) window.loadHistory();
+};;
