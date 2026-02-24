@@ -6,86 +6,75 @@
     <title>Team Stock - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* สไตล์ให้เหมือนหน้า Withdraw เป๊ะๆ */
-        .search-container { padding: 15px; background: white; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #eee; }
-        .search-box { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
-        .data-table { width: 100%; border-collapse: collapse; background: white; }
-        .data-table th { background: #f8fafc; padding: 12px; text-align: left; font-size: 13px; color: #64748b; border-bottom: 1px solid #eee; }
-        .user-tag { display: inline-block; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; margin-top: 4px; }
-        .qty-input { width: 40px; padding: 8px; border-radius: 6px; border: 1px solid #ddd; text-align: center; }
-        .btn-transfer { background: #f59e0b; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .stock-card { background: white; padding: 15px; border-bottom: 1px solid #eee; display: grid; grid-template-columns: 2fr 1fr 1.5fr; align-items: center; }
+        .owner-tag { display: inline-flex; align-items: center; background: #f0f7ff; color: #003366; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-top: 5px; }
+        .qty-display { font-size: 20px; font-weight: bold; text-align: center; color: #333; }
+        .action-area { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+        .input-qty { width: 45px; padding: 8px; border: 1px solid #ddd; border-radius: 6px; text-align: center; }
+        .btn-transfer { background: #f59e0b; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="container">
         <header style="padding: 15px;">
-            <a href="main.html" style="text-decoration:none; color:#003366; font-weight:bold;">← Back</a>
-            <h1 style="margin:10px 0; color:#003366;">👥 Team Stock</h1>
+            <a href="main.html" style="text-decoration:none; color:#003366;">← Back</a>
+            <h1 style="margin:10px 0;">👥 Team Stock</h1>
         </header>
 
-        <div class="search-container">
-            <input type="text" id="search" class="search-box" placeholder="Search Material or Team Member..." oninput="window.filterTeam()">
+        <div style="padding: 0 15px 15px;">
+            <input type="text" id="search" placeholder="Search Material or Team Member..." 
+                   style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px;" oninput="window.filterTeam()">
         </div>
 
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Material</th>
-                    <th style="text-align:center;">Qty</th>
-                    <th style="text-align:right; padding-right:15px;">Action</th>
-                </tr>
-            </thead>
-            <tbody id="team-data-body">
-                <tr><td colspan="3" align="center" style="padding:40px;">Loading Team Inventory...</td></tr>
-            </tbody>
-        </table>
+        <div style="background:#f8fafc; padding: 10px 15px; display: grid; grid-template-columns: 2fr 1fr 1.5fr; font-size: 12px; font-weight: bold; color: #64748b;">
+            <div>MATERIAL</div>
+            <div style="text-align:center;">QTY</div>
+            <div style="text-align:right;">ACTION</div>
+        </div>
+        
+        <div id="team-list">
+            </div>
     </div>
 
     <script src="js/app.js"></script>
     <script>
-        // ฟังก์ชัน Render เฉพาะหน้า Team Stock เพื่อความเร็ว
         window.renderTeamTable = function(data) {
-            const tbody = document.getElementById('team-data-body');
-            const currentUser = sessionStorage.getItem('selectedUser');
+            const container = document.getElementById('team-list');
+            const user = sessionStorage.getItem('selectedUser');
             const members = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
             let html = '';
 
             data.forEach((item, idx) => {
                 members.forEach(m => {
                     const stock = Number(item[m] || 0);
-                    // ถ้าไม่ใช่ตัวเอง และมีของ ให้โชว์
-                    if (m !== currentUser && stock > 0) {
+                    if (m !== user && stock > 0) {
                         html += `
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td style="padding:15px;">
+                        <div class="stock-card">
+                            <div>
                                 <div style="font-weight:bold; color:#003366;">${item.Material}</div>
                                 <div style="font-size:11px; color:#666;">${item['Product Name'] || ''}</div>
-                                <div class="user-tag">👤 Owner: ${m}</div>
-                            </td>
-                            <td align="center" style="font-size:18px; font-weight:bold;">${stock}</td>
-                            <td align="right" style="padding-right:10px;">
-                                <div style="display:flex; gap:5px; align-items:center; justify-content:flex-end;">
-                                    <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${stock}" class="qty-input">
-                                    <button onclick="window.addToCart('transfer', '${item.Material}', ${idx}, '${m}')" class="btn-transfer">Transfer</button>
-                                </div>
-                            </td>
-                        </tr>`;
+                                <div class="owner-tag">👤 Owner: ${m}</div>
+                            </div>
+                            <div class="qty-display">${stock}</div>
+                            <div class="action-area">
+                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${stock}" class="input-qty">
+                                <button onclick="window.addToCart('transfer', '${item.Material}', ${idx}, '${m}')" class="btn-transfer">Transfer</button>
+                            </div>
+                        </div>`;
                     }
                 });
             });
-            tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:40px;">No items found.</td></tr>';
+            container.innerHTML = html || '<p align="center" style="padding:20px;">No items found.</p>';
         };
 
         window.filterTeam = () => {
             const q = document.getElementById('search').value.toLowerCase();
             const filtered = window.allRows.filter(i => 
-                String(i.Material).toLowerCase().includes(q) || 
-                String(i['Product Name']).toLowerCase().includes(q)
+                String(i.Material).toLowerCase().includes(q) || String(i['Product Name']).toLowerCase().includes(q)
             );
             window.renderTeamTable(filtered);
         };
 
-        // โหลดข้อมูลทันทีเมื่อเปิดหน้า
         window.onload = async () => {
             if (window.allRows.length === 0) await window.loadStockData();
             window.renderTeamTable(window.allRows);
