@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - V46 (FULL OPTION + PRODUCT NAME IN BASKET)
+   QIAGEN INVENTORY - V47 (FULL OPTION + CUSTOM UI)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
 const MASTER_PASS = "Service";
@@ -41,7 +41,7 @@ window.processReset = async function(userKey) {
     if (res.success) window.location.reload();
 };
 
-/* 2. RENDER (DEDUCT: WO -> QTY -> BTN) */
+/* 2. RENDER TABLE (Custom logic for Show All) */
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); if (!tbody) return;
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
@@ -50,17 +50,30 @@ window.renderTable = function(data) {
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
 
+        // เงื่อนไขหน้า Show All: ถ้าเป็น 0 ให้โชว์ "ไม่มี" (สีแดง)
+        let qtyLabel = displayQty;
+        if (path.includes('showall') && displayQty <= 0) {
+            qtyLabel = '<span style="color:#dc2626; font-size:14px;">ไม่มี</span>';
+        }
+
         if ((path.includes('return') || path.includes('deduct')) && qU <= 0) return '';
         if (displayQty <= 0 && !path.includes('showall')) return '';
 
         let actionUI = "";
-        if (path.includes('deduct')) {
+        // 1. ถ้าหน้า Show All ไม่ต้องมีปุ่ม
+        if (path.includes('showall')) {
+            actionUI = `<span style="color:#64748b; font-size:12px;">Status Only</span>`;
+        } 
+        // 2. หน้า Deduct: [Work Order] -> [Qty] -> [ปุ่ม Deduct]
+        else if (path.includes('deduct')) {
             actionUI = `<div style="display:flex; gap:5px; align-items:center; justify-content:flex-end;">
                 <input type="text" id="wo_${index}" placeholder="WO#" style="width:90px; padding:8px; border:1px solid #ddd; border-radius:6px;">
                 <input type="number" id="qty_${index}" value="1" min="1" style="width:40px; padding:8px; border:1px solid #ddd; border-radius:6px; text-align:center;">
                 <button onclick="window.doDeduct('${item.Material}',${index})" style="background:#dc2626; color:white; border:none; padding:10px 12px; border-radius:8px; font-weight:bold;">Deduct</button>
             </div>`;
-        } else {
+        } 
+        // 3. หน้า Withdraw / Return
+        else {
             const isWithdraw = path.includes('withdraw');
             const color = isWithdraw ? '#003366' : '#16a34a';
             const from = isWithdraw ? '0243' : user;
@@ -72,13 +85,13 @@ window.renderTable = function(data) {
 
         return `<tr style="border-bottom:1px solid #eee;">
             <td style="padding:15px;"><div style="font-weight:bold; color:#003366;">${item.Material}</div><div style="font-size:11px; color:#666;">${item['Product Name']}</div></td>
-            <td align="center" style="font-size:18px; font-weight:bold;">${displayQty}</td>
+            <td align="center" style="font-size:18px; font-weight:bold;">${qtyLabel}</td>
             <td align="right" style="padding-right:10px;">${actionUI}</td>
         </tr>`;
     }).join('');
 };
 
-/* 3. CORE LOGIC & BASKET (ADDED PRODUCT NAME) */
+/* 3. CORE LOGIC */
 window.loadStockData = async function() {
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
@@ -94,15 +107,7 @@ window.addToCart = function(type, mat, idx, fromUser) {
     let qInput = document.getElementById('qty_' + idx) || document.getElementById(`t_qty_${idx}_${fromUser}`);
     const itemData = window.allRows.find(i => String(i.Material) === String(mat)) || {};
     const user = sessionStorage.getItem('selectedUser');
-    
-    window.cart.push({ 
-        type, 
-        mat, 
-        name: itemData['Product Name'] || 'N/A', // เพิ่ม Product Name เข้าไปในตะกร้า
-        qty: qInput.value, 
-        from: fromUser, 
-        target: (type==='return'?'0243':user) 
-    });
+    window.cart.push({ type, mat, name: itemData['Product Name'] || 'N/A', qty: qInput.value, from: fromUser, target: (type==='return'?'0243':user) });
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
 };
@@ -117,17 +122,14 @@ window.updateCartUI = function() {
     btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#f59e0b; color:white; padding:16px 24px; border-radius:50px; border:none; font-weight:bold; box-shadow:0 8px 20px rgba(0,0,0,0.2);">🛒 Basket (${window.cart.length})</button>` : '';
 };
 
+/* หน้าตะกร้าใช้สีฟ้าอ่อนตามสั่ง */
 window.showReviewModal = function() {
-    // เพิ่มคอลัมน์ Product Name ในหน้าสรุปตะกร้า
     let html = `<div style="max-height:280px; overflow-y:auto; margin:15px 0;"><table style="width:100%; font-size:11px; border-collapse:collapse;">
-        <tr style="background:#eee;"><th style="padding:8px;text-align:left;">Material / Product Name</th><th style="padding:8px;">Qty</th><th style="padding:8px;">From→To</th><th style="padding:8px;"></th></tr>`;
+        <tr style="background:#bae6fd;"><th style="padding:8px;text-align:left;">Material / Product Name</th><th style="padding:8px;">Qty</th><th style="padding:8px;">Transfer</th><th style="padding:8px;"></th></tr>`;
     
     window.cart.forEach((i, idx) => {
-        html += `<tr style="border-bottom:1px solid #eee;">
-            <td style="padding:8px;">
-                <div style="font-weight:bold;">${i.mat}</div>
-                <div style="font-size:10px; color:#666;">${i.name}</div>
-            </td>
+        html += `<tr style="border-bottom:1px solid #e0f2fe;">
+            <td style="padding:8px;"><div style="font-weight:bold;">${i.mat}</div><div style="font-size:10px; color:#666;">${i.name}</div></td>
             <td style="padding:8px; text-align:center;">${i.qty}</td>
             <td style="padding:8px; text-align:center;">${i.from}→${i.target}</td>
             <td style="padding:8px;"><button onclick="window.removeFromCart(${idx})" style="color:red; border:none; background:none; font-weight:bold;">✕</button></td>
@@ -137,9 +139,10 @@ window.showReviewModal = function() {
     
     const div = document.createElement('div'); div.id = "review-modal";
     div.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
-    div.innerHTML = `<div style="background:white; width:100%; max-width:450px; border-radius:20px; padding:20px;">
-        <h3 style="margin:0; color:#003366;">Confirm Transactions</h3>${html}
-        <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:14px; background:#003366; color:white; border:none; border-radius:12px; font-weight:bold;">Sync & Send Email</button>
+    // พื้นหลังสีฟ้าอ่อน #e0f2fe
+    div.innerHTML = `<div style="background:#e0f2fe; width:100%; max-width:450px; border-radius:20px; padding:20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        <h3 style="margin:0; color:#0369a1;">🛒 รายการในตะกร้า</h3>${html}
+        <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:14px; background:#0369a1; color:white; border:none; border-radius:12px; font-weight:bold;">Sync & Send Email</button>
         <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; background:none; border:none; color:#666;">Close</button>
     </div>`;
     document.body.appendChild(div);
@@ -160,12 +163,15 @@ window.confirmSendAndSync = async function() {
     } catch (e) { alert("❌ Failed"); btn.disabled = false; }
 };
 
+// หน้า Deduct: ตัดออกจากระบบ ไม่ต้องระบุผู้รับ
 window.doDeduct = async function(mat, idx) {
     const qty = document.getElementById('qty_' + idx).value;
     const wo = document.getElementById('wo_' + idx).value.trim();
     if (!wo) return alert("❌ Work Order# Required");
+    
+    // ส่งแค่ mat, qty, wo (Action deduct ใน Script จะลดค่าในคอลัมน์ User โดยอัตโนมัติ)
     const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(sessionStorage.getItem('selectedUser'))}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ Deducted!"); window.loadStockData(); }
+    if (res.success) { alert("✅ ตัดสต็อกออกจากระบบสำเร็จ!"); window.loadStockData(); }
 };
 
 window.removeFromCart = (idx) => {
