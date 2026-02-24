@@ -9,14 +9,25 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = [];
 
-/* ===== 1. AUTH & LOGIN (แก้ไขให้รองรับ NEW USER) ===== */
+/* ===== 1. AUTH & LOGIN (รองรับระบบ NEW USER และแก้ปัญหา Connection) ===== */
 window.handleLogin = async function() {
     const uInput = document.getElementById('username-input'), pInput = document.getElementById('password-input');
     if (!uInput || !pInput) return;
-    const userKey = uInput.value.trim().toUpperCase(), passVal = pInput.value.trim();
     
+    const userKey = uInput.value.trim().toUpperCase();
+    const passVal = pInput.value.trim();
+    
+    // เปลี่ยนปุ่มเป็นสถานะกำลังโหลด
+    const loginBtn = document.querySelector('button[onclick="window.handleLogin()"]');
+    if(loginBtn) { loginBtn.innerText = "Connecting..."; loginBtn.disabled = true; }
+
     try {
-        const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`).then(r => r.json());
+        // ใช้ fetch พร้อมกำหนด mode: 'cors' เพื่อความปลอดภัย
+        const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`, {
+            method: 'GET',
+            mode: 'cors'
+        }).then(r => r.json());
+
         if (res && res.success) {
             const sheetColumnName = USER_MAP[userKey] || res.fullName || "User";
             sessionStorage.setItem('selectedUser', sheetColumnName);
@@ -31,21 +42,27 @@ window.handleLogin = async function() {
         } else {
             alert("❌ Login Failed: " + (res.msg || "Invalid Credentials"));
         }
-    } catch (e) { alert("❌ Connection Error"); }
+    } catch (e) { 
+        console.error("Login Error:", e);
+        alert("❌ Connection Error: ไม่สามารถเชื่อมต่อกับ Server ได้ กรุณาตรวจสอบการ Deploy Script เป็นแบบ 'Anyone'"); 
+    } finally {
+        if(loginBtn) { loginBtn.innerText = "LOGIN"; loginBtn.disabled = false; }
+    }
 };
 
-/* ===== 2. FORCE PASSWORD CHANGE UI (ส่วนที่หายไป) ===== */
+/* ===== 2. FORCE PASSWORD CHANGE UI (Modal สวยงามแทน prompt) ===== */
 window.showForcePasswordChange = function(userKey) {
+    // สร้าง Modal แถบสีดำโปร่งแสง
     const div = document.createElement('div');
     div.id = "force-pass-modal";
     div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;z-index:9999;padding:15px;box-sizing:border-box;";
     div.innerHTML = `
-        <div style="background:white;padding:30px;border-radius:20px;text-align:center;width:100%;max-width:320px;">
+        <div style="background:white;padding:30px;border-radius:20px;text-align:center;width:100%;max-width:320px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
             <h3 style="color:#003366;margin-top:0;">New User Detected</h3>
             <p style="font-size:13px; color:#666; margin-bottom:20px;">First time login! Please set your new password (4+ digits).</p>
             <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin-bottom:10px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
             <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin-bottom:20px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
-            <button onclick="window.processReset('${userKey}')" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer;">Update & Login</button>
+            <button id="reset-btn" onclick="window.processReset('${userKey}')" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer;">Update & Login</button>
         </div>`;
     document.body.appendChild(div);
 };
@@ -53,11 +70,15 @@ window.showForcePasswordChange = function(userKey) {
 window.processReset = async function(userKey) {
     const p1 = document.getElementById('p1').value;
     const p2 = document.getElementById('p2').value;
+    const btn = document.getElementById('reset-btn');
     
     if (!p1 || p1.length < 4) return alert("❌ Password must be at least 4 digits");
     if (p1 !== p2) return alert("❌ Passwords do not match");
 
+    btn.innerText = "Updating..."; btn.disabled = true;
+
     try {
+        // ใช้ action=setpassword ตามที่ระบุใน Backend ล่าสุด
         const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(userKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`).then(r => r.json());
         if (res.success) {
             alert("✅ Password updated! Please login again with your new password.");
@@ -66,12 +87,16 @@ window.processReset = async function(userKey) {
             alert("❌ Update failed: " + res.msg);
         }
     } catch (e) { alert("❌ Error resetting password"); }
+    finally { btn.innerText = "Update & Login"; btn.disabled = false; }
 };
 
-/* ===== 3. CORE FUNCTIONS (เหมือนเดิม) ===== */
+/* ===== 3. CORE FUNCTIONS (Cart & Sync) ===== */
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
-    if (!user && !window.location.pathname.includes('index.html')) { window.location.replace('index.html'); return false; }
+    if (!user && !window.location.pathname.includes('index.html')) { 
+        window.location.replace('index.html'); 
+        return false; 
+    }
     ['current-user', 'display-user', 'user_display', 'userName'].forEach(id => {
         if (document.getElementById(id)) document.getElementById(id).innerText = user;
     });
@@ -83,7 +108,10 @@ window.loadStockData = async function() {
     if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Updating Data...</td></tr>';
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res && res.success) { window.allRows = res.data; window.renderTable(res.data); }
+        if (res && res.success) { 
+            window.allRows = res.data; 
+            window.renderTable(res.data); 
+        }
     } catch (e) { console.error(e); }
 };
 
@@ -157,14 +185,6 @@ window.confirmSendAndSync = async function() {
     window.cart = []; window.updateCartUI(); window.loadStockData();
 };
 
-window.doDeduct = async function(mat, idx) {
-    const wo = document.getElementById('wo_' + idx).value, qty = document.getElementById('qty_' + idx).value;
-    const user = sessionStorage.getItem('selectedUser');
-    if (!wo) return alert("❌ Please enter WO#");
-    const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ Deducted Successfully"); window.loadStockData(); }
-};
-
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); if (!tbody) return;
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
@@ -176,18 +196,6 @@ window.renderTable = function(data) {
                   `<div style="display:flex; flex-direction:column; gap:4px;"><input type="text" id="wo_${index}" placeholder="WO#" style="width:70px; padding:4px;"><button onclick="window.doDeduct('${item.Material}',${index})" style="background:#ef4444; color:white; border:none; padding:6px; border-radius:5px;">Deduct</button></div>`;
         return `<tr><td style="padding:10px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td><td align="center"><b>${disp}</b></td><td align="right" style="white-space:nowrap;"><input type="number" id="qty_${index}" value="1" style="width:35px; text-align:center;"> ${btn}</td></tr>`;
     }).join('');
-};
-
-window.loadHistory = async function() {
-    const listDiv = document.getElementById('list'); if (!listDiv) return;
-    const res = await fetch(`${API}?action=gethistory`).then(r => r.json());
-    if (res.success) {
-        listDiv.innerHTML = res.data.reverse().map(r => `
-            <div style="padding:10px; border-bottom:1px solid #eee; font-size:12px;">
-                <b>${new Date(r[0]).toLocaleDateString()}</b> | ${r[1]}<br>
-                Type: <b style="color:#0078d4">${r[4]}</b> | From: <b>${r[6]||'-'}</b> | To: <b>${r[7]||'-'}</b> | Qty: <b>${r[5]}</b> | WO: ${r[8]||'-'}
-            </div>`).join('');
-    }
 };
 
 window.logout = () => { sessionStorage.clear(); window.location.replace('index.html'); };
