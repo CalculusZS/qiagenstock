@@ -6,65 +6,62 @@
     <title>Team Stock - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .stock-card { background: white; padding: 15px; border-bottom: 1px solid #eee; display: grid; grid-template-columns: 2fr 1fr 1.5fr; align-items: center; }
-        .owner-tag { display: inline-flex; align-items: center; background: #f0f7ff; color: #003366; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-top: 5px; }
-        .qty-display { font-size: 20px; font-weight: bold; text-align: center; color: #333; }
-        .action-area { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
-        .input-qty { width: 45px; padding: 8px; border: 1px solid #ddd; border-radius: 6px; text-align: center; }
-        .btn-transfer { background: #f59e0b; color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .stock-item { background: white; padding: 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
+        .info { flex: 2; }
+        .qty-center { flex: 1; text-align: center; font-size: 20px; font-weight: bold; color: #003366; }
+        .action { flex: 1.5; display: flex; gap: 5px; justify-content: flex-end; align-items: center; }
+        .user-tag { background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; margin-top: 4px; display: inline-block; }
     </style>
 </head>
 <body>
     <div class="container">
         <header style="padding: 15px;">
-            <a href="main.html" style="text-decoration:none; color:#003366;">← Back</a>
+            <a href="main.html" style="text-decoration:none; color:#003366; font-weight:bold;">← Back</a>
             <h1 style="margin:10px 0;">👥 Team Stock</h1>
+            <input type="text" id="search" placeholder="Search Material..." oninput="window.filterTeam()" 
+                   style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; font-size:16px; box-sizing:border-box;">
         </header>
 
-        <div style="padding: 0 15px 15px;">
-            <input type="text" id="search" placeholder="Search Material or Team Member..." 
-                   style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px;" oninput="window.filterTeam()">
+        <div style="background:#f1f5f9; padding:10px 15px; display:flex; font-size:12px; font-weight:bold; color:#64748b;">
+            <div style="flex:2;">MATERIAL</div>
+            <div style="flex:1; text-align:center;">QTY</div>
+            <div style="flex:1.5; text-align:right;">ACTION</div>
         </div>
 
-        <div style="background:#f8fafc; padding: 10px 15px; display: grid; grid-template-columns: 2fr 1fr 1.5fr; font-size: 12px; font-weight: bold; color: #64748b;">
-            <div>MATERIAL</div>
-            <div style="text-align:center;">QTY</div>
-            <div style="text-align:right;">ACTION</div>
-        </div>
-        
-        <div id="team-list">
+        <div id="team-data-list">
             </div>
     </div>
 
     <script src="js/app.js"></script>
     <script>
         window.renderTeamTable = function(data) {
-            const container = document.getElementById('team-list');
+            const list = document.getElementById('team-data-list');
             const user = sessionStorage.getItem('selectedUser');
             const members = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
             let html = '';
 
             data.forEach((item, idx) => {
                 members.forEach(m => {
-                    const stock = Number(item[m] || 0);
-                    if (m !== user && stock > 0) {
+                    const q = Number(item[m] || 0);
+                    if (m !== user && q > 0) {
                         html += `
-                        <div class="stock-card">
-                            <div>
+                        <div class="stock-item">
+                            <div class="info">
                                 <div style="font-weight:bold; color:#003366;">${item.Material}</div>
-                                <div style="font-size:11px; color:#666;">${item['Product Name'] || ''}</div>
-                                <div class="owner-tag">👤 Owner: ${m}</div>
+                                <div style="font-size:11px; color:#666;">${item['Product Name']}</div>
+                                <div class="user-tag">👤 ${m}</div>
                             </div>
-                            <div class="qty-display">${stock}</div>
-                            <div class="action-area">
-                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${stock}" class="input-qty">
-                                <button onclick="window.addToCart('transfer', '${item.Material}', ${idx}, '${m}')" class="btn-transfer">Transfer</button>
+                            <div class="qty-center">${q}</div>
+                            <div class="action">
+                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" style="width:40px; padding:8px; border:1px solid #ddd; border-radius:6px; text-align:center;">
+                                <button onclick="window.addToCart('transfer', '${item.Material}', ${idx}, '${m}')" 
+                                        style="background:#f59e0b; color:white; border:none; padding:10px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">Transfer</button>
                             </div>
                         </div>`;
                     }
                 });
             });
-            container.innerHTML = html || '<p align="center" style="padding:20px;">No items found.</p>';
+            list.innerHTML = html || '<p align="center" style="padding:40px;">No team items found.</p>';
         };
 
         window.filterTeam = () => {
