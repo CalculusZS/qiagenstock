@@ -2,7 +2,7 @@
    QIAGEN INVENTORY - ULTIMATE AUTO-SYNC VERSION
    ========================================================================== */
 
-const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
+const API = "https://script.google.com/macros/s/AKfycbzH2UPTJbENUpj1gx9LQUHWLkCfa1xLocE8Dxy9JG4KswJcBWqRpr_wXjnOjF-BvW_x/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
 
