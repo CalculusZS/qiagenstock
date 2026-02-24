@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - CUSTOM V16 (CLEAN CODE & STABLE LOGIN)
+   QIAGEN INVENTORY - COMPLETE STABLE VERSION (V17)
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbzejA7IBIMHmeEvDUoaghhvrh4Mz2ZJD6t4OPEyJliaq73adxajPxNH9vGbRHXUuobt/exec";
@@ -9,7 +9,7 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-/* ===== 1. AUTH & LOGIN (เสถียรที่สุด) ===== */
+/* ===== 1. AUTH & LOGIN SYSTEM (เสถียรที่สุด) ===== */
 window.handleSetPassword = function() { window.processReset(); };
 
 window.handleLogin = async function() {
@@ -55,7 +55,7 @@ window.processReset = async function() {
     } catch (e) { alert("❌ Error"); }
 };
 
-/* ===== 2. RENDER TABLE (UI ปรับตามหน้าต่างๆ) ===== */
+/* ===== 2. RENDER TABLE (UI ปรับตามแต่ละหน้า) ===== */
 window.loadStockData = async function() {
     const tbody = document.getElementById('data');
     if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Updating Data...</td></tr>';
@@ -82,6 +82,7 @@ window.renderTable = function(data) {
         if (path.includes('return') || path.includes('deduct')) currentQty = qU;
         if (path.includes('team-stock')) currentQty = Number(item[owner] || 0);
 
+        // หน้าโชว์ทั้งหมด (แสดงตัวแดงเมื่อไม่มีของ)
         if (path.includes('showall')) {
             return `<tr><td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
             <td align="center">${currentQty > 0 ? `<b>${currentQty}</b>` : '<b style="color:red">ไม่มีอะไหล่</b>'}</td>
@@ -93,6 +94,7 @@ window.renderTable = function(data) {
 
         let actionArea = "";
         if (path.includes('deduct')) {
+            // ช่อง WO กว้างขึ้น 2 เท่า
             actionArea = `<input type="text" id="wo_${index}" placeholder="Work Order#" style="width:140px; padding:8px; border:1px solid #ddd; border-radius:5px; margin-bottom:5px;"><br>
             <button onclick="window.doDeduct('${item.Material}',${index})" style="background:#003366; color:white; border:none; padding:8px 15px; border-radius:8px; width:100%; cursor:pointer;">Deduct</button>`;
         } else {
@@ -107,12 +109,14 @@ window.renderTable = function(data) {
     }).join('');
 };
 
-/* ===== 3. BASKET SYSTEM ===== */
+/* ===== 3. BASKET SYSTEM (ตะกร้าสะสมไม่หาย) ===== */
 window.addToCart = function(type, mat, idx, fromUser) {
-    const qty = document.getElementById('qty_' + idx).value;
+    const qtyInput = document.getElementById('qty_' + idx);
+    const qty = qtyInput ? qtyInput.value : 1;
     const user = sessionStorage.getItem('selectedUser');
     let fTo = (type === 'withdraw' || type === 'transfer') ? user : '0243';
     let fFrom = (type === 'return') ? user : fromUser;
+    
     window.cart.push({ type, mat, qty, from: fFrom, target: fTo });
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
@@ -173,7 +177,7 @@ window.confirmSendAndSync = async function() {
     } catch (e) { alert("❌ Sync Failed"); btn.disabled = false; }
 };
 
-/* ===== 4. DEDUCT & HISTORY ===== */
+/* ===== 4. DEDUCT & HISTORY (ประวัติ 9 คอลัมน์) ===== */
 window.doDeduct = async function(mat, idx) {
     const wo = document.getElementById('wo_' + idx).value;
     const qty = document.getElementById('qty_' + idx).value;
