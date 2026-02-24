@@ -1,31 +1,74 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - ULTIMATE AUTO-SYNC VERSION
+   QIAGEN INVENTORY - ULTIMATE AUTO-SYNC (FIXED LOGIN & PASS CHANGE)
    ========================================================================== */
 
-const API = "https://script.google.com/macros/s/AKfycbzH2UPTJbENUpj1gx9LQUHWLkCfa1xLocE8Dxy9JG4KswJcBWqRpr_wXjnOjF-BvW_x/exec";
+const API = "https://script.google.com/macros/s/AKfycbzH2UPTJbENUpj1gx9LQUHWLkCfa1xLocE8Dxy9JG4KswJcBWqpr_wXjnOjF-BvW_x/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
 
 window.allRows = [];
 window.cart = [];
 
-/* ===== 1. AUTH & LOGIN (Complete) ===== */
+/* ===== 1. AUTH & LOGIN (แก้ไขให้รองรับ NEW USER) ===== */
 window.handleLogin = async function() {
     const uInput = document.getElementById('username-input'), pInput = document.getElementById('password-input');
     if (!uInput || !pInput) return;
     const userKey = uInput.value.trim().toUpperCase(), passVal = pInput.value.trim();
+    
     try {
         const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`).then(r => r.json());
         if (res && res.success) {
             const sheetColumnName = USER_MAP[userKey] || res.fullName || "User";
             sessionStorage.setItem('selectedUser', sheetColumnName);
             sessionStorage.setItem('userKey', userKey);
-            if (res.status === 'NEW') window.showForcePasswordChange(userKey);
-            else window.location.replace('main.html');
-        } else alert("❌ Login Failed");
+
+            // ตรวจสอบสถานะ NEW เพื่อบังคับเปลี่ยนรหัสผ่าน
+            if (res.status === 'NEW') {
+                window.showForcePasswordChange(userKey);
+            } else {
+                window.location.replace('main.html');
+            }
+        } else {
+            alert("❌ Login Failed: " + (res.msg || "Invalid Credentials"));
+        }
     } catch (e) { alert("❌ Connection Error"); }
 };
 
+/* ===== 2. FORCE PASSWORD CHANGE UI (ส่วนที่หายไป) ===== */
+window.showForcePasswordChange = function(userKey) {
+    const div = document.createElement('div');
+    div.id = "force-pass-modal";
+    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;justify-content:center;align-items:center;z-index:9999;padding:15px;box-sizing:border-box;";
+    div.innerHTML = `
+        <div style="background:white;padding:30px;border-radius:20px;text-align:center;width:100%;max-width:320px;">
+            <h3 style="color:#003366;margin-top:0;">New User Detected</h3>
+            <p style="font-size:13px; color:#666; margin-bottom:20px;">First time login! Please set your new password (4+ digits).</p>
+            <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin-bottom:10px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
+            <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin-bottom:20px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
+            <button onclick="window.processReset('${userKey}')" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer;">Update & Login</button>
+        </div>`;
+    document.body.appendChild(div);
+};
+
+window.processReset = async function(userKey) {
+    const p1 = document.getElementById('p1').value;
+    const p2 = document.getElementById('p2').value;
+    
+    if (!p1 || p1.length < 4) return alert("❌ Password must be at least 4 digits");
+    if (p1 !== p2) return alert("❌ Passwords do not match");
+
+    try {
+        const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(userKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`).then(r => r.json());
+        if (res.success) {
+            alert("✅ Password updated! Please login again with your new password.");
+            window.location.reload();
+        } else {
+            alert("❌ Update failed: " + res.msg);
+        }
+    } catch (e) { alert("❌ Error resetting password"); }
+};
+
+/* ===== 3. CORE FUNCTIONS (เหมือนเดิม) ===== */
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
     if (!user && !window.location.pathname.includes('index.html')) { window.location.replace('index.html'); return false; }
@@ -35,7 +78,6 @@ window.checkAuth = function() {
     return true;
 };
 
-/* ===== 2. DATA LOADING ===== */
 window.loadStockData = async function() {
     const tbody = document.getElementById('data');
     if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Updating Data...</td></tr>';
@@ -45,15 +87,12 @@ window.loadStockData = async function() {
     } catch (e) { console.error(e); }
 };
 
-/* ===== 3. CART SYSTEM (Withdraw, Return, Transfer Combined) ===== */
 window.addToCart = function(type, mat, idx, fromUser = null) {
-    // ดึงค่าจากหน้า Team Stock หรือหน้าปกติ
     const qtyInput = document.getElementById('qty_' + idx) || document.getElementById('t_qty_' + idx + '_' + fromUser);
     const qty = qtyInput ? qtyInput.value : 1;
     const prod = (idx !== null && window.allRows[idx]) ? window.allRows[idx]['Product Name'] : "Spare Part";
     const currentUser = sessionStorage.getItem('selectedUser');
 
-    // Logic การระบุต้นทาง/ปลายทาง (From: Col G, To: Col H)
     let finalFrom = fromUser || (type === 'withdraw' ? '0243' : currentUser);
     let finalTo = (type === 'withdraw' || type === 'transfer') ? currentUser : '0243';
 
@@ -76,10 +115,8 @@ window.updateCartUI = function() {
         `<button onclick="window.showEmailPreview()" style="background:#0078d4; color:white; padding:15px 25px; border-radius:50px; border:none; box-shadow:0 5px 15px rgba(0,0,0,0.3); font-weight:bold; font-size:16px;">📧 Confirm & Sync (${window.cart.length})</button>` : '';
 };
 
-/* ===== 4. AUTO-SYNC & EMAIL PREVIEW ===== */
 window.showEmailPreview = function() {
     const user = sessionStorage.getItem('selectedUser'), today = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-    // หัวข้ออีเมลตามสั่ง: Spare parts transfer [ชื่อพนักงาน] [วันที่]
     let sub = `Spare parts transfer ${user} ${today}`;
     let intro = `Hi BO,\n\nPlease process the following spare parts transfer/return:`;
     let table = `Catalog | Name | Qty | From | To\n` + "-".repeat(45) + "\n";
@@ -105,14 +142,11 @@ window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     btn.innerText = "Processing..."; btn.disabled = true;
 
-    // --- วนลูปตัดสต็อกอัตโนมัติ (Withdraw / Return / Transfer) ---
     for (const item of window.cart) {
-        // ส่ง action ตามประเภท (เช่น action=transfer จะไปลบ From และบวก To ใน Sheet)
         const url = `${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`;
         await fetch(url);
     }
 
-    // --- เปิด Outlook ---
     const sub = document.getElementById('edit-sub').value, body = document.getElementById('edit-body').value;
     const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com", mailCc = "gthfss@qiagen.com";
     window.location.href = `ms-outlook://compose?to=${mailTo}&cc=${mailCc}&subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;
@@ -123,7 +157,6 @@ window.confirmSendAndSync = async function() {
     window.cart = []; window.updateCartUI(); window.loadStockData();
 };
 
-/* ===== 5. DEDUCT & TABLE RENDER ===== */
 window.doDeduct = async function(mat, idx) {
     const wo = document.getElementById('wo_' + idx).value, qty = document.getElementById('qty_' + idx).value;
     const user = sessionStorage.getItem('selectedUser');
@@ -145,7 +178,6 @@ window.renderTable = function(data) {
     }).join('');
 };
 
-/* ===== 6. HISTORY & UTILS (Complete) ===== */
 window.loadHistory = async function() {
     const listDiv = document.getElementById('list'); if (!listDiv) return;
     const res = await fetch(`${API}?action=gethistory`).then(r => r.json());
@@ -153,20 +185,11 @@ window.loadHistory = async function() {
         listDiv.innerHTML = res.data.reverse().map(r => `
             <div style="padding:10px; border-bottom:1px solid #eee; font-size:12px;">
                 <b>${new Date(r[0]).toLocaleDateString()}</b> | ${r[1]}<br>
-                Type: <b style="color:#0078d4">${r[5]}</b> | From: <b>${r[6]||'-'}</b> | To: <b>${r[7]||'-'}</b> | Qty: <b>${r[6]}</b> | WO: ${r[8]||'-'}
+                Type: <b style="color:#0078d4">${r[4]}</b> | From: <b>${r[6]||'-'}</b> | To: <b>${r[7]||'-'}</b> | Qty: <b>${r[5]}</b> | WO: ${r[8]||'-'}
             </div>`).join('');
     }
 };
 
-window.showForcePasswordChange = function(u) {
-    const p = prompt("First login! Set 4+ digit password:");
-    if(p && p.length>=4) window.processReset(u, p);
-    else { alert("Too short"); window.logout(); }
-};
-window.processReset = async function(u, p) {
-    const res = await fetch(`${API}?action=resetpass&user=${u}&newpass=${p}&pass=${MASTER_PASS}`).then(r=>r.json());
-    if(res.success) { alert("Done! Login again."); window.logout(); }
-};
 window.logout = () => { sessionStorage.clear(); window.location.replace('index.html'); };
 
 window.checkAuth();
