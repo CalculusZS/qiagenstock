@@ -3,7 +3,7 @@
    ========================================================================== */
 
 // 1. API URL ล่าสุด (ตรวจสอบให้แน่ใจว่า Deploy เป็น 'Anyone')
-const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
+const API = "https://script.google.com/macros/s/AKfycbzlkvbbY_5jyz6_K6UYj7lX_sDbFLDWnZ-Ox_jTfft8g969gyFUcPvVctS9QPKWyk-I/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
 
