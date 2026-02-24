@@ -1,95 +1,138 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - GLOBAL CART & TRANSFER LOGIC FIX
+   QIAGEN INVENTORY - V11 (STABLE LOGIN & GLOBAL CART & TRANSFER)
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbzejA7IBIMHmeEvDUoaghhvrh4Mz2ZJD6t4OPEyJliaq73adxajPxNH9vGbRHXUuobt/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
 
-// โหลดตะกร้าจาก LocalStorage เพื่อให้ตะกร้าไม่หายเวลาเปลี่ยนหน้า
+// โหลดตะกร้าจากเครื่องเพื่อให้เปลี่ยนหน้าแล้วของไม่หาย
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 window.allRows = [];
 
-/* ===== 1. ADD TO CART LOGIC (ปรับตามประเภทหน้า) ===== */
+/* ===== 1. AUTH SYSTEM (แก้ Login Not Defined) ===== */
+window.handleLogin = async function() {
+    const uInput = document.getElementById('username-input'), pInput = document.getElementById('password-input');
+    if (!uInput || !pInput) return;
+    const userKey = uInput.value.trim().toUpperCase(), passVal = pInput.value.trim();
+    
+    try {
+        const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`).then(r => r.json());
+        if (res && res.success) {
+            const sheetColumnName = USER_MAP[userKey] || res.fullName || userKey;
+            sessionStorage.setItem('userKey', userKey);
+            sessionStorage.setItem('selectedUser', sheetColumnName);
+            
+            if (res.status === 'NEW') window.showForcePasswordChange(userKey); 
+            else window.location.replace('main.html');
+        } else {
+            alert("❌ Login Failed: Check ID/Password");
+        }
+    } catch (e) { alert("❌ API Connection Error"); }
+};
+
+window.handleSetPassword = function() { window.processReset(); };
+
+window.showForcePasswordChange = function(userKey) {
+    const div = document.createElement('div');
+    div.id = "force-pass-modal";
+    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;justify-content:center;align-items:center;z-index:9999;padding:20px;";
+    div.innerHTML = `<div style="background:white;padding:30px;border-radius:20px;text-align:center;width:100%;max-width:320px;box-sizing:border-box;">
+        <h3 style="color:#003366;margin-top:0;">Set New Password</h3>
+        <p style="font-size:13px;color:#666;">กรุณาตั้งรหัสผ่านใหม่เพื่อเปิดใช้งานระบบ</p>
+        <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
+        <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
+        <button id="save-btn" onclick="window.handleSetPassword()" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer;">Update & Activate</button>
+    </div>`;
+    document.body.appendChild(div);
+};
+
+window.processReset = async function() {
+    const u = sessionStorage.getItem('userKey'), p1 = document.getElementById('p1').value, p2 = document.getElementById('p2').value;
+    if (!p1 || p1 !== p2 || p1.length < 4) return alert("❌ Password mismatch");
+    const btn = document.getElementById('save-btn');
+    btn.innerText = "Processing..."; btn.disabled = true;
+    try {
+        const url = `${API}?action=setpassword&user=${encodeURIComponent(u)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`;
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { alert("✅ Activated! Please Login again."); sessionStorage.clear(); window.location.reload(); }
+        else alert("❌ " + res.msg);
+    } catch (e) { alert("❌ Server Error"); }
+};
+
+/* ===== 2. GLOBAL CART SYSTEM (โชว์ทุกหน้า) ===== */
+window.updateCartUI = function() {
+    let btn = document.getElementById('cart-floating-btn');
+    if (!btn) {
+        btn = document.createElement('div'); btn.id = 'cart-floating-btn';
+        btn.style = "position:fixed; bottom:20px; right:20px; z-index:1000;";
+        document.body.appendChild(btn);
+    }
+    btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#f59e0b; color:white; padding:15px 20px; border-radius:50px; border:none; box-shadow:0 4px 15px rgba(0,0,0,0.3); font-weight:bold; cursor:pointer;">🛒 Review Basket (${window.cart.length})</button>` : '';
+};
+
 window.addToCart = function(type, mat, idx) {
     const qty = document.getElementById('qty_' + idx).value;
     const prodName = window.allRows[idx]['Product Name'] || "Spare Part";
     const currentUser = sessionStorage.getItem('selectedUser');
     const path = window.location.pathname.toLowerCase();
     
-    let from = "", to = "";
-
-    if (path.includes('withdraw')) {
-        from = "0243";
-        to = currentUser;
-    } else if (path.includes('return')) {
-        from = currentUser;
-        to = "0243";
-    } else if (path.includes('transfer')) {
-        // ดึงชื่อเจ้าของอะไหล่จากคอลัมน์ที่แสดงผล (ในหน้า Team Stock)
-        from = document.getElementById('owner_' + idx) ? document.getElementById('owner_' + idx).innerText : "0243";
-        to = currentUser;
+    let from = "0243", to = currentUser;
+    if (path.includes('return')) { from = currentUser; to = "0243"; }
+    else if (path.includes('transfer')) {
+        from = document.getElementById('owner_' + idx) ? document.getElementById('owner_' + idx).innerText : "Others";
     }
 
     window.cart.push({ type: type.toUpperCase(), mat, prodName, qty, from, to });
-    localStorage.setItem('qiagen_cart', JSON.stringify(window.cart)); // เซฟลงเครื่อง
+    localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
     
-    const btn = event.target;
-    btn.innerText = "Added!";
+    const btn = event.target; btn.innerText = "Added!";
     setTimeout(() => { btn.innerText = "Add"; }, 700);
 };
 
-/* ===== 2. GLOBAL CART UI (โชว์ทุกหน้า) ===== */
-window.updateCartUI = function() {
-    let btn = document.getElementById('cart-floating-btn');
-    if (!btn) {
-        btn = document.createElement('div');
-        btn.id = 'cart-floating-btn';
-        btn.style = "position:fixed; bottom:20px; right:20px; z-index:1000;";
-        document.body.appendChild(btn);
-    }
-    
-    if (window.cart.length > 0) {
-        btn.innerHTML = `
-            <button onclick="window.showReviewModal()" style="background:#f59e0b; color:white; padding:15px 20px; border-radius:50px; border:none; box-shadow:0 4px 15px rgba(0,0,0,0.3); font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:8px;">
-                🛒 Basket (${window.cart.length})
-            </button>`;
-    } else {
-        btn.innerHTML = '';
-    }
-};
-
+/* ===== 3. SYNC & EMAIL ===== */
 window.showReviewModal = function() {
     const currentUser = sessionStorage.getItem('selectedUser');
-    const dateStr = new Date().toLocaleDateString('en-GB');
+    let tableHtml = `<div style="max-height:250px; overflow-y:auto;"><table style="width:100%; font-size:12px; border-collapse:collapse;">
+        <tr style="background:#f3f4f6;"><th>Mat</th><th>Qty</th><th>From</th><th>To</th><th></th></tr>`;
     
-    let tableHtml = `<div style="max-height:300px; overflow-y:auto;"><table style="width:100%; font-size:12px; border-collapse:collapse; margin-bottom:15px;">
-        <tr style="background:#f3f4f6;"><th align="left" style="padding:8px;">Material</th><th>Qty</th><th>From</th><th>To</th><th></th></tr>`;
-    
-    let emailDetail = "";
     window.cart.forEach((item, i) => {
         tableHtml += `<tr style="border-bottom:1px solid #eee;">
-            <td style="padding:8px;">${item.mat}</td><td align="center">${item.qty}</td><td>${item.from}</td><td>${item.to}</td>
-            <td><button onclick="window.removeFromCart(${i})" style="color:red; border:none; background:none; cursor:pointer;">✕</button></td>
+            <td style="padding:5px;">${item.mat}</td><td align="center">${item.qty}</td><td>${item.from}</td><td>${item.to}</td>
+            <td><button onclick="window.removeFromCart(${i})" style="color:red;border:none;background:none;">✕</button></td>
         </tr>`;
-        emailDetail += `- ${item.mat} | Qty: ${item.qty} | From: ${item.from} -> To: ${item.to}\n`;
     });
     tableHtml += `</table></div>`;
 
     const modal = document.createElement('div');
     modal.id = "review-modal";
     modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10001; display:flex; justify-content:center; align-items:center; padding:15px;";
-    modal.innerHTML = `
-        <div style="background:white; width:100%; max-width:450px; border-radius:15px; padding:20px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
-            <h3 style="margin-top:0; color:#003366; border-bottom:2px solid #eee; padding-bottom:10px;">Review & Sync</h3>
-            ${tableHtml}
-            <div style="display:flex; gap:10px; margin-top:15px;">
-                <button onclick="document.getElementById('review-modal').remove()" style="flex:1; padding:12px; background:#f3f4f6; border:none; border-radius:8px; font-weight:bold;">Close</button>
-                <button id="final-sync-btn" onclick="window.executeSync()" style="flex:2; padding:12px; background:#003366; color:white; border:none; border-radius:8px; font-weight:bold;">Confirm Sync</button>
-            </div>
-        </div>`;
+    modal.innerHTML = `<div style="background:white; width:100%; max-width:450px; border-radius:15px; padding:20px;">
+        <h3 style="margin-top:0;">Confirm & Sync</h3>
+        ${tableHtml}
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <button onclick="document.getElementById('review-modal').remove()" style="flex:1; padding:10px; background:#eee; border:none; border-radius:8px;">Close</button>
+            <button id="final-sync-btn" onclick="window.executeSync()" style="flex:2; padding:10px; background:#003366; color:white; border:none; border-radius:8px;">Confirm Sync</button>
+        </div>
+    </div>`;
     document.body.appendChild(modal);
+};
+
+window.executeSync = async function() {
+    const btn = document.getElementById('final-sync-btn'), user = sessionStorage.getItem('selectedUser'), dateStr = new Date().toLocaleDateString('en-GB');
+    btn.innerText = "Updating..."; btn.disabled = true;
+    let emailText = `Hi BO,\nPlease process inventory update:\n\n`;
+    try {
+        for (const item of window.cart) {
+            const url = `${API}?action=${item.type.toLowerCase()}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.to)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`;
+            await fetch(url, { mode: 'no-cors' }); 
+            emailText += `- ${item.mat} | Qty: ${item.qty} | From: ${item.from} -> To: ${item.to}\n`;
+        }
+        window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=${encodeURIComponent('Spare parts transfer ' + user + ' ' + dateStr)}&body=${encodeURIComponent(emailText)}`;
+        window.cart = []; localStorage.removeItem('qiagen_cart');
+        alert("✅ Success!"); window.location.reload();
+    } catch (e) { alert("❌ Error"); btn.disabled = false; }
 };
 
 window.removeFromCart = function(i) {
@@ -100,79 +143,25 @@ window.removeFromCart = function(i) {
     window.updateCartUI();
 };
 
-/* ===== 3. EXECUTE SYNC & EMAIL SUBJECT (ตามสั่งข้อ 5) ===== */
-window.executeSync = async function() {
-    const btn = document.getElementById('final-sync-btn');
-    const currentUser = sessionStorage.getItem('selectedUser');
-    const dateStr = new Date().toLocaleDateString('en-GB');
-    
-    btn.innerText = "Processing...";
-    btn.disabled = true;
-
-    let emailText = `Hi BO,\n\nPlease process the following spare parts update:\n\n`;
-    
-    try {
-        for (const item of window.cart) {
-            const url = `${API}?action=${item.type.toLowerCase()}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.to)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`;
-            await fetch(url, { mode: 'no-cors' }); 
-            emailText += `- ${item.mat} | Qty: ${item.qty} | From: ${item.from} -> To: ${item.to}\n`;
-        }
-
-        const subject = `Spare parts transfer ${currentUser} ${dateStr}`;
-        const mailtoUrl = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailText)}`;
-        
-        window.location.href = mailtoUrl;
-        
-        alert("✅ Stock Updated & Email Prepared!");
-        window.cart = [];
-        localStorage.removeItem('qiagen_cart');
-        document.getElementById('review-modal').remove();
-        window.updateCartUI();
-        window.loadStockData();
-    } catch (e) {
-        alert("❌ Sync Error");
-        btn.disabled = false;
-    }
-};
-
-/* ===== 4. TABLE RENDER (Team Stock Support) ===== */
+/* ===== 4. DATA RENDERING ===== */
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); if (!tbody) return;
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
-    
     tbody.innerHTML = data.map((item, index) => {
         let disp = 0, owner = "0243", type = "withdraw";
-
-        if (path.includes('withdraw')) { 
-            disp = item['0243'] || 0; 
-        } else if (path.includes('return')) { 
-            disp = item[user] || 0; type = "return";
-        } else if (path.includes('transfer')) {
-            // ค้นหาว่าใครมีของชิ้นนี้บ้าง (นอกจากเราและ 0243)
-            let otherOwner = Object.keys(item).find(k => !['Material','Product Name','Instrument','0243',user].includes(k) && item[k] > 0);
-            owner = otherOwner || "Others";
-            disp = item[owner] || 0; type = "transfer";
+        if (path.includes('withdraw')) disp = item['0243'] || 0;
+        else if (path.includes('return')) { disp = item[user] || 0; type = "return"; }
+        else if (path.includes('transfer')) {
+            let other = Object.keys(item).find(k => !['Material','Product Name','Instrument','0243',user].includes(k) && item[k] > 0);
+            owner = other || "Others"; disp = item[owner] || 0; type = "transfer";
         }
-
         if ((path.includes('return') || path.includes('deduct')) && (item[user]||0) <= 0) return '';
-        if (path.includes('transfer') && disp <= 0) return '';
-
-        return `<tr>
-            <td style="padding:10px;">
-                <b>${item.Material}</b><br>
-                <small>${item['Product Name']}</small>
-                ${path.includes('transfer') ? `<br><span style="color:blue; font-size:10px;">Owner: <span id="owner_${index}">${owner}</span></span>` : ''}
-            </td>
-            <td align="center"><b>${disp}</b></td>
-            <td align="right">
-                <input type="number" id="qty_${index}" value="1" min="1" style="width:35px; text-align:center;">
-                <button onclick="window.addToCart('${type}','${item.Material}',${index})" style="background:#003366;color:white;border:none;padding:8px;border-radius:8px;">Add</button>
-            </td>
-        </tr>`;
+        return `<tr><td style="padding:10px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small>${path.includes('transfer')?`<br><small style="color:blue">Owner: <span id="owner_${index}">${owner}</span></small>`:''}</td>
+        <td align="center"><b>${disp}</b></td><td align="right"><input type="number" id="qty_${index}" value="1" style="width:35px;text-align:center;"><button onclick="window.addToCart('${type}','${item.Material}',${index})" style="background:#003366;color:white;border:none;padding:8px;border-radius:8px;">Add</button></td></tr>`;
     }).join('');
 };
 
-/* ===== 5. MISC (Search, Auth, Password) ===== */
+/* ===== 5. INITIALIZE ===== */
 window.loadStockData = async function() {
     const tbody = document.getElementById('data');
     if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading...</td></tr>';
@@ -182,22 +171,15 @@ window.loadStockData = async function() {
     } catch (e) {}
 };
 
-window.searchStock = (q) => {
-    const filtered = window.allRows.filter(r => String(r.Material).toLowerCase().includes(q.toLowerCase()) || String(r['Product Name']).toLowerCase().includes(q.toLowerCase()));
-    window.renderTable(filtered);
-};
-
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
     if (!user && !window.location.pathname.includes('index.html')) { window.location.replace('index.html'); return false; }
-    const displayTags = ['current-user', 'display-user', 'user_display', 'userName'];
-    displayTags.forEach(id => { if (document.getElementById(id)) document.getElementById(id).innerText = user; });
-    window.updateCartUI(); // อัปเดตตะกร้าทุกครั้งที่เช็ค Auth
+    ['current-user', 'display-user', 'user_display', 'userName'].forEach(id => { if (document.getElementById(id)) document.getElementById(id).innerText = user; });
+    window.updateCartUI();
     return true;
 };
 
 window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
-window.handleSetPassword = function() { window.processReset(); };
 
 window.checkAuth();
 if (!window.location.pathname.includes('index.html')) window.loadStockData();
