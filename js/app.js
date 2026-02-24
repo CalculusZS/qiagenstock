@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - ALL-IN-ONE STABLE VERSION (FIXED)
+   QIAGEN INVENTORY - FINAL CONSOLIDATED (FIXED REFERENCE ERROR)
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbwS6OtxVwCjvHzXTwyAMwvZniemQRAgaA_apA4wmU9XTfH_xD5EpB8v_QpjRzs0bFXA/exec";
@@ -9,7 +9,13 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = [];
 
-/* ===== 1. AUTH & LOGIN (ตรวจ NEW / ACTIVE) ===== */
+/* ===== 1. AUTH & PASSWORD FIX (แก้ ReferenceError) ===== */
+
+// สร้างฟังก์ชันชื่อที่ HTML ของพี่เรียกหา (handleSetPassword)
+window.handleSetPassword = function() {
+    window.processReset(); // ให้วิ่งไปทำงานที่ตัวประมวลผลจริง
+};
+
 window.handleLogin = async function() {
     const uInput = document.getElementById('username-input'), pInput = document.getElementById('password-input');
     if (!uInput || !pInput) return;
@@ -22,13 +28,8 @@ window.handleLogin = async function() {
             sessionStorage.setItem('selectedUser', sheetColumnName);
             if (res.status === 'NEW') window.showForcePasswordChange(userKey); 
             else window.location.replace('main.html');
-        } else { alert("❌ Login Failed"); }
-    } catch (e) { alert("❌ API Connection Error"); }
-};
-
-/* ===== 2. PASSWORD RESET (แก้ไข ReferenceError) ===== */
-window.handleSetPassword = function(userKey) {
-    window.processReset(userKey || sessionStorage.getItem('userKey'));
+        } else alert("❌ Login Failed");
+    } catch (e) { alert("❌ Connection Error"); }
 };
 
 window.showForcePasswordChange = function(userKey) {
@@ -39,27 +40,29 @@ window.showForcePasswordChange = function(userKey) {
         <h3 style="color:#003366;">Set New Password</h3>
         <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
         <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
-        <button id="save-btn" onclick="window.handleSetPassword('${userKey}')" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;">Update & Login</button>
+        <button id="save-btn" onclick="window.handleSetPassword()" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;">Update & Login</button>
     </div>`;
     document.body.appendChild(div);
 };
 
-window.processReset = async function(userKey) {
+window.processReset = async function() {
+    const u = sessionStorage.getItem('userKey');
     const p1 = document.getElementById('p1').value, p2 = document.getElementById('p2').value;
     if (!p1 || p1 !== p2 || p1.length < 4) return alert("❌ Password mismatch or too short");
     const btn = document.getElementById('save-btn');
     btn.innerText = "Processing..."; btn.disabled = true;
     try {
-        const url = `${API}?action=setpassword&user=${encodeURIComponent(userKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`;
+        const url = `${API}?action=setpassword&user=${encodeURIComponent(u)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`;
         const res = await fetch(url).then(r => r.json());
         if (res.success) { alert("✅ Activated!"); sessionStorage.clear(); window.location.reload(); }
+        else alert("❌ " + res.msg);
     } catch (e) { alert("❌ Error"); }
 };
 
-/* ===== 3. STOCK DATA & UI RENDERING (ครบทุกออปชั่น) ===== */
+/* ===== 2. STOCK DATA & OPTIONS (ถอน/คืน/ตัด/โอน) ===== */
 window.loadStockData = async function() {
     const tbody = document.getElementById('data');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Updating Data...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Updating...</td></tr>';
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
         if (res && res.success) { window.allRows = res.data; window.renderTable(res.data); }
@@ -80,24 +83,21 @@ window.renderTable = function(data) {
             btn = `<button onclick="window.addToCart('return','${item.Material}',${index})" style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:8px;">Add</button>`;
         } else if (path.includes('deduct')) {
             btn = `<div style="display:flex; flex-direction:column; gap:4px;"><input type="text" id="wo_${index}" placeholder="WO#" style="width:70px; padding:4px;"><button onclick="window.doDeduct('${item.Material}',${index})" style="background:#ef4444; color:white; border:none; padding:6px; border-radius:5px;">Deduct</button></div>`;
-        } else { // Team Stock / Transfer
+        } else {
             btn = `<button onclick="window.addToCart('transfer','${item.Material}',${index})" style="background:#0078d4; color:white; border:none; padding:8px 12px; border-radius:8px;">Add</button>`;
         }
-        return `<tr><td style="padding:10px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td><td align="center"><b>${disp}</b></td><td align="right" style="white-space:nowrap;"><input type="number" id="qty_${index}" value="1" style="width:35px; text-align:center;"> ${btn}</td></tr>`;
+        return `<tr><td style="padding:10px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td><td align="center"><b>${disp}</b></td><td align="right"><input type="number" id="qty_${index}" value="1" style="width:35px; text-align:center;"> ${btn}</td></tr>`;
     }).join('');
 };
 
-/* ===== 4. CART SYSTEM & AUTO-SYNC (ออปชั่นจากไฟล์ 31.js) ===== */
-window.addToCart = function(type, mat, idx, fromUser = null) {
+/* ===== 3. CART SYSTEM (ออปชั่นตะกร้า) ===== */
+window.addToCart = function(type, mat, idx) {
     const qty = document.getElementById('qty_' + idx).value;
     const prod = window.allRows[idx]['Product Name'] || "Spare Part";
     const user = sessionStorage.getItem('selectedUser');
-    let fFrom = fromUser || (type === 'withdraw' ? '0243' : user);
-    let fTo = (type === 'withdraw' || type === 'transfer') ? user : '0243';
+    let fFrom = (type === 'withdraw' ? '0243' : user), fTo = (type === 'withdraw' || type === 'transfer') ? user : '0243';
     window.cart.push({ type, mat, prod, qty, from: fFrom, target: fTo });
     window.updateCartUI();
-    const btn = event.target; btn.innerText = "Added!"; btn.disabled = true;
-    setTimeout(() => { btn.innerText = "Add"; btn.disabled = false; }, 700);
 };
 
 window.updateCartUI = function() {
@@ -112,14 +112,14 @@ window.updateCartUI = function() {
 
 window.showEmailPreview = function() {
     const user = sessionStorage.getItem('selectedUser');
-    let table = `Catalog | Name | Qty | From | To\n` + "-".repeat(45) + "\n";
-    window.cart.forEach(i => { table += `${i.mat} | ${i.prod} | ${i.qty} | ${i.from} | ${i.target}\n`; });
+    let table = `Catalog | Qty | From | To\n` + "-".repeat(30) + "\n";
+    window.cart.forEach(i => { table += `${i.mat} | ${i.qty} | ${i.from} | ${i.target}\n`; });
     const modal = document.createElement('div');
     modal.id = "email-modal";
     modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
     modal.innerHTML = `<div style="background:white; width:100%; max-width:500px; border-radius:15px; padding:20px;">
-        <h3 style="margin:0;">Confirm Transaction</h3>
-        <textarea id="edit-body" style="width:100%; height:180px; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:monospace; font-size:12px;">Hi BO,\nPlease process:\n\n${table}\n\nBest Regards,\n${user}</textarea>
+        <h3>Confirm Transaction</h3>
+        <textarea id="edit-body" style="width:100%; height:180px; padding:10px;">Hi BO,\nPlease process:\n\n${table}\n\nBest Regards,\n${user}</textarea>
         <div style="display:flex; gap:10px; margin-top:15px;">
             <button onclick="document.getElementById('email-modal').remove()" style="flex:1; padding:12px; background:#eee; border:none;">Cancel</button>
             <button id="sync-btn" onclick="window.confirmSendAndSync()" style="flex:1; padding:12px; background:#0078d4; color:white; border:none; border-radius:10px; font-weight:bold;">Confirm & Sync</button>
@@ -137,11 +137,11 @@ window.confirmSendAndSync = async function() {
         }
         window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Inventory Update&body=${encodeURIComponent(document.getElementById('edit-body').value)}`;
         document.getElementById('email-modal').remove();
-        alert("✅ Stock Updated!"); window.cart = []; window.updateCartUI(); window.loadStockData();
+        alert("✅ Sync Success!"); window.cart = []; window.updateCartUI(); window.loadStockData();
     } catch (e) { alert("❌ Sync Failed"); }
 };
 
-/* ===== 5. HISTORY / SEARCH / DEDUCT (ออปชั่นอื่น) ===== */
+/* ===== 4. HISTORY / SEARCH / DEDUCT / UTILS ===== */
 window.doDeduct = async function(mat, idx) {
     const wo = document.getElementById('wo_' + idx).value, qty = document.getElementById('qty_' + idx).value, user = sessionStorage.getItem('selectedUser');
     if (!wo) return alert("❌ Enter WO#");
@@ -162,13 +162,12 @@ window.loadHistory = async function() {
             listDiv.innerHTML = res.data.reverse().map(r => `
                 <div style="padding:10px; border-bottom:1px solid #eee; font-size:12px;">
                     <b>${new Date(r[0]).toLocaleDateString()}</b> | ${r[1]}<br>
-                    Type: <b style="color:#0078d4">${r[4]}</b> | From: <b>${r[6]}</b> | To: <b>${r[7]}</b> | Qty: <b>${r[5]}</b> | WO: ${r[8]||'-'}
+                    Type: <b style="color:#0078d4">${r[4]}</b> | From: ${r[6]} | To: ${r[7]} | Qty: ${r[5]}
                 </div>`).join('');
         }
     } catch(e) {}
 };
 
-/* ===== 6. UTILS ===== */
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
     if (!user && !window.location.pathname.includes('index.html')) { window.location.replace('index.html'); return false; }
