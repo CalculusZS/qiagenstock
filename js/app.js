@@ -9,7 +9,7 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = [];
 
-/* ===== 1. AUTH & LOGIN ===== */
+/* ===== 1. AUTH & LOGIN (ตรวจ NEW / ACTIVE) ===== */
 window.handleLogin = async function() {
     const uInput = document.getElementById('username-input'), pInput = document.getElementById('password-input');
     if (!uInput || !pInput) return;
@@ -17,58 +17,49 @@ window.handleLogin = async function() {
     try {
         const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`).then(r => r.json());
         if (res && res.success) {
-            const sheetColumnName = USER_MAP[userKey] || res.fullName || "User";
-            sessionStorage.setItem('selectedUser', sheetColumnName);
+            const sheetColumnName = USER_MAP[userKey] || res.fullName || userKey;
             sessionStorage.setItem('userKey', userKey);
-            if (res.status === 'NEW') window.showForcePasswordChange(userKey);
+            sessionStorage.setItem('selectedUser', sheetColumnName);
+            if (res.status === 'NEW') window.showForcePasswordChange(userKey); 
             else window.location.replace('main.html');
-        } else alert("❌ Login Failed");
-    } catch (e) { alert("❌ Connection Error"); }
+        } else { alert("❌ Login Failed"); }
+    } catch (e) { alert("❌ API Connection Error"); }
 };
 
-/* ===== 2. PASSWORD RESET (แก้จุดตาย: ให้รองรับทั้ง 2 ชื่อฟังก์ชัน) ===== */
-
-// ไม่ว่าปุ่มใน HTML จะเรียกชื่อ handleSetPassword หรือชื่ออื่น ให้วิ่งมาที่นี่
-window.handleSetPassword = function() { window.processReset(); };
+/* ===== 2. PASSWORD RESET (แก้ไข ReferenceError) ===== */
+window.handleSetPassword = function(userKey) {
+    window.processReset(userKey || sessionStorage.getItem('userKey'));
+};
 
 window.showForcePasswordChange = function(userKey) {
     const div = document.createElement('div');
     div.id = "force-pass-modal";
-    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;justify-content:center;align-items:center;z-index:9999;padding:20px;box-sizing:border-box;";
-    div.innerHTML = `
-        <div style="background:white;padding:30px;border-radius:20px;text-align:center;width:100%;max-width:350px;">
-            <h3 style="color:#003366;margin-top:0;">New User Detected</h3>
-            <p style="font-size:14px; color:#666; margin-bottom:20px;">Please set 4+ digit password to activate.</p>
-            <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin-bottom:10px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
-            <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin-bottom:20px;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
-            <button id="reset-btn" onclick="window.handleSetPassword()" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;">Update & Activate</button>
-        </div>`;
+    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;justify-content:center;align-items:center;z-index:9999;";
+    div.innerHTML = `<div style="background:white;padding:30px;border-radius:20px;text-align:center;width:320px;">
+        <h3 style="color:#003366;">Set New Password</h3>
+        <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
+        <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin:10px 0;border:1px solid #ddd;border-radius:10px;box-sizing:border-box;">
+        <button id="save-btn" onclick="window.handleSetPassword('${userKey}')" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;">Update & Login</button>
+    </div>`;
     document.body.appendChild(div);
 };
 
-window.processReset = async function() {
-    const u = sessionStorage.getItem('userKey');
+window.processReset = async function(userKey) {
     const p1 = document.getElementById('p1').value, p2 = document.getElementById('p2').value;
-    if (!p1 || p1 !== p2 || p1.length < 4) return alert("❌ Passwords do not match or too short");
-
-    const btn = document.getElementById('reset-btn');
-    btn.innerText = "Activating..."; btn.disabled = true;
-
+    if (!p1 || p1 !== p2 || p1.length < 4) return alert("❌ Password mismatch or too short");
+    const btn = document.getElementById('save-btn');
+    btn.innerText = "Processing..."; btn.disabled = true;
     try {
-        // ใช้ newPass (P ใหญ่) เพื่อให้ Google Script เปลี่ยนสถานะเป็น ACTIVE
-        const url = `${API}?action=setpassword&user=${encodeURIComponent(u)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`;
+        const url = `${API}?action=setpassword&user=${encodeURIComponent(userKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`;
         const res = await fetch(url).then(r => r.json());
-        if (res.success) {
-            alert("✅ Activated! Please login with your new password.");
-            sessionStorage.clear(); window.location.reload(); 
-        } else alert("❌ " + res.msg);
-    } catch (e) { alert("❌ Server Error"); }
+        if (res.success) { alert("✅ Activated!"); sessionStorage.clear(); window.location.reload(); }
+    } catch (e) { alert("❌ Error"); }
 };
 
-/* ===== 3. STOCK DATA & OPTIONS (ครบทุกหน้า) ===== */
+/* ===== 3. STOCK DATA & UI RENDERING (ครบทุกออปชั่น) ===== */
 window.loadStockData = async function() {
     const tbody = document.getElementById('data');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Updating...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Updating Data...</td></tr>';
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
         if (res && res.success) { window.allRows = res.data; window.renderTable(res.data); }
@@ -79,8 +70,9 @@ window.renderTable = function(data) {
     const tbody = document.getElementById('data'); if (!tbody) return;
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
     tbody.innerHTML = data.map((item, index) => {
-        const q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0), disp = path.includes('withdraw') ? q0 : qU;
+        const q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0), disp = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
         if ((path.includes('return') || path.includes('deduct')) && qU <= 0) return '';
+        
         let btn = "";
         if (path.includes('withdraw')) {
             btn = q0 > 0 ? `<button onclick="window.addToCart('withdraw','${item.Material}',${index})" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:8px;">Add</button>` : '<b style="color:red">OUT</b>';
@@ -88,25 +80,24 @@ window.renderTable = function(data) {
             btn = `<button onclick="window.addToCart('return','${item.Material}',${index})" style="background:#16a34a; color:white; border:none; padding:8px 12px; border-radius:8px;">Add</button>`;
         } else if (path.includes('deduct')) {
             btn = `<div style="display:flex; flex-direction:column; gap:4px;"><input type="text" id="wo_${index}" placeholder="WO#" style="width:70px; padding:4px;"><button onclick="window.doDeduct('${item.Material}',${index})" style="background:#ef4444; color:white; border:none; padding:6px; border-radius:5px;">Deduct</button></div>`;
-        } else {
+        } else { // Team Stock / Transfer
             btn = `<button onclick="window.addToCart('transfer','${item.Material}',${index})" style="background:#0078d4; color:white; border:none; padding:8px 12px; border-radius:8px;">Add</button>`;
         }
         return `<tr><td style="padding:10px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td><td align="center"><b>${disp}</b></td><td align="right" style="white-space:nowrap;"><input type="number" id="qty_${index}" value="1" style="width:35px; text-align:center;"> ${btn}</td></tr>`;
     }).join('');
 };
 
-/* ===== 4. CART & SYNC ===== */
+/* ===== 4. CART SYSTEM & AUTO-SYNC (ออปชั่นจากไฟล์ 31.js) ===== */
 window.addToCart = function(type, mat, idx, fromUser = null) {
-    const qtyInput = document.getElementById('qty_' + idx);
-    const qty = qtyInput ? qtyInput.value : 1;
-    const prod = (idx !== null && window.allRows[idx]) ? window.allRows[idx]['Product Name'] : "Spare Part";
+    const qty = document.getElementById('qty_' + idx).value;
+    const prod = window.allRows[idx]['Product Name'] || "Spare Part";
     const user = sessionStorage.getItem('selectedUser');
     let fFrom = fromUser || (type === 'withdraw' ? '0243' : user);
     let fTo = (type === 'withdraw' || type === 'transfer') ? user : '0243';
     window.cart.push({ type, mat, prod, qty, from: fFrom, target: fTo });
     window.updateCartUI();
     const btn = event.target; btn.innerText = "Added!"; btn.disabled = true;
-    setTimeout(() => { btn.innerText = (type==='transfer'?'Transfer':'Add'); btn.disabled = false; }, 700);
+    setTimeout(() => { btn.innerText = "Add"; btn.disabled = false; }, 700);
 };
 
 window.updateCartUI = function() {
@@ -127,10 +118,10 @@ window.showEmailPreview = function() {
     modal.id = "email-modal";
     modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
     modal.innerHTML = `<div style="background:white; width:100%; max-width:500px; border-radius:15px; padding:20px;">
-        <h3 style="margin:0;">Confirm & Sync</h3>
+        <h3 style="margin:0;">Confirm Transaction</h3>
         <textarea id="edit-body" style="width:100%; height:180px; padding:10px; border:1px solid #ddd; border-radius:8px; font-family:monospace; font-size:12px;">Hi BO,\nPlease process:\n\n${table}\n\nBest Regards,\n${user}</textarea>
         <div style="display:flex; gap:10px; margin-top:15px;">
-            <button onclick="document.getElementById('email-modal').remove()" style="flex:1; padding:12px; background:#eee; border:none; border-radius:10px;">Cancel</button>
+            <button onclick="document.getElementById('email-modal').remove()" style="flex:1; padding:12px; background:#eee; border:none;">Cancel</button>
             <button id="sync-btn" onclick="window.confirmSendAndSync()" style="flex:1; padding:12px; background:#0078d4; color:white; border:none; border-radius:10px; font-weight:bold;">Confirm & Sync</button>
         </div>
     </div>`;
@@ -146,18 +137,16 @@ window.confirmSendAndSync = async function() {
         }
         window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Inventory Update&body=${encodeURIComponent(document.getElementById('edit-body').value)}`;
         document.getElementById('email-modal').remove();
-        alert("✅ Stock Updated!");
-        window.cart = []; window.updateCartUI(); window.loadStockData();
+        alert("✅ Stock Updated!"); window.cart = []; window.updateCartUI(); window.loadStockData();
     } catch (e) { alert("❌ Sync Failed"); }
 };
 
-/* ===== 5. HISTORY / SEARCH / DEDUCT ===== */
+/* ===== 5. HISTORY / SEARCH / DEDUCT (ออปชั่นอื่น) ===== */
 window.doDeduct = async function(mat, idx) {
-    const wo = document.getElementById('wo_' + idx).value, qty = document.getElementById('qty_' + idx).value;
-    const user = sessionStorage.getItem('selectedUser');
+    const wo = document.getElementById('wo_' + idx).value, qty = document.getElementById('qty_' + idx).value, user = sessionStorage.getItem('selectedUser');
     if (!wo) return alert("❌ Enter WO#");
     const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ Deduct Success"); window.loadStockData(); }
+    if (res.success) { alert("✅ Deducted"); window.loadStockData(); }
 };
 
 window.searchStock = (q) => {
@@ -173,22 +162,23 @@ window.loadHistory = async function() {
             listDiv.innerHTML = res.data.reverse().map(r => `
                 <div style="padding:10px; border-bottom:1px solid #eee; font-size:12px;">
                     <b>${new Date(r[0]).toLocaleDateString()}</b> | ${r[1]}<br>
-                    Type: <b style="color:#0078d4">${r[4]}</b> | From: <b>${r[6]}</b> | To: <b>${r[7]}</b> | Qty: <b>${r[5]}</b>
+                    Type: <b style="color:#0078d4">${r[4]}</b> | From: <b>${r[6]}</b> | To: <b>${r[7]}</b> | Qty: <b>${r[5]}</b> | WO: ${r[8]||'-'}
                 </div>`).join('');
         }
     } catch(e) {}
 };
 
-/* ===== 6. AUTH CHECK ===== */
+/* ===== 6. UTILS ===== */
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
     if (!user && !window.location.pathname.includes('index.html')) { window.location.replace('index.html'); return false; }
-    ['current-user', 'display-user', 'user_display', 'userName'].forEach(id => {
-        if (document.getElementById(id)) document.getElementById(id).innerText = user;
-    });
+    ['current-user', 'display-user', 'user_display', 'userName'].forEach(id => { if (document.getElementById(id)) document.getElementById(id).innerText = user; });
     return true;
 };
 window.logout = () => { sessionStorage.clear(); window.location.replace('index.html'); };
 
 window.checkAuth();
-if (!window.location.pathname.includes('index.html')) window.loadStockData();
+if (!window.location.pathname.includes('index.html')) {
+    window.loadStockData();
+    if (window.location.pathname.includes('history')) window.loadHistory();
+}
