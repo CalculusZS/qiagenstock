@@ -6,62 +6,73 @@
     <title>Team Stock - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .stock-item { background: white; padding: 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; }
-        .info { flex: 2; }
-        .qty-center { flex: 1; text-align: center; font-size: 20px; font-weight: bold; color: #003366; }
-        .action { flex: 1.5; display: flex; gap: 5px; justify-content: flex-end; align-items: center; }
-        .user-tag { background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; margin-top: 4px; display: inline-block; }
+        body { background-color: #fff7ed; margin: 0; font-family: -apple-system, sans-serif; }
+        /* Header สีส้ม พร้อมปุ่ม BACK ขวา */
+        .header-orange { background: #f97316; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header-orange h1 { margin: 0; font-size: 18px; font-weight: bold; }
+        .btn-back-white { background: white; color: #f97316; text-decoration: none; padding: 6px 16px; border-radius: 8px; font-size: 14px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        .search-container { padding: 15px; }
+        .search-input { width: 100%; padding: 12px; border: 2px solid #fdba74; border-radius: 10px; font-size: 16px; box-sizing: border-box; outline: none; }
+
+        /* Card ระบบสีส้มอ่อน */
+        .card-list { padding: 0 15px 100px; }
+        .stock-card { background: #fff; border: 1px solid #fed7aa; border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(249,115,22,0.05); }
+        
+        .col-info { flex: 2; }
+        .col-qty { flex: 0.8; text-align: center; font-size: 22px; font-weight: bold; color: #ea580c; border-left: 1px solid #ffedd5; border-right: 1px solid #ffedd5; }
+        .col-action { flex: 1.5; display: flex; gap: 6px; justify-content: flex-end; align-items: center; padding-left: 10px; }
+
+        .mat-id { font-size: 16px; font-weight: bold; color: #9a3412; }
+        .mat-desc { font-size: 12px; color: #7c2d12; margin: 2px 0 5px 0; line-height: 1.3; }
+        .owner-tag { background: #ffedd5; color: #9a3412; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; border: 1px solid #fed7aa; }
+        
+        .input-num { width: 42px; padding: 8px 4px; border: 1px solid #fdba74; border-radius: 6px; text-align: center; font-size: 15px; }
+        .btn-transfer-orange { background: #f97316; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header style="padding: 15px;">
-            <a href="main.html" style="text-decoration:none; color:#003366; font-weight:bold;">← Back</a>
-            <h1 style="margin:10px 0;">👥 Team Stock</h1>
-            <input type="text" id="search" placeholder="Search Material..." oninput="window.filterTeam()" 
-                   style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; font-size:16px; box-sizing:border-box;">
-        </header>
-
-        <div style="background:#f1f5f9; padding:10px 15px; display:flex; font-size:12px; font-weight:bold; color:#64748b;">
-            <div style="flex:2;">MATERIAL</div>
-            <div style="flex:1; text-align:center;">QTY</div>
-            <div style="flex:1.5; text-align:right;">ACTION</div>
-        </div>
-
-        <div id="team-data-list">
-            </div>
+    <div class="header-orange">
+        <h1>👥 TEAM STOCK</h1>
+        <a href="main.html" class="btn-back-white">BACK</a>
     </div>
+
+    <div class="search-container">
+        <input type="text" id="search" class="search-input" placeholder="ค้นหา Material หรือชื่อเพื่อน..." oninput="window.filterTeam()">
+    </div>
+
+    <div class="card-list" id="team-list-container">
+        </div>
 
     <script src="js/app.js"></script>
     <script>
         window.renderTeamTable = function(data) {
-            const list = document.getElementById('team-data-list');
+            const container = document.getElementById('team-list-container');
             const user = sessionStorage.getItem('selectedUser');
             const members = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
             let html = '';
 
             data.forEach((item, idx) => {
                 members.forEach(m => {
-                    const q = Number(item[m] || 0);
-                    if (m !== user && q > 0) {
+                    const stock = Number(item[m] || 0);
+                    if (m !== user && stock > 0) {
                         html += `
-                        <div class="stock-item">
-                            <div class="info">
-                                <div style="font-weight:bold; color:#003366;">${item.Material}</div>
-                                <div style="font-size:11px; color:#666;">${item['Product Name']}</div>
-                                <div class="user-tag">👤 ${m}</div>
+                        <div class="stock-card">
+                            <div class="col-info">
+                                <div class="mat-id">${item.Material}</div>
+                                <div class="mat-desc">${item['Product Name'] || ''}</div>
+                                <div class="owner-tag">👤 ${m}</div>
                             </div>
-                            <div class="qty-center">${q}</div>
-                            <div class="action">
-                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" style="width:40px; padding:8px; border:1px solid #ddd; border-radius:6px; text-align:center;">
-                                <button onclick="window.addToCart('transfer', '${item.Material}', ${idx}, '${m}')" 
-                                        style="background:#f59e0b; color:white; border:none; padding:10px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">Transfer</button>
+                            <div class="col-qty">${stock}</div>
+                            <div class="col-action">
+                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${stock}" class="input-num">
+                                <button onclick="window.addToCart('transfer', '${item.Material}', ${idx}, '${m}')" class="btn-transfer-orange">Transfer</button>
                             </div>
                         </div>`;
                     }
                 });
             });
-            list.innerHTML = html || '<p align="center" style="padding:40px;">No team items found.</p>';
+            container.innerHTML = html || '<p style="text-align:center; color:#9a3412; margin-top:50px;">ไม่พบข้อมูลสต็อกทีม</p>';
         };
 
         window.filterTeam = () => {
@@ -73,7 +84,7 @@
         };
 
         window.onload = async () => {
-            if (window.allRows.length === 0) await window.loadStockData();
+            if (!window.allRows || window.allRows.length === 0) await window.loadStockData();
             window.renderTeamTable(window.allRows);
         };
     </script>
