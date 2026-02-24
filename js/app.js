@@ -2,7 +2,7 @@
    QIAGEN INVENTORY - ALL-IN-ONE STABLE VERSION (FIXED)
    ========================================================================== */
 
-const API = "https://script.google.com/macros/s/AKfycbzH2UPTJbENUpj1gx9LQUHWLkCfa1xLocE8Dxy9JG4KswJcBWqRpr_wXjnOjF-BvW_x/exec";
+const API = "https://script.google.com/macros/s/AKfycbwS6OtxVwCjvHzXTwyAMwvZniemQRAgaA_apA4wmU9XTfH_xD5EpB8v_QpjRzs0bFXA/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
 
