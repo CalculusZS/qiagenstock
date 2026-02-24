@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - COMPLETE STABLE VERSION (V17)
+   QIAGEN INVENTORY - TOTAL SOLUTION V21 (CONSOLIDATED & STABLE)
    ========================================================================== */
 
 const API = "https://script.google.com/macros/s/AKfycbzejA7IBIMHmeEvDUoaghhvrh4Mz2ZJD6t4OPEyJliaq73adxajPxNH9vGbRHXUuobt/exec";
@@ -9,15 +9,13 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-/* ===== 1. AUTH & LOGIN SYSTEM (เสถียรที่สุด) ===== */
+/* ===== 1. AUTH & LOGIN (เสถียรที่สุด) ===== */
 window.handleSetPassword = function() { window.processReset(); };
 
 window.handleLogin = async function() {
-    const uInput = document.getElementById('username-input');
-    const pInput = document.getElementById('password-input');
+    const uInput = document.getElementById('username-input'), pInput = document.getElementById('password-input');
     if (!uInput || !pInput) return;
-    const userKey = uInput.value.trim().toUpperCase();
-    const passVal = pInput.value.trim();
+    const userKey = uInput.value.trim().toUpperCase(), passVal = pInput.value.trim();
     try {
         const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(userKey)}&pass=${encodeURIComponent(passVal)}`).then(r => r.json());
         if (res && res.success) {
@@ -26,42 +24,37 @@ window.handleLogin = async function() {
             sessionStorage.setItem('selectedUser', sheetColumnName);
             if (res.status === 'NEW') window.showForcePasswordChange(userKey); 
             else window.location.replace('main.html');
-        } else {
-            alert("❌ Login Failed: Invalid ID or Password");
-        }
+        } else alert("❌ Login Failed");
     } catch (e) { alert("❌ Connection Error"); }
 };
 
 window.showForcePasswordChange = function(userKey) {
     const div = document.createElement('div');
-    div.id = "force-pass-modal";
-    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;justify-content:center;align-items:center;z-index:9999;padding:20px;";
-    div.innerHTML = `<div style="background:white;padding:30px;border-radius:20px;text-align:center;width:100%;max-width:320px;">
-        <h3>Set New Password</h3>
-        <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin:10px 0;border-radius:10px;border:1px solid #ddd;">
-        <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin:10px 0;border-radius:10px;border:1px solid #ddd;">
-        <button onclick="window.handleSetPassword()" style="width:100%;padding:14px;background:#003366;color:white;border:none;border-radius:10px;cursor:pointer;">Update</button>
+    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;justify-content:center;align-items:center;z-index:9999;";
+    div.innerHTML = `<div style="background:white;padding:30px;border-radius:15px;text-align:center;width:300px;">
+        <h3>Set Password</h3>
+        <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:10px;margin:5px 0;">
+        <input type="password" id="p2" placeholder="Confirm" style="width:100%;padding:10px;margin:5px 0;">
+        <button onclick="window.handleSetPassword()" style="width:100%;padding:10px;background:#003366;color:white;margin-top:10px;">Update</button>
     </div>`;
     document.body.appendChild(div);
 };
 
 window.processReset = async function() {
     const u = sessionStorage.getItem('userKey'), p1 = document.getElementById('p1').value, p2 = document.getElementById('p2').value;
-    if (!p1 || p1 !== p2 || p1.length < 4) return alert("❌ Password mismatch");
-    try {
-        const url = `${API}?action=setpassword&user=${encodeURIComponent(u)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`;
-        const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ Activated!"); sessionStorage.clear(); window.location.reload(); }
-    } catch (e) { alert("❌ Error"); }
+    if (p1 !== p2) return alert("❌ Password mismatch");
+    const url = `${API}?action=setpassword&user=${encodeURIComponent(u)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`;
+    const res = await fetch(url).then(r => r.json());
+    if (res.success) { alert("✅ Activated!"); window.location.reload(); }
 };
 
-/* ===== 2. RENDER TABLE (UI ปรับตามแต่ละหน้า) ===== */
+/* ===== 2. RENDER TABLE (ปรับปรุงตามเงื่อนไข UI & LOGIC) ===== */
 window.loadStockData = async function() {
     const tbody = document.getElementById('data');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Updating Data...</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center">⌛ Loading...</td></tr>';
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res && res.success) { window.allRows = res.data; window.renderTable(res.data); }
+        if (res.success) { window.allRows = res.data; window.renderTable(res.data); }
     } catch (e) {}
 };
 
@@ -70,54 +63,53 @@ window.renderTable = function(data) {
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
     
     tbody.innerHTML = data.map((item, index) => {
-        let owner = "0243", type = "withdraw";
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
+        let currentQty = q0, owner = "0243", type = "withdraw";
 
+        // Logic 1: Return (ตัดจาก User ไป 0243)
+        if (path.includes('return')) { currentQty = qU; type = "return"; owner = user; }
+        
+        // Logic 2: Team Stock UI (เบิกจากคนอื่น)
         if (path.includes('team-stock')) {
             owner = Object.keys(item).find(k => !['Material','Product Name','Instrument','0243',user].includes(k) && Number(item[k]) > 0) || "Others";
+            currentQty = Number(item[owner] || 0);
             type = "transfer";
         }
 
-        let currentQty = q0;
-        if (path.includes('return') || path.includes('deduct')) currentQty = qU;
-        if (path.includes('team-stock')) currentQty = Number(item[owner] || 0);
-
-        // หน้าโชว์ทั้งหมด (แสดงตัวแดงเมื่อไม่มีของ)
-        if (path.includes('showall')) {
-            return `<tr><td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td>
-            <td align="center">${currentQty > 0 ? `<b>${currentQty}</b>` : '<b style="color:red">ไม่มีอะไหล่</b>'}</td>
-            <td align="right"><small>View Only</small></td></tr>`;
-        }
-
-        if ((path.includes('return') || path.includes('deduct')) && qU <= 0) return '';
-        if (path.includes('team-stock') && currentQty <= 0) return '';
+        if (path.includes('deduct')) currentQty = qU;
+        if (currentQty <= 0 && !path.includes('showall')) return '';
 
         let actionArea = "";
+        // Logic 4: Deduct ปุ่มสีแดง แถวเดียวกัน
         if (path.includes('deduct')) {
-            // ช่อง WO กว้างขึ้น 2 เท่า
-            actionArea = `<input type="text" id="wo_${index}" placeholder="Work Order#" style="width:140px; padding:8px; border:1px solid #ddd; border-radius:5px; margin-bottom:5px;"><br>
-            <button onclick="window.doDeduct('${item.Material}',${index})" style="background:#003366; color:white; border:none; padding:8px 15px; border-radius:8px; width:100%; cursor:pointer;">Deduct</button>`;
+            actionArea = `<div style="display:flex; gap:5px; align-items:center;">
+                <input type="text" id="wo_${index}" placeholder="WO#" style="width:80px; padding:8px; border:1px solid #ddd; border-radius:5px;">
+                <button onclick="window.doDeduct('${item.Material}',${index})" style="background:#dc2626; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold; cursor:pointer;">Deduct</button>
+            </div>`;
+        } else if (path.includes('showall')) {
+            actionArea = currentQty > 0 ? `<b>${currentQty}</b>` : '<b style="color:red">ไม่มีอะไหล่</b>';
         } else {
-            let statusBtn = currentQty > 0 
-                ? `<button onclick="window.addToCart('${type}','${item.Material}',${index},'${owner}')" style="background:#003366; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">Add</button>`
-                : '<b style="color:red">OUT</b>';
-            actionArea = `<input type="number" id="qty_${index}" value="1" style="width:40px; text-align:center; margin-right:5px; padding:5px; border:1px solid #ddd; border-radius:5px;"> ${statusBtn}`;
+            // UI ปกติ (Withdraw / Return / Team Stock)
+            actionArea = `<div style="display:flex; gap:5px; align-items:center; justify-content:flex-end;">
+                <input type="number" id="qty_${index}" value="1" style="width:40px; text-align:center; padding:5px; border-radius:5px; border:1px solid #ddd;">
+                <button onclick="window.addToCart('${type}','${item.Material}',${index},'${owner}')" style="background:#003366; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">Add</button>
+            </div>`;
         }
 
-        return `<tr><td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small>${path.includes('team-stock') ? `<br><small style="color:blue">Owner: ${owner}</small>` : ''}</td>
-        <td align="center"><b>${currentQty}</b></td><td align="right">${actionArea}</td></tr>`;
+        return `<tr>
+            <td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small>${path.includes('team-stock') ? `<br><small style="color:blue">Owner: ${owner}</small>` : ''}</td>
+            <td align="center"><b>${path.includes('showall') ? '' : currentQty}</b></td>
+            <td align="right">${actionArea}</td>
+        </tr>`;
     }).join('');
 };
 
-/* ===== 3. BASKET SYSTEM (ตะกร้าสะสมไม่หาย) ===== */
+/* ===== 3. BASKET SYSTEM (ตะกร้าสะสม) ===== */
 window.addToCart = function(type, mat, idx, fromUser) {
-    const qtyInput = document.getElementById('qty_' + idx);
-    const qty = qtyInput ? qtyInput.value : 1;
+    const qty = document.getElementById('qty_' + idx).value;
     const user = sessionStorage.getItem('selectedUser');
-    let fTo = (type === 'withdraw' || type === 'transfer') ? user : '0243';
-    let fFrom = (type === 'return') ? user : fromUser;
-    
-    window.cart.push({ type, mat, qty, from: fFrom, target: fTo });
+    let target = (type === 'return') ? '0243' : user;
+    window.cart.push({ type, mat, qty, from: fromUser, target: target });
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
     const btn = event.target; btn.innerText = "Added!";
@@ -135,18 +127,23 @@ window.updateCartUI = function() {
 };
 
 window.showReviewModal = function() {
-    let tableHtml = `<div style="max-height:200px;overflow-y:auto;"><table style="width:100%;font-size:12px;border-collapse:collapse;"><tr style="background:#eee;"><th>Mat</th><th>Qty</th><th>From</th><th>To</th><th></th></tr>`;
+    let tableHtml = `<div style="max-height:200px;overflow-y:auto;"><table style="width:100%;font-size:12px;border-collapse:collapse;">
+        <tr style="background:#eee;"><th>Mat</th><th>Qty</th><th>From</th><th>To</th><th></th></tr>`;
     window.cart.forEach((i, idx) => { 
         tableHtml += `<tr style="border-bottom:1px solid #ddd;"><td style="padding:5px;">${i.mat}</td><td align="center">${i.qty}</td><td>${i.from}</td><td>${i.target}</td>
-        <td align="center"><button onclick="window.removeFromCart(${idx})" style="border:none;background:none;color:red;cursor:pointer;">✕</button></td></tr>`; 
+        <td align="center"><button onclick="window.removeFromCart(${idx})" style="color:red;border:none;background:none;cursor:pointer;">✕</button></td></tr>`; 
     });
     tableHtml += `</table></div>`;
     const modal = document.createElement('div');
     modal.id = "review-modal";
     modal.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;justify-content:center;align-items:center;padding:15px;";
-    modal.innerHTML = `<div style="background:white;width:100%;max-width:450px;border-radius:15px;padding:20px;"><h3 style="margin-top:0;">Confirm Transactions</h3>${tableHtml}
-        <div style="display:flex;gap:10px;margin-top:15px;"><button onclick="document.getElementById('review-modal').remove()" style="flex:1;padding:12px;background:#eee;border:none;border-radius:10px;cursor:pointer;">Close</button>
-        <button id="sync-btn" onclick="window.confirmSendAndSync()" style="flex:2;padding:12px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;cursor:pointer;">Sync & Email</button></div></div>`;
+    modal.innerHTML = `<div style="background:white;width:100%;max-width:400px;border-radius:15px;padding:20px;">
+        <h3 style="margin-top:0;">Confirm Transactions</h3>${tableHtml}
+        <div style="display:flex;gap:10px;margin-top:15px;">
+            <button onclick="document.getElementById('review-modal').remove()" style="flex:1;padding:12px;background:#eee;border:none;border-radius:10px;">Close</button>
+            <button id="sync-btn" onclick="window.confirmSendAndSync()" style="flex:2;padding:12px;background:#003366;color:white;border:none;border-radius:10px;font-weight:bold;">Sync & Email</button>
+        </div>
+    </div>`;
     document.body.appendChild(modal);
 };
 
@@ -177,17 +174,16 @@ window.confirmSendAndSync = async function() {
     } catch (e) { alert("❌ Sync Failed"); btn.disabled = false; }
 };
 
-/* ===== 4. DEDUCT & HISTORY (ประวัติ 9 คอลัมน์) ===== */
+/* ===== 4. DEDUCT & HISTORY ===== */
 window.doDeduct = async function(mat, idx) {
     const wo = document.getElementById('wo_' + idx).value;
-    const qty = document.getElementById('qty_' + idx).value;
+    if (!wo) return alert("❌ กรุณาใส่ Work Order");
     const user = sessionStorage.getItem('selectedUser');
-    if (!wo) return alert("❌ Please enter Work Order#");
+    const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=1&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
     try {
-        const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
         const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ Deducted Successfully"); window.loadStockData(); }
-    } catch (e) { alert("❌ Server Error"); }
+        if (res.success) { alert("✅ Deducted!"); window.loadStockData(); }
+    } catch (e) { alert("❌ Error"); }
 };
 
 window.loadHistory = async function() {
@@ -196,12 +192,11 @@ window.loadHistory = async function() {
         const res = await fetch(`${API}?action=gethistory`).then(r => r.json());
         if (res.success) {
             listDiv.innerHTML = res.data.reverse().map(r => `
-                <div style="padding:15px; border-bottom:1px solid #eee; font-size:12px; background:white; margin-bottom:10px; border-radius:10px; line-height:1.6;">
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px dashed #ccc; padding-bottom:5px;">
-                        <b>📅 ${new Date(r[0]).toLocaleString('th-TH')}</b><b style="color:#0078d4;">Action: ${r[4]}</b>
-                    </div><div style="margin-top:8px;"><b>Material:</b> ${r[1]}<br><b>Instrument:</b> ${r[2] || '-'}<br>
-                    <b>Product Name:</b> ${r[3]}<br><b>WO#:</b> <span style="color:#ef4444; font-weight:bold;">${r[8] || '-'}</span><br>
-                    <b>Qty:</b> ${r[5]}<br><b>From:</b> ${r[6]} | <b>User/To:</b> ${r[7]}</div></div>`).join('');
+                <div style="padding:15px; border-bottom:1px solid #eee; font-size:12px; background:white; margin-bottom:10px; border-radius:10px;">
+                    <b>📅 ${new Date(r[0]).toLocaleString('th-TH')}</b> | <b style="color:#0078d4;">${r[4]}</b><br>
+                    Mat: ${r[1]} | Qty: ${r[5]}<br>
+                    From: ${r[6]} | User/To: ${r[7]} | WO: <b style="color:red">${r[8] || '-'}</b>
+                </div>`).join('');
         }
     } catch(e) {}
 };
