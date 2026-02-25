@@ -84,4 +84,18 @@
         };
     </script>
 </body>
+    <script>
+    window.renderTeamTable = (data) => {
+        const cont = document.getElementById('team-list'), me = sessionStorage.getItem('selectedUser'), mems = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
+        let h = '';
+        data.forEach((i, idx) => {
+            mems.forEach(m => {
+                const q = Number(i[m]||0);
+                if (m !== me && q > 0) h += `<div class="stock-card"><div class="col-info"><b>${i.Material}</b><br><small>${i['Product Name']}</small><br><span class="badge">👤 ${m}</span></div><div class="col-qty">${q}</div><div class="col-action"><input type="number" id="t_qty_${idx}_${m}" value="1" style="width:35px;"><button onclick="window.addToCart('transfer','${i.Material}',${idx},'${m}','${me}')" class="btn-transfer">Transfer</button></div></div>`;
+            });
+        });
+        cont.innerHTML = h || '<div style="text-align:center;padding:50px;color:#999;">No Stock Found</div>';
+    };
+    window.onload = async () => { if (!window.allRows.length) await window.loadStockData(); window.renderTeamTable(window.allRows); };
+</script>
 </html>
