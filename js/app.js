@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - V49 (FIXED FROM APP 38 - EXACT MATCH REQUIREMENTS)
+   QIAGEN INVENTORY - V52 (FIX 7 REQUIREMENTS BASED ON APP 38)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
 const MASTER_PASS = "Service";
@@ -8,7 +8,7 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-/* 1. AUTH & LOGIN (โครงเดิมจาก App 38) */
+/* 1. AUTH & LOGIN */
 window.handleLogin = async function() {
     const u = document.getElementById('username-input').value.trim().toUpperCase();
     const p = document.getElementById('password-input').value.trim();
@@ -41,7 +41,7 @@ window.processReset = async function(userKey) {
     if (res.success) window.location.reload();
 };
 
-/* 2. RENDER LOGIC (แก้ไขข้อ 4: หน้า ShowAll Availability ตัวหนังสือสีแดงเมื่ออะไหล่เป็น 0) */
+/* 2. RENDER TABLE */
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); if (!tbody) return;
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
@@ -53,7 +53,7 @@ window.renderTable = function(data) {
         let qtyLabel = displayQty;
         let actionUI = "";
 
-        // ข้อ 4: ถ้าหน้า showall แล้วอะไหล่เป็น 0 ให้ขึ้นตัวแดง และ Action แสดง Availability แดง
+        // ข้อ 4: หน้า ShowAll เมื่ออะไหล่เป็น 0 ให้เป็นตัวหนังสือสีแดงทั้งสองจุด
         if (path.includes('showall')) {
             if (displayQty <= 0) {
                 qtyLabel = '<span style="color:#dc2626; font-weight:bold;">0</span>';
@@ -62,6 +62,7 @@ window.renderTable = function(data) {
                 actionUI = `<span style="color:#94a3b8; font-size:12px;">Availability</span>`;
             }
         } else if (path.includes('deduct')) {
+            // ข้อ 3: ส่งช่อง Work Order ไปด้วย 
             actionUI = `<div style="display:flex; gap:5px; align-items:center; justify-content:flex-end;">
                 <input type="text" id="wo_${index}" placeholder="Work Order#" style="width:100px; padding:8px; border:1px solid #ddd; border-radius:6px;">
                 <input type="number" id="qty_${index}" value="1" min="1" style="width:40px; padding:8px; border:1px solid #ddd; border-radius:6px; text-align:center;">
@@ -70,7 +71,8 @@ window.renderTable = function(data) {
         } else {
             const isW = path.includes('withdraw');
             const color = isW ? '#003366' : '#16a34a';
-            // ข้อ 1 & 2: กำหนด From และ To(Target) ให้ชัดเจนเพื่อส่งไปเก็บ Log ให้ถูก
+            
+            // ข้อ 1 และ 2: บังคับ From / Target ให้ชัดเจนเพื่อเขียน Log ให้ถูกฝั่ง
             const from = isW ? '0243' : user;
             const target = isW ? user : '0243';
 
@@ -101,21 +103,21 @@ window.loadStockData = async function() {
     }
 };
 
-// ข้อ 3: ฟังก์ชัน Deduct ส่งข้อมูลจาก ผู้ใช้งาน ไปยัง - และบังคับส่ง WO
 window.doDeduct = async function(mat, idx) {
     const qty = document.getElementById('qty_' + idx).value;
     const wo = document.getElementById('wo_' + idx).value.trim();
     if (!wo) return alert("❌ กรุณาใส่ Work Order#");
     
-    // API จะรับ user, qty, wo นำไปบันทึกบน Google Sheet คอลัมน์ I
+    // ข้อ 3: API จะลง Log ให้ Form = ผู้ใช้ , User/To = "-" , Work Order = wo อัตโนมัติ (ตาม GAS ของคุณ)
     const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(sessionStorage.getItem('selectedUser'))}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
     if (res.success) { alert("✅ ตัดสต็อกสำเร็จ! (บันทึก WO# เรียบร้อย)"); window.loadStockData(); }
 };
 
-// อัปเดต addToCart ให้รับค่า target เสมอ
+// อัปเดตการรับค่า addToCart แบบ 5 ตัวแปร เพื่อไม่ให้ target ตกหล่น
 window.addToCart = function(type, mat, idx, fromUser, targetUser) {
     let qInput = document.getElementById('qty_' + idx) || document.getElementById(`t_qty_${idx}_${fromUser}`);
     const itemData = window.allRows.find(i => String(i.Material) === String(mat)) || {};
+    
     window.cart.push({ type: type, mat: mat, name: itemData['Product Name']||'N/A', qty: qInput.value, from: fromUser, target: targetUser });
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
@@ -131,7 +133,6 @@ window.updateCartUI = function() {
     btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#0ea5e9; color:white; padding:16px 24px; border-radius:50px; border:none; font-weight:bold; box-shadow:0 8px 20px rgba(0,0,0,0.2);">🛒 ตะกร้า (${window.cart.length})</button>` : '';
 };
 
-/* หน้าตะกร้าสีฟ้าอ่อน */
 window.showReviewModal = function() {
     let html = `<div style="max-height:280px; overflow-y:auto; margin:15px 0;"><table style="width:100%; font-size:11px; border-collapse:collapse;">
         <tr style="background:#bae6fd;"><th style="padding:8px;text-align:left;">Material</th><th style="padding:8px;">Qty</th><th style="padding:8px;">Transfer</th><th style="padding:8px;"></th></tr>`;
@@ -159,29 +160,34 @@ window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn'); btn.innerText = "Processing..."; btn.disabled = true;
     const user = sessionStorage.getItem('selectedUser'), dateStr = new Date().toLocaleDateString('en-GB');
     
-    // ข้อ 7: เนื้อหาเมลภาษาอังกฤษตามคำขอเป๊ะๆ
+    // ข้อ 7: เปลี่ยนหัวข้อเนื้อหาเมลเป็น Hi BO, Please transfer...
     let emailBody = `Hi BO,\n\nPlease transfer the below spare parts.\n\n`;
+    
     try {
         for (const item of window.cart) {
-            // ดำเนินการยิงข้อมูลอัปเดตไป Google Sheet ด้วย param 'from' และ 'user' (target) ให้ถูกต้อง (แก้ข้อ 1, 2, 5)
-            await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`, { mode: 'no-cors' });
+            // ถอดโหมด no-cors ออก เพื่อให้จับ Error ได้ถ้า API ปฏิเสธการบันทึก
+            const url = `${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`;
+            await fetch(url).then(r => r.json());
             emailBody += `- ${item.mat} (${item.name}) | Qty: ${item.qty} | From: ${item.from} -> To: ${item.target}\n`;
         }
         
         window.cart = []; localStorage.removeItem('qiagen_cart');
         
-        // ข้อ 6: บังคับเปิดแอปเมล (Outlook) ทันทีบนมือถือ
         const to = "AsiaPacBackOfficeFieldService@qiagen.com";
         const cc = "gthfss@qiagen.com";
         const subject = encodeURIComponent(`Spare parts transfer ${user} ${dateStr}`);
         const body = encodeURIComponent(emailBody);
         
-        // ใช้ mailto ทั่วไปซึ่งเมื่อตั้งเป็นแอปหลักจะเปิดได้ทันทีโดยไม่ถูกบล็อกจากบราวเซอร์
+        // ข้อ 6: ใช้ replace เพื่อบังคับเปิดแอป Outlook ในมือถือทันที
         window.location.replace(`mailto:${to}?cc=${cc}&subject=${subject}&body=${body}`);
         
-        alert("✅ Sync Success!");
-        setTimeout(() => window.location.reload(), 1500); // Reload หลังจากเด้งไปแอปเมลแล้ว
-    } catch (e) { alert("❌ Failed"); btn.disabled = false; }
+        alert("✅ Sync Success!"); 
+        setTimeout(() => window.location.reload(), 1500); 
+    } catch (e) { 
+        alert("❌ Failed: " + e.message); 
+        btn.disabled = false; 
+        btn.innerText = "Sync & Open Outlook";
+    }
 };
 
 window.removeFromCart = (idx) => {
