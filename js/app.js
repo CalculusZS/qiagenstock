@@ -1,180 +1,97 @@
-/* ========================================================================== 
-   QIAGEN INVENTORY - V48 (FULL OPTION + WO TO COLUMN I)
-   ========================================================================== */
-const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
-const MASTER_PASS = "Service";
+/* QIAGEN INVENTORY V51 - COMPACT & FULL OPTION (ENGLISH) */
+const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec", PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
+window.allRows = []; window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-window.allRows = [];
-window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
+const getU = () => sessionStorage.getItem('selectedUser');
 
-/* 1. AUTH & LOGIN (ครบถ้วน) */
-window.handleLogin = async function() {
-    const u = document.getElementById('username-input').value.trim().toUpperCase();
-    const p = document.getElementById('password-input').value.trim();
-    try {
-        const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(u)}&pass=${encodeURIComponent(p)}`).then(r => r.json());
-        if (res && res.success) {
-            sessionStorage.setItem('selectedUser', USER_MAP[u] || res.fullName);
-            if (res.status === 'NEW') { window.showForcePasswordChange(u); } 
-            else { window.location.replace('main.html'); }
-        } else alert("❌ Login Failed");
-    } catch (e) { alert("❌ Connection Error"); }
+// --- 1. AUTH ---
+window.handleLogin = async () => {
+    const u = document.getElementById('username-input').value.toUpperCase(), p = document.getElementById('password-input').value;
+    const res = await fetch(`${API}?action=checkauth&user=${u}&pass=${p}`).then(r => r.json());
+    if (res?.success) {
+        sessionStorage.setItem('selectedUser', USER_MAP[u] || res.fullName);
+        res.status === 'NEW' ? window.showForcePasswordChange(u) : window.location.replace('main.html');
+    } else alert("❌ Login Failed");
 };
 
-window.showForcePasswordChange = function(userKey) {
-    const div = document.createElement('div');
-    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;justify-content:center;align-items:center;z-index:10000;padding:20px;";
-    div.innerHTML = `<div style="background:white;padding:30px;border-radius:20px;text-align:center;width:320px;">
-        <h3 style="color:#f97316">Set New Password</h3>
-        <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;">
-        <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;">
-        <button onclick="window.processReset('${userKey}')" style="width:100%;padding:14px;background:#f97316;color:white;border:none;border-radius:8px;font-weight:bold;">Update & Login</button>
-    </div>`;
-    document.body.appendChild(div);
+window.showForcePasswordChange = (u) => {
+    document.body.insertAdjacentHTML('beforeend', `<div id="pw-box" style="position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;justify-content:center;align-items:center;z-index:10000;"><div style="background:white;padding:30px;border-radius:20px;text-align:center;width:300px;"><h3>Set Password</h3><input type="password" id="p1" placeholder="New"><input type="password" id="p2" placeholder="Confirm" style="margin-top:10px;"><button onclick="window.processReset('${u}')" style="width:100%;padding:12px;background:#f97316;color:white;border:none;margin-top:15px;border-radius:8px;">Update</button></div></div>`);
 };
 
-window.processReset = async function(userKey) {
+window.processReset = async (u) => {
     const p1 = document.getElementById('p1').value, p2 = document.getElementById('p2').value;
-    if (p1 !== p2) return alert("❌ Passwords do not match");
-    const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(userKey)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`).then(r => r.json());
+    if (p1 !== p2) return alert("Mismatch");
+    const res = await fetch(`${API}?action=setpassword&user=${u}&newPass=${p1}&pass=${PASS}`).then(r => r.json());
     if (res.success) window.location.reload();
 };
 
-/* 2. RENDER LOGIC (Show All ไม่มีปุ่ม / Deduct เรียง WO ก่อน) */
-window.renderTable = function(data) {
-    const tbody = document.getElementById('data'); if (!tbody) return;
-    const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
-    
-    tbody.innerHTML = data.map((item, index) => {
-        let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
-        let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
+// --- 2. RENDER TABLE ---
+window.renderTable = (data) => {
+    const tbody = document.getElementById('data'), path = window.location.pathname.toLowerCase();
+    if (!tbody) return;
+    tbody.innerHTML = data.map((item, idx) => {
+        let q0 = Number(item['0243']||0), qU = Number(item[getU()]||0), disp = (path.includes('withdraw')||path.includes('showall')) ? q0 : qU;
+        if (path.includes('showall') && disp <= 0) disp = '<span style="color:red;font-weight:bold;">Out of Stock</span>';
+        if ((path.includes('return')||path.includes('deduct')) && qU <= 0) return '';
+        if (disp <= 0 && !path.includes('showall')) return '';
 
-        let qtyLabel = displayQty;
-        if (path.includes('showall') && displayQty <= 0) qtyLabel = '<span style="color:red;">ไม่มี</span>';
-
-        if ((path.includes('return') || path.includes('deduct')) && qU <= 0) return '';
-        if (displayQty <= 0 && !path.includes('showall')) return '';
-
-        let actionUI = "";
-        if (path.includes('showall')) {
-            actionUI = `<span style="color:#94a3b8; font-size:12px;">View Only</span>`;
-        } else if (path.includes('deduct')) {
-            actionUI = `<div style="display:flex; gap:5px; align-items:center; justify-content:flex-end;">
-                <input type="text" id="wo_${index}" placeholder="Work Order#" style="width:100px; padding:8px; border:1px solid #ddd; border-radius:6px;">
-                <input type="number" id="qty_${index}" value="1" min="1" style="width:40px; padding:8px; border:1px solid #ddd; border-radius:6px; text-align:center;">
-                <button onclick="window.doDeduct('${item.Material}',${index})" style="background:#dc2626; color:white; border:none; padding:10px 12px; border-radius:8px; font-weight:bold;">Deduct</button>
-            </div>`;
-        } else {
-            const isW = path.includes('withdraw');
-            const color = isW ? '#003366' : '#16a34a';
-            const from = isW ? '0243' : user;
-            actionUI = `<div style="display:flex; gap:5px; align-items:center; justify-content:flex-end;">
-                <input type="number" id="qty_${index}" value="1" min="1" style="width:45px; padding:8px; border:1px solid #ddd; border-radius:8px; text-align:center;">
-                <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${from}')" style="background:${color}; color:white; border:none; padding:10px 14px; border-radius:8px; font-weight:bold;">Add</button>
-            </div>`;
+        let ui = "";
+        if (path.includes('showall')) ui = `<small>Availability</small>`;
+        else if (path.includes('deduct')) ui = `<div style="display:flex;gap:5px;"><input id="wo_${idx}" placeholder="WO#" style="width:70px;"><input type="number" id="qty_${idx}" value="1" style="width:35px;"><button onclick="window.doDeduct('${item.Material}',${idx})" style="background:red;color:white;border:none;padding:8px;border-radius:5px;">Deduct</button></div>`;
+        else {
+            const isW = path.includes('withdraw'), fr = isW?'0243':getU(), to = isW?getU():'0243';
+            ui = `<div style="display:flex;gap:5px;"><input type="number" id="qty_${idx}" value="1" style="width:35px;"><button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${idx},'${fr}','${to}')" style="background:${isW?'#003366':'#16a34a'};color:white;border:none;padding:8px;border-radius:5px;">Add</button></div>`;
         }
-
-        return `<tr style="border-bottom:1px solid #eee;">
-            <td style="padding:15px;"><div style="font-weight:bold; color:#003366;">${item.Material}</div><div style="font-size:11px; color:#666;">${item['Product Name']}</div></td>
-            <td align="center" style="font-size:18px; font-weight:bold;">${qtyLabel}</td>
-            <td align="right" style="padding-right:10px;">${actionUI}</td>
-        </tr>`;
+        return `<tr><td style="padding:10px;"><b>${item.Material}</b><br><small>${item['Product Name']}</small></td><td align="center"><b>${disp}</b></td><td align="right">${ui}</td></tr>`;
     }).join('');
 };
 
-/* 3. CORE OPERATIONS (DEDUCT & BASKET) */
-window.loadStockData = async function() {
-    const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { 
-        window.allRows = res.data; 
-        if(window.renderTable) window.renderTable(res.data);
-        if(window.renderTeamTable) window.renderTeamTable(res.data);
-    }
+// --- 3. ACTIONS ---
+window.doDeduct = async (mat, idx) => {
+    const q = document.getElementById('qty_'+idx).value, wo = document.getElementById('wo_'+idx).value.trim();
+    if (!wo) return alert("Need WO#");
+    const res = await fetch(`${API}?action=deduct&user=${getU()}&material=${mat}&qty=${q}&wo=${wo}&pass=${PASS}`).then(r => r.json());
+    if (res.success) { alert("Deducted!"); window.loadStockData(); }
 };
 
-// แก้ไขฟังก์ชัน Deduct: ส่งค่า WO ไปบันทึกคอลัมน์ I ใน LOG
-window.doDeduct = async function(mat, idx) {
-    const qty = document.getElementById('qty_' + idx).value;
-    const wo = document.getElementById('wo_' + idx).value.trim();
-    if (!wo) return alert("❌ กรุณาใส่ Work Order#");
-    
-    const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(sessionStorage.getItem('selectedUser'))}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { alert("✅ ตัดสต็อกสำเร็จ! (บันทึก WO# เรียบร้อย)"); window.loadStockData(); }
-};
-
-window.addToCart = function(type, mat, idx, fromUser) {
-    let qInput = document.getElementById('qty_' + idx) || document.getElementById(`t_qty_${idx}_${fromUser}`);
-    const itemData = window.allRows.find(i => String(i.Material) === String(mat)) || {};
-    window.cart.push({ type, mat, name: itemData['Product Name']||'N/A', qty: qInput.value, from: fromUser, target: (type==='return'?'0243':sessionStorage.getItem('selectedUser')) });
+window.addToCart = (type, mat, idx, from, to) => {
+    const item = window.allRows.find(i => String(i.Material) === String(mat));
+    const q = document.getElementById('qty_'+idx)?.value || document.getElementById(`t_qty_${idx}_${from}`).value;
+    window.cart.push({ type, mat, name: item['Product Name'], qty: q, from, target: to });
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
 };
 
-window.updateCartUI = function() {
-    let btn = document.getElementById('cart-floating-btn');
-    if (!btn) {
-        btn = document.createElement('div'); btn.id = 'cart-floating-btn';
-        btn.style = "position:fixed; bottom:25px; right:25px; z-index:1000;";
-        document.body.appendChild(btn);
+window.updateCartUI = () => {
+    let btn = document.getElementById('cart-btn');
+    if(!btn) { document.body.insertAdjacentHTML('beforeend', `<div id="cart-btn" style="position:fixed;bottom:20px;right:20px;z-index:1000;"></div>`); btn = document.getElementById('cart-btn'); }
+    btn.innerHTML = window.cart.length ? `<button onclick="window.showReviewModal()" style="background:#0ea5e9;color:white;padding:15px 20px;border-radius:50px;border:none;font-weight:bold;box-shadow:0 5px 15px rgba(0,0,0,0.2);">🛒 Basket (${window.cart.length})</button>` : '';
+};
+
+// --- 4. BASKET MODAL (LIGHT BLUE) ---
+window.showReviewModal = () => {
+    let html = `<div style="background:#e0f2fe;padding:20px;border-radius:20px;width:90%;max-width:400px;box-shadow:0 10px 25px rgba(0,0,0,0.3);"><h3 style="color:#0369a1;margin-top:0;">🛒 Confirm List</h3><div style="max-height:200px;overflow-y:auto;"><table style="width:100%;font-size:11px;border-collapse:collapse;">`;
+    window.cart.forEach((i, x) => html += `<tr style="border-bottom:1px solid #999;"><td><b>${i.mat}</b><br>${i.qty} pcs</td><td align="center">${i.from}→${i.target}</td><td align="right"><button onclick="window.removeFromCart(${x})" style="color:red;border:none;background:none;font-size:16px;">✕</button></td></tr>`);
+    html += `</table></div><button id="s-btn" onclick="window.confirmSync()" style="width:100%;padding:14px;background:#0369a1;color:white;margin-top:15px;border-radius:12px;border:none;font-weight:bold;">Sync & Open Outlook</button><button onclick="document.getElementById('rv-box').remove()" style="width:100%;background:none;border:none;margin-top:8px;color:#666;">Close</button></div>`;
+    document.body.insertAdjacentHTML('beforeend', `<div id="rv-box" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:10000;">${html}</div>`);
+};
+
+window.confirmSync = async () => {
+    const btn = document.getElementById('s-btn'); btn.innerText = "Processing..."; btn.disabled = true;
+    let mail = `Hi BO,\n\nPlease transfer the below spare parts.\n\n`;
+    for (const i of window.cart) {
+        await fetch(`${API}?action=${i.type}&from=${i.from}&user=${i.target}&material=${i.mat}&qty=${i.qty}&pass=${PASS}`, {mode:'no-cors'});
+        mail += `- ${i.mat} (${i.name}) | Qty: ${i.qty} | From: ${i.from} -> To: ${i.target}\n`;
     }
-    btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#0ea5e9; color:white; padding:16px 24px; border-radius:50px; border:none; font-weight:bold; box-shadow:0 8px 20px rgba(0,0,0,0.2);">🛒 ตะกร้า (${window.cart.length})</button>` : '';
+    window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Spare parts transfer ${getU()} ${new Date().toLocaleDateString('en-GB')}&body=${encodeURIComponent(mail)}`;
+    window.cart = []; localStorage.removeItem('qiagen_cart');
+    alert("Success! Check your Email App."); window.location.reload();
 };
 
-/* หน้าตะกร้าสีฟ้าอ่อนตามสั่ง */
-window.showReviewModal = function() {
-    let html = `<div style="max-height:280px; overflow-y:auto; margin:15px 0;"><table style="width:100%; font-size:11px; border-collapse:collapse;">
-        <tr style="background:#bae6fd;"><th style="padding:8px;text-align:left;">Material / Name</th><th style="padding:8px;">Qty</th><th style="padding:8px;">Transfer</th><th style="padding:8px;"></th></tr>`;
-    window.cart.forEach((i, idx) => {
-        html += `<tr style="border-bottom:1px solid #cbd5e1;">
-            <td style="padding:8px;"><div style="font-weight:bold;">${i.mat}</div><div style="font-size:10px; color:#475569;">${i.name}</div></td>
-            <td style="padding:8px; text-align:center;">${i.qty}</td>
-            <td style="padding:8px; text-align:center;">${i.from}→${i.target}</td>
-            <td style="padding:8px;"><button onclick="window.removeFromCart(${idx})" style="color:red; border:none; background:none; font-weight:bold;">✕</button></td>
-        </tr>`;
-    });
-    html += `</table></div>`;
-    
-    const div = document.createElement('div'); div.id = "review-modal";
-    div.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
-    // พื้นหลังสีฟ้าอ่อน #e0f2fe
-    div.innerHTML = `<div style="background:#e0f2fe; width:100%; max-width:450px; border-radius:20px; padding:20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-        <h3 style="margin:0; color:#0369a1;">🛒 รายการที่เลือก</h3>${html}
-        <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:14px; background:#0369a1; color:white; border:none; border-radius:12px; font-weight:bold;">Sync & Send Email</button>
-        <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; background:none; border:none; color:#666;">ปิด</button>
-    </div>`;
-    document.body.appendChild(div);
-};
-
-window.confirmSendAndSync = async function() {
-    const btn = document.getElementById('sync-btn'); btn.innerText = "Processing..."; btn.disabled = true;
-    const user = sessionStorage.getItem('selectedUser'), dateStr = new Date().toLocaleDateString('en-GB');
-    let emailBody = `Inventory Update Request:\n\n`;
-    try {
-        for (const item of window.cart) {
-            await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`, { mode: 'no-cors' });
-            emailBody += `- ${item.mat} (${item.name}) | Qty: ${item.qty} | From: ${item.from} -> To: ${item.target}\n`;
-        }
-        window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Spare parts transfer ${user} ${dateStr}&body=${encodeURIComponent(emailBody)}`;
-        window.cart = []; localStorage.removeItem('qiagen_cart');
-        alert("✅ Sync Success!"); window.location.reload();
-    } catch (e) { alert("❌ Failed"); btn.disabled = false; }
-};
-
-window.removeFromCart = (idx) => {
-    window.cart.splice(idx, 1);
-    localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
-    document.getElementById('review-modal').remove();
-    if (window.cart.length > 0) window.showReviewModal();
-    window.updateCartUI();
-};
-
-window.checkAuth = function() {
-    const user = sessionStorage.getItem('selectedUser');
-    if (!user && !window.location.pathname.includes('index.html')) { window.location.replace('index.html'); return false; }
-    window.updateCartUI(); return true;
-};
-
+window.removeFromCart = (x) => { window.cart.splice(x,1); localStorage.setItem('qiagen_cart', JSON.stringify(window.cart)); document.getElementById('rv-box').remove(); window.updateCartUI(); if(window.cart.length) window.showReviewModal(); };
+window.loadStockData = async () => { const res = await fetch(`${API}?action=read&pass=${PASS}`).then(r => r.json()); if (res.success) { window.allRows = res.data; if(window.renderTable) window.renderTable(res.data); if(window.renderTeamTable) window.renderTeamTable(res.data); } };
 window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
-window.checkAuth();
-if (!window.location.pathname.includes('index.html')) window.loadStockData();
+
+if (!window.location.pathname.includes('index.html')) { if(!getU()) window.location.replace('index.html'); else window.loadStockData(); }
+window.updateCartUI();
