@@ -6,26 +6,28 @@
     <title>Team Stock - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        body { background-color: #f1f5f9; margin: 0; font-family: -apple-system, sans-serif; }
-        .header-orange { background: #f97316; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .header-orange h1 { margin: 0; font-size: 18px; font-weight: bold; }
-        .btn-back { background: white; color: #f97316; text-decoration: none; padding: 6px 15px; border-radius: 8px; font-size: 14px; font-weight: bold; }
+        body { background-color: #f8fafc; margin: 0; font-family: -apple-system, system-ui, sans-serif; }
+        .header-orange { background: #f97316; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .header-orange h1 { margin: 0; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; }
+        .btn-back { background: rgba(255,255,255,0.2); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: bold; border: 1px solid rgba(255,255,255,0.3); }
         
-        .search-area { background: white; padding: 15px; margin: 15px; border-radius: 12px; }
-        .search-input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
+        .search-area { background: white; padding: 15px; margin: 12px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .search-input { width: 100%; padding: 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; outline: none; box-sizing: border-box; transition: border-color 0.2s; }
+        .search-input:focus { border-color: #f97316; }
 
-        .list-container { padding: 0 15px 100px; }
-        .stock-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #f97316; }
-        .col-info { flex: 2; }
-        .col-qty { flex: 0.8; text-align: center; font-size: 22px; font-weight: bold; color: #f97316; }
-        .col-action { flex: 1.5; display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+        .list-container { padding: 0 12px 100px; }
+        .stock-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.04); border-left: 4px solid #f97316; position: relative; }
+        .col-info { flex: 2; padding-right: 10px; }
+        .col-qty { flex: 0.6; text-align: center; font-size: 20px; font-weight: 800; color: #f97316; border-left: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; }
+        .col-action { flex: 1.5; display: flex; gap: 8px; justify-content: flex-end; align-items: center; padding-left: 10px; }
 
         .mat-id { font-size: 15px; font-weight: bold; color: #003366; }
-        .mat-name { font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.2; }
-        .badge { background: #fff7ed; color: #c2410c; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; margin-top: 8px; display: inline-block; border: 1px solid #fed7aa; }
+        .mat-name { font-size: 11px; color: #64748b; margin-top: 3px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .badge { background: #fff7ed; color: #c2410c; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-top: 8px; display: inline-block; border: 1px solid #fed7aa; }
         
-        .input-qty { width: 42px; padding: 10px 5px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: center; font-size: 16px; }
-        .btn-transfer { background: #f97316; color: white; border: none; padding: 12px 10px; border-radius: 10px; font-weight: bold; font-size: 12px; }
+        .input-qty { width: 45px; padding: 10px 0; border: 1.5px solid #e2e8f0; border-radius: 8px; text-align: center; font-size: 16px; font-weight: bold; color: #1e293b; }
+        .btn-transfer { background: #f97316; color: white; border: none; padding: 12px 12px; border-radius: 10px; font-weight: bold; font-size: 13px; box-shadow: 0 2px 4px rgba(249, 115, 22, 0.2); }
+        .btn-transfer:active { transform: scale(0.95); background: #ea580c; }
     </style>
 </head>
 <body>
@@ -38,24 +40,32 @@
         <input type="text" id="search" class="search-input" placeholder="Search Material or Member..." oninput="window.filterTeam()">
     </div>
 
-    <div class="list-container" id="team-list"></div>
+    <div class="list-container" id="team-list">
+        <div style="text-align:center; padding:40px; color:#94a3b8;">Loading team stock...</div>
+    </div>
 
     <script src="js/app.js"></script>
+
     <script>
+        // ฟังก์ชัน Render สำหรับหน้า Team Stock โดยเฉพาะ
         window.renderTeamTable = function(data) {
             const container = document.getElementById('team-list');
-            const currentUser = sessionStorage.getItem('selectedUser');
+            if (!container) return;
+            
+            const currentUser = sessionStorage.getItem('selectedUser'); // ตัวเรา
             const members = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
+            
             let html = '';
             data.forEach((item, idx) => {
                 members.forEach(m => {
                     const q = Number(item[m] || 0);
+                    // เงื่อนไข: ต้องไม่ใช่ตัวเรา และ ต้องมีของมากกว่า 0
                     if (m !== currentUser && q > 0) {
                         html += `
                         <div class="stock-card">
                             <div class="col-info">
                                 <div class="mat-id">${item.Material}</div>
-                                <div class="mat-name">${item['Product Name'] || ''}</div>
+                                <div class="mat-name">${item['Product Name'] || 'No description'}</div>
                                 <div class="badge">👤 ${m}</div>
                             </div>
                             <div class="col-qty">${q}</div>
@@ -67,35 +77,30 @@
                     }
                 });
             });
-            container.innerHTML = html || '<div style="text-align:center; padding:50px; color:#64748b;">No stock found in team.</div>';
+            
+            container.innerHTML = html || '<div style="text-align:center; padding:50px; color:#94a3b8;">No stock found in team.</div>';
         };
 
-        window.filterTeam = () => {
-            const q = document.getElementById('search').value.toLowerCase();
+        // ระบบค้นหา
+        window.filterTeam = function() {
+            const query = document.getElementById('search').value.toLowerCase();
             const filtered = window.allRows.filter(i => 
-                String(i.Material).toLowerCase().includes(q) || String(i['Product Name']).toLowerCase().includes(q)
+                String(i.Material).toLowerCase().includes(query) || 
+                String(i['Product Name']).toLowerCase().includes(query)
             );
             window.renderTeamTable(filtered);
         };
 
-        window.onload = async () => {
-            if (!window.allRows || window.allRows.length === 0) await window.loadStockData();
-            window.renderTeamTable(window.allRows);
+        // เมื่อโหลดหน้า ให้ดึงข้อมูลทันที
+        window.onload = async function() {
+            if (window.checkAuth()) {
+                if (!window.allRows || window.allRows.length === 0) {
+                    await window.loadStockData();
+                } else {
+                    window.renderTeamTable(window.allRows);
+                }
+            }
         };
     </script>
 </body>
-    <script>
-    window.renderTeamTable = (data) => {
-        const cont = document.getElementById('team-list'), me = sessionStorage.getItem('selectedUser'), mems = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
-        let h = '';
-        data.forEach((i, idx) => {
-            mems.forEach(m => {
-                const q = Number(i[m]||0);
-                if (m !== me && q > 0) h += `<div class="stock-card"><div class="col-info"><b>${i.Material}</b><br><small>${i['Product Name']}</small><br><span class="badge">👤 ${m}</span></div><div class="col-qty">${q}</div><div class="col-action"><input type="number" id="t_qty_${idx}_${m}" value="1" style="width:35px;"><button onclick="window.addToCart('transfer','${i.Material}',${idx},'${m}','${me}')" class="btn-transfer">Transfer</button></div></div>`;
-            });
-        });
-        cont.innerHTML = h || '<div style="text-align:center;padding:50px;color:#999;">No Stock Found</div>';
-    };
-    window.onload = async () => { if (!window.allRows.length) await window.loadStockData(); window.renderTeamTable(window.allRows); };
-</script>
 </html>
