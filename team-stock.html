@@ -6,26 +6,22 @@
     <title>Team Stock - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        body { background-color: #f8fafc; margin: 0; font-family: -apple-system, system-ui, sans-serif; }
+        body { background-color: #f8fafc; margin: 0; font-family: -apple-system, sans-serif; }
         .header-orange { background: #f97316; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .header-orange h1 { margin: 0; font-size: 18px; font-weight: bold; }
-        .btn-back { background: rgba(255,255,255,0.2); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: bold; border: 1px solid rgba(255,255,255,0.3); }
-        
+        .btn-back { background: rgba(255,255,255,0.2); color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 14px; border: 1px solid rgba(255,255,255,0.3); }
         .search-area { background: white; padding: 15px; margin: 12px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .search-input { width: 100%; padding: 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; outline: none; box-sizing: border-box; }
-
+        .search-input { width: 100%; padding: 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
         .list-container { padding: 0 12px 100px; }
         .stock-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.04); border-left: 4px solid #f97316; }
-        .col-info { flex: 2; padding-right: 10px; }
-        .col-qty { flex: 0.6; text-align: center; font-size: 20px; font-weight: 800; color: #f97316; border-left: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; }
-        .col-action { flex: 1.5; display: flex; gap: 8px; justify-content: flex-end; align-items: center; padding-left: 10px; }
-
+        .col-info { flex: 2; }
+        .col-qty { flex: 0.6; text-align: center; font-size: 20px; font-weight: 800; color: #f97316; border-left: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; margin: 0 10px; }
+        .col-action { flex: 1.5; display: flex; gap: 5px; justify-content: flex-end; }
         .mat-id { font-size: 15px; font-weight: bold; color: #003366; }
         .mat-name { font-size: 11px; color: #64748b; margin-top: 3px; }
         .badge { background: #fff7ed; color: #c2410c; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-top: 8px; display: inline-block; border: 1px solid #fed7aa; }
-        
-        .input-qty { width: 45px; padding: 10px 0; border: 1.5px solid #e2e8f0; border-radius: 8px; text-align: center; font-size: 16px; font-weight: bold; }
-        .btn-transfer { background: #f97316; color: white; border: none; padding: 12px 12px; border-radius: 10px; font-weight: bold; font-size: 13px; cursor: pointer; }
+        .input-qty { width: 45px; padding: 8px 0; border: 1.5px solid #e2e8f0; border-radius: 8px; text-align: center; font-size: 16px; }
+        .btn-transfer { background: #f97316; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -35,36 +31,34 @@
     </div>
 
     <div class="search-area">
-        <input type="text" id="search" class="search-input" placeholder="Search Material or Member..." oninput="window.filterTeam()">
+        <input type="text" id="search" class="search-input" placeholder="ค้นหาอะไหล่ หรือ ชื่อเพื่อน..." oninput="window.filterTeam()">
     </div>
 
     <div class="list-container" id="team-list">
-        <div style="text-align:center; padding:40px; color:#94a3b8;">Loading team stock...</div>
+        <div style="text-align:center; padding:40px; color:#94a3b8;">กำลังโหลดข้อมูล...</div>
     </div>
 
     <script src="js/app.js"></script>
 
     <script>
-        // ฟังก์ชัน Render ข้อมูลสต็อกของเพื่อนทุกคน
         window.renderTeamTable = function(data) {
             const container = document.getElementById('team-list');
             if (!container) return;
             
-            const currentUser = sessionStorage.getItem('selectedUser'); // เรา (คนรับของ)
+            const currentUser = sessionStorage.getItem('selectedUser'); // เรา (คนที่จะรับของ)
             const members = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
             
             let html = '';
             data.forEach((item, idx) => {
-                members.forEach(m => { // m คือชื่อเพื่อน (คนส่งของ)
+                members.forEach(m => { // m คือเพื่อน (คนที่จะส่งของให้เรา)
                     const q = Number(item[m] || 0);
-                    // เงื่อนไข: ต้องไม่ใช่ชื่อเรา และเพื่อนคนนั้นต้องมีของ (q > 0)
                     if (m !== currentUser && q > 0) {
                         html += `
                         <div class="stock-card">
                             <div class="col-info">
                                 <div class="mat-id">${item.Material}</div>
                                 <div class="mat-name">${item['Product Name'] || ''}</div>
-                                <div class="badge">👤 ${m}</div>
+                                <div class="badge">👤 จาก: ${m}</div>
                             </div>
                             <div class="col-qty">${q}</div>
                             <div class="col-action">
@@ -75,11 +69,9 @@
                     }
                 });
             });
-            
-            container.innerHTML = html || '<div style="text-align:center; padding:50px; color:#94a3b8;">No stock found in team.</div>';
+            container.innerHTML = html || '<div style="text-align:center; padding:50px; color:#94a3b8;">ไม่พบข้อมูลสต็อกของทีม</div>';
         };
 
-        // ระบบค้นหา
         window.filterTeam = function() {
             const query = document.getElementById('search').value.toLowerCase();
             const filtered = window.allRows.filter(i => 
@@ -89,7 +81,6 @@
             window.renderTeamTable(filtered);
         };
 
-        // เมื่อโหลดหน้า
         window.onload = async function() {
             if (window.checkAuth()) {
                 if (!window.allRows || window.allRows.length === 0) {
