@@ -7,44 +7,52 @@
     <link rel="stylesheet" href="css/style.css">
     <style>
         body { background-color: #f1f5f9; margin: 0; font-family: -apple-system, sans-serif; }
-        .header-orange { background: #f97316; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        .header-orange { background: #f97316; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .header-orange h1 { margin: 0; font-size: 18px; font-weight: bold; }
         .btn-back { background: white; color: #f97316; text-decoration: none; padding: 6px 15px; border-radius: 8px; font-size: 14px; font-weight: bold; }
-        .search-area { background: white; padding: 15px; margin: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        .search-area { background: white; padding: 15px; margin: 15px; border-radius: 12px; }
         .search-input { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
+
         .list-container { padding: 0 15px 100px; }
         .stock-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #f97316; }
         .col-info { flex: 2; }
         .col-qty { flex: 0.8; text-align: center; font-size: 22px; font-weight: bold; color: #f97316; }
         .col-action { flex: 1.5; display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
-        .mat-id { font-size: 16px; font-weight: bold; color: #003366; }
-        .mat-name { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+        .mat-id { font-size: 15px; font-weight: bold; color: #003366; }
+        .mat-name { font-size: 11px; color: #64748b; margin-top: 2px; line-height: 1.2; }
         .badge { background: #fff7ed; color: #c2410c; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; margin-top: 8px; display: inline-block; border: 1px solid #fed7aa; }
+        
         .input-qty { width: 42px; padding: 10px 5px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: center; font-size: 16px; }
-        .btn-transfer { background: #f97316; color: white; border: none; padding: 12px 15px; border-radius: 10px; font-weight: bold; }
+        .btn-transfer { background: #f97316; color: white; border: none; padding: 12px 10px; border-radius: 10px; font-weight: bold; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="header-orange">
-        <h1>👥 TEAM STOCK</h1>
+        <h1>TEAM STOCK</h1>
         <a href="main.html" class="btn-back">BACK</a>
     </div>
+
     <div class="search-area">
-        <input type="text" id="search" class="search-input" placeholder="ค้นหา Material หรือชื่อพนักงาน..." oninput="window.filterTeam()">
+        <input type="text" id="search" class="search-input" placeholder="Search Material or Member..." oninput="window.filterTeam()">
     </div>
+
     <div class="list-container" id="team-list"></div>
+
     <script src="js/app.js"></script>
     <script>
         window.renderTeamTable = function(data) {
             const container = document.getElementById('team-list');
-            const user = sessionStorage.getItem('selectedUser');
+            const currentUser = sessionStorage.getItem('selectedUser');
             const members = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
             let html = '';
             data.forEach((item, idx) => {
                 members.forEach(m => {
                     const q = Number(item[m] || 0);
-                    if (m !== user && q > 0) {
-                        html += `<div class="stock-card">
+                    if (m !== currentUser && q > 0) {
+                        html += `
+                        <div class="stock-card">
                             <div class="col-info">
                                 <div class="mat-id">${item.Material}</div>
                                 <div class="mat-name">${item['Product Name'] || ''}</div>
@@ -53,18 +61,23 @@
                             <div class="col-qty">${q}</div>
                             <div class="col-action">
                                 <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" class="input-qty">
-                                <button onclick="window.addToCart('transfer', '${item.Material}', ${idx}, '${m}')" class="btn-transfer">Transfer</button>
+                                <button onclick="window.addToCart('transfer', '${item.Material}', ${idx}, '${m}', '${currentUser}')" class="btn-transfer">Transfer</button>
                             </div>
                         </div>`;
                     }
                 });
             });
-            container.innerHTML = html || '<div style="text-align:center; padding:50px;">ไม่มีข้อมูลสต็อกในทีม</div>';
+            container.innerHTML = html || '<div style="text-align:center; padding:50px; color:#64748b;">No stock found in team.</div>';
         };
+
         window.filterTeam = () => {
             const q = document.getElementById('search').value.toLowerCase();
-            window.renderTeamTable(window.allRows.filter(i => String(i.Material).toLowerCase().includes(q) || String(i['Product Name']).toLowerCase().includes(q)));
+            const filtered = window.allRows.filter(i => 
+                String(i.Material).toLowerCase().includes(q) || String(i['Product Name']).toLowerCase().includes(q)
+            );
+            window.renderTeamTable(filtered);
         };
+
         window.onload = async () => {
             if (!window.allRows || window.allRows.length === 0) await window.loadStockData();
             window.renderTeamTable(window.allRows);
