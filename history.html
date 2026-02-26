@@ -70,12 +70,12 @@
     <script>
         // ใช้ API ล่าสุดจากระบบ
         const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
-        const PASS = "Service";
+        const MASTER_PASS = "Service";
 
         async function loadHistory() {
             const listDiv = document.getElementById('list');
             try {
-                const response = await fetch(`${API}?action=gethistory&pass=${PASS}&t=${Date.now()}`);
+                const response = await fetch(`${API}?action=gethistory&pass=${MASTER_PASS}&t=${Date.now()}`);
                 const res = await response.json();
                 
                 if (res.success && res.data) {
