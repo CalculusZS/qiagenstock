@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FULL VERSION (FIXED TEAM UI, RETURN MSG & EMAIL)
+   QIAGEN INVENTORY - FULL VERSION (FIXED TEAM UI & REVIEW ORDER COLOR)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -63,7 +63,7 @@ window.processReset = async function(u) {
     } catch (e) { alert("❌ Error"); }
 };
 
-/* --- 2. CART & REVIEW MODAL --- */
+/* --- 2. CART & REVIEW MODAL (แก้ไขหัวข้อเป็นสีดำ) --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
     const q = document.getElementById(qID).value;
@@ -107,7 +107,7 @@ window.showReviewModal = function() {
     div.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
     div.innerHTML = `
         <div style="background:white; width:100%; max-width:400px; border-radius:20px; padding:20px;">
-            <h3 style="margin-top:0; border-bottom:2px solid #f1f5f9; padding-bottom:10px;">🛒 Review Order</h3>
+            <h3 style="margin-top:0; border-bottom:2px solid #f1f5f9; padding-bottom:10px; color:black;">🛒 Review Order</h3>
             <div style="max-height:350px; overflow-y:auto;">${html || 'No items'}</div>
             <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:16px; background:#0ea5e9; color:white; border:none; border-radius:12px; margin-top:15px; font-weight:bold; font-size:16px;">Confirm & Open Email</button>
             <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; border:none; background:none; color:gray; font-weight:bold;">Cancel</button>
@@ -123,7 +123,7 @@ window.removeFromCart = function(idx) {
     window.updateCartUI();
 };
 
-/* --- 3. SYNC & FORCE EMAIL (แก้ให้เด้งทันที) --- */
+/* --- 3. SYNC & FORCE EMAIL (เด้งทันที) --- */
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
@@ -137,7 +137,6 @@ window.confirmSendAndSync = async function() {
             bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
         }
 
-        // เด้งเข้าเมล์ทันที
         window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Transfer_${user}&body=${encodeURIComponent(bodyText)}`;
 
         window.cart = []; 
@@ -146,7 +145,7 @@ window.confirmSendAndSync = async function() {
     } catch (e) { alert("Sync Error"); btn.disabled = false; }
 };
 
-/* --- 4. RENDERING & DATA (แก้ UI ตามสั่ง) --- */
+/* --- 4. RENDERING & DATA (แก้ไข UI TEAM STOCK ตามสั่ง) --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
@@ -158,15 +157,15 @@ window.renderTeamTable = function(data) {
         members.forEach(m => {
             const q = Number(item[m] || 0);
             if (m !== currentUser && q > 0) {
-                // แก้ UI ให้เหมือนหน้า Withdraw เป็นแบบตาราง <tr>
+                // แก้ไข UI: ชื่อเจ้าของใหญ่ขึ้น 2 เท่า, Mat & Name อยู่แถวเดียวกัน, จำนวนอยู่ขวาก่อนปุ่ม
                 html += `<tr>
                     <td style="padding:12px;">
-                        <b>${item.Material}</b><br><small>${item['Product Name']||''}</small><br>
-                        <span style="color:#f97316; font-size:10px;">User: ${m}</span>
+                        <div style="font-size: 20px; font-weight: bold; color: black; margin-bottom: 4px;">${m}</div>
+                        <b>${item.Material}</b> - <small>${item['Product Name']||''}</small>
                     </td>
-                    <td align="center"><b>${q}</b></td>
-                    <td align="right">
-                        <div style="display:flex; gap:5px; justify-content:flex-end; align-items:center;">
+                    <td align="right" style="padding-right:10px;">
+                        <div style="display:flex; gap:8px; justify-content:flex-end; align-items:center;">
+                            <b style="font-size: 16px;">Stock: ${q}</b>
                             <input type="number" id="t_qty_${idx}_${m}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
                             <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:#f97316; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">Add</button>
                         </div>
@@ -175,7 +174,7 @@ window.renderTeamTable = function(data) {
             }
         });
     });
-    container.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:20px;">No Team Stock Available</td></tr>';
+    container.innerHTML = html || '<tr><td colspan="2" align="center" style="padding:20px;">No Team Stock Available</td></tr>';
 };
 
 window.renderTable = function(data) {
@@ -206,7 +205,6 @@ window.renderTable = function(data) {
         return `<tr><td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']||''}</small></td><td align="center"><b>${displayQty}</b></td><td align="right">${actionUI}</td></tr>`;
     }).join('');
 
-    // แก้ปัญหาหน้า Return ไม่มีของให้แสดงข้อความบอก
     if (path.includes('return') && !rowsHtml.trim()) {
         tbody.innerHTML = '<tr><td colspan="3" align="center" style="padding:40px; color:gray;">❌ No items in your stock to return.</td></tr>';
     } else {
@@ -214,7 +212,6 @@ window.renderTable = function(data) {
     }
 };
 
-/* --- ฟังก์ชันช่วยเหลืออื่นๆ --- */
 window.loadStockData = async function() {
     const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
     if (res.success) { window.allRows = res.data; window.renderTable(res.data); window.renderTeamTable(res.data); }
