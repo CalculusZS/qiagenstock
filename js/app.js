@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - RESTORED & EMAIL UPDATED (FULL VERSION)
+   QIAGEN INVENTORY - FULL VERSION (OUTLOOK FORCED & EMAIL UPDATED)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -90,7 +90,7 @@ window.showReviewModal = function() {
     div.innerHTML = `<div style="background:white; width:100%; max-width:400px; border-radius:20px; padding:20px;">
             <h3 style="margin-top:0; border-bottom:2px solid #f1f5f9; padding-bottom:10px; color:black;">🛒 Review Order</h3>
             <div style="max-height:350px; overflow-y:auto;">${html || 'No items'}</div>
-            <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:16px; background:#0ea5e9; color:white; border:none; border-radius:12px; margin-top:15px; font-weight:bold;">Confirm & Open Email</button>
+            <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:16px; background:#0ea5e9; color:white; border:none; border-radius:12px; margin-top:15px; font-weight:bold;">Confirm & Open Outlook</button>
             <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; border:none; background:none; color:gray;">Cancel</button>
         </div>`;
     document.body.appendChild(div);
@@ -104,7 +104,7 @@ window.removeFromCart = function(idx) {
     window.updateCartUI();
 };
 
-/* --- 3. SYNC (แก้ไขหัวข้อและเนื้อหา Email ตามที่ระบุ) --- */
+/* --- 3. SYNC (FORCED OUTLOOK & EMAIL BODY) --- */
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
@@ -113,10 +113,7 @@ window.confirmSendAndSync = async function() {
     
     btn.innerText = "Syncing..."; btn.disabled = true;
 
-    // หัวข้ออีเมล: Spare parts transfer [ชื่อ] [วันที่]
     let subjectText = `Spare parts transfer ${user} ${today}`;
-    
-    // เนื้อหาอีเมล: Hi BO, (เว้นบรรทัด) Please transfer the following spare parts.
     let bodyText = `Hi BO,\n\nPlease transfer the following spare parts.\n\n`;
 
     try {
@@ -124,10 +121,31 @@ window.confirmSendAndSync = async function() {
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
             bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
         }
-        window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
-        window.cart = []; localStorage.removeItem('qiagen_cart');
-        setTimeout(() => window.location.reload(), 2000);
-    } catch (e) { alert("Sync Error"); btn.disabled = false; }
+
+        const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
+        const ccTo = "gthfss@qiagen.com";
+        
+        // บังคับเปิดแอป Outlook ผ่าน URL Protocol
+        const outlookUrl = `ms-outlook://compose?to=${encodeURIComponent(mailTo)}&cc=${encodeURIComponent(ccTo)}&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
+        const fallbackUrl = `mailto:${mailTo}?cc=${ccTo}&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
+
+        // ถ้าเป็น Mobile ให้ใช้ ms-outlook://
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            window.location.href = outlookUrl;
+            // Fallback กรณีเรียกผ่านเบราว์เซอร์แล้ว ms-outlook ไม่ทำงาน
+            setTimeout(() => { if (document.hasFocus()) window.location.href = fallbackUrl; }, 1500);
+        } else {
+            // ถ้าเป็นคอมพิวเตอร์ ปกติ Outlook จะเป็น Default ของ mailto อยู่แล้ว
+            window.location.href = fallbackUrl;
+        }
+
+        window.cart = []; 
+        localStorage.removeItem('qiagen_cart');
+        setTimeout(() => window.location.reload(), 3000);
+    } catch (e) { 
+        alert("Sync Error"); 
+        btn.disabled = false; 
+    }
 };
 
 /* --- 4. RENDERING & DATA --- */
