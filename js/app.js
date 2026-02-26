@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - ULTIMATE MASTER (NO FEATURES REMOVED)
+   QIAGEN INVENTORY - ULTIMATE MASTER (FULL FEATURES - ENGLISH REV)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -7,7 +7,7 @@ const MASTER_PASS = "Service";
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-/* --- 1. ระบบ LOGIN (สำหรับหน้า index.html) --- */
+/* --- 1. LOGIN SYSTEM (Fixes: handleLogin is not defined) --- */
 window.handleLogin = async function() {
     const userSelect = document.getElementById('user-select');
     const passInput = document.getElementById('password-input');
@@ -16,16 +16,20 @@ window.handleLogin = async function() {
     const selectedUser = userSelect.value;
     const password = passInput.value;
 
-    if (!selectedUser) { alert("กรุณาเลือกชื่อผู้ใช้งาน"); return; }
+    if (!selectedUser) { 
+        alert("Please select a user."); 
+        return; 
+    }
+    
     if (password === MASTER_PASS) {
         sessionStorage.setItem('selectedUser', selectedUser);
         window.location.href = 'main.html';
     } else {
-        alert("❌ รหัสผ่านไม่ถูกต้อง");
+        alert("❌ Invalid Password");
     }
 };
 
-/* --- 2. การเรนเดอร์ข้อมูล (จัดการสีสต็อกในหน้า ShowAll) --- */
+/* --- 2. TABLE RENDERING (Includes ShowAll Logic) --- */
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); if (!tbody) return;
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
@@ -34,12 +38,11 @@ window.renderTable = function(data) {
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
         
-        // ถ้าไม่ใช่หน้า showall และไม่มีของ ไม่ต้องโชว์แถว
+        // Hide empty rows unless on Show All page
         if (!path.includes('showall') && displayQty <= 0) return '';
 
         let actionUI = "";
         if (path.includes('showall')) {
-            // โชว์ In stock/Out of stock ตามที่พี่ต้องการในหน้า ShowAll
             const statusText = displayQty > 0 ? "In stock" : "Out of stock";
             const statusColor = displayQty > 0 ? "#16a34a" : "#dc2626";
             actionUI = `<b style="color:${statusColor}; font-size:14px;">${statusText}</b>`;
@@ -68,7 +71,7 @@ window.renderTable = function(data) {
     }).join('');
 };
 
-/* --- 3. ระบบค้นหา (สำหรับทุกหน้าที่มี oninput="searchStock") --- */
+/* --- 3. SEARCH SYSTEM (Works for all pages) --- */
 window.searchStock = function(val) {
     const query = val.toUpperCase();
     const filtered = window.allRows.filter(i => 
@@ -78,7 +81,7 @@ window.searchStock = function(val) {
     window.renderTable(filtered);
 };
 
-/* --- 4. ทีมสต็อก (สำหรับหน้า team-stock.html) --- */
+/* --- 4. TEAM STOCK (Team stock page functionality) --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('stock-list'); 
     if (!container) return;
@@ -95,14 +98,13 @@ window.renderTeamTable = function(data) {
             }
         });
     });
-    container.innerHTML = html || '<p style="text-align:center; padding:50px;">No Stock in Team</p>';
+    container.innerHTML = html || '<p style="text-align:center; padding:50px; color:gray;">No team stock found.</p>';
 };
 
-/* --- 5. ระบบตะกร้า และ SYNC ไป Outlook --- */
+/* --- 5. CART & SYNC (Forces Outlook) --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
-    const qInput = document.getElementById(qID);
-    const q = qInput ? qInput.value : 1;
+    const q = document.getElementById(qID).value;
     const itm = window.allRows.find(i => String(i.Material) === String(mat));
     window.cart.push({ type, mat, name: itm ? itm['Product Name'] : '', qty: q, from, target });
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
@@ -119,7 +121,7 @@ window.showReviewModal = function() {
     let html = window.cart.map((i, idx) => `<div style="padding:10px 0; border-bottom:1px solid #eee;"><b>${i.mat} (x${i.qty})</b><br><small>${i.from} → ${i.target}</small></div>`).join('');
     const div = document.createElement('div'); div.id = "review-modal";
     div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;justify-content:center;align-items:center;padding:15px;";
-    div.innerHTML = `<div style="background:white;width:100%;max-width:400px;border-radius:20px;padding:20px;"><h3>🛒 Review Summary</h3><div style="max-height:300px; overflow-y:auto;">${html}</div>
+    div.innerHTML = `<div style="background:white;width:100%;max-width:400px;border-radius:20px;padding:20px;"><h3>🛒 Review Order</h3><div style="max-height:300px; overflow-y:auto;">${html}</div>
         <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%;padding:15px;background:#0078d4;color:white;border:none;border-radius:12px;font-weight:bold;margin-top:15px;">Open Outlook</button>
         <button onclick="document.getElementById('review-modal').remove()" style="width:100%;margin-top:10px;border:none;background:none;color:gray;">Cancel</button></div>`;
     document.body.appendChild(div);
@@ -138,10 +140,10 @@ window.confirmSendAndSync = async function() {
         window.location.href = `ms-outlook://compose?to=AsiaPacBackOfficeFieldService@qiagen.com&subject=Spare parts transfer ${user}&body=${encodeURIComponent(bodyText)}`;
         window.cart = []; localStorage.removeItem('qiagen_cart');
         setTimeout(() => window.location.reload(), 1500);
-    } catch (e) { alert("Error Syncing"); btn.disabled = false; }
+    } catch (e) { alert("Sync Error"); btn.disabled = false; }
 };
 
-/* --- 6. ฟังก์ชันพื้นฐานอื่นๆ (ห้ามตัด) --- */
+/* --- 6. UTILITIES (User Display & Data Loading) --- */
 window.loadStockData = async function() {
     const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
     if (res.success) { 
@@ -164,13 +166,13 @@ window.displayUserInfo = function() {
 window.doDeduct = async function(mat, idx) {
     const qty = document.getElementById('qty_' + idx).value;
     const wo = document.getElementById('wo_' + idx).value.trim();
-    if (!wo) return alert("❌ กรุณาใส่เลข WO#");
+    if (!wo) return alert("❌ Please enter WO#");
     const user = sessionStorage.getItem('selectedUser');
     const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
     try {
         const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ ตัดสต็อกสำเร็จ"); window.loadStockData(); }
-    } catch(e) { alert("❌ เกิดข้อผิดพลาดในการ Sync"); }
+        if (res.success) { alert("✅ Deducted successfully"); window.loadStockData(); }
+    } catch(e) { alert("❌ Sync Error"); }
 };
 
 window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
