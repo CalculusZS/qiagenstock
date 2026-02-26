@@ -8,27 +8,9 @@
     <style>
         body { background:#f1f5f9; font-family:sans-serif; margin:0; padding-bottom:100px; }
         .header { background:#f97316; color:white; padding:18px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:1000; box-shadow:0 2px 10px rgba(0,0,0,0.1); }
+        .btn-back { background: rgba(255,255,255,0.2); border: 1px solid #fff; color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; }
         .search-area { padding:12px; background:white; position:sticky; top:60px; z-index:900; box-shadow:0 2px 5px rgba(0,0,0,0.05); }
         .search-area input { width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:10px; box-sizing:border-box; outline:none; font-size:14px; }
-        
-        #team-data-container { padding: 5px; }
-        
-        /* สไตล์การ์ดที่ app.js จะวาดมาวาง */
-        .card { 
-            background:white; 
-            margin:12px; 
-            padding:15px; 
-            border-radius:15px; 
-            display:flex; 
-            justify-content:space-between; 
-            align-items:center; 
-            box-shadow:0 2px 5px rgba(0,0,0,0.05); 
-            border-left: 5px solid #f97316;
-        }
-        
-        .btn-back { background: rgba(255,255,255,0.2); border: 1px solid #fff; color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; }
-        
-        .user-banner { background: #fff7ed; padding: 10px 15px; font-size: 13px; color: #9a3412; border-bottom: 1px solid #ffedd5; }
     </style>
 </head>
 <body>
@@ -38,8 +20,8 @@
         <a href="main.html" class="btn-back">BACK</a>
     </div>
 
-    <div class="user-banner" id="user-display">
-        Loading user...
+    <div id="user-display" style="background: #fff7ed; padding: 10px 15px; font-size: 13px; color: #9a3412; border-bottom: 1px solid #ffedd5;">
+        Loading User...
     </div>
 
     <div class="search-area">
@@ -47,29 +29,21 @@
     </div>
 
     <div id="team-data-container">
-        <div style="text-align:center; padding:50px; color:#64748b;">
-            <i class="fas fa-spinner fa-spin"></i> Loading Team Stock...
+        <div style="text-align:center; padding:50px; color:gray;">
+            <i class="fas fa-spinner fa-spin"></i> กำลังโหลดสต็อกทีม...
         </div>
     </div>
 
     <script src="js/app.js"></script>
-
     <script>
-        // ฟังก์ชันค้นหาเฉพาะหน้า Team Stock
+        // ระบบค้นหาในหน้า Team
         function filterTeamStock() {
             const val = document.getElementById('search').value.toUpperCase();
             const cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                const text = card.innerText.toUpperCase();
-                card.style.display = text.includes(val) ? 'flex' : 'none';
+            cards.forEach(c => {
+                c.style.display = c.innerText.toUpperCase().includes(val) ? 'flex' : 'none';
             });
         }
-
-        // กรณีที่ app.js โหลดข้อมูลเสร็จแล้วแต่ต้องการสั่ง Render ซ้ำ
-        document.addEventListener('DOMContentLoaded', () => {
-            // รอให้ app.js ดึงข้อมูลมา (loadStockData ใน app.js จะเรียก renderTeamTable เอง)
-            // แต่ถ้าเข้าหน้านี้โดยตรง app.js จะจัดการให้ตามปกติ
-        });
     </script>
 </body>
 </html>
