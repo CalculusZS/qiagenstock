@@ -22,7 +22,7 @@ window.displayUserInfo = function() {
             if (id === 'user_display') {
                 el.innerText = fullName; // สำหรับหน้า Main
             } else {
-                el.innerHTML = `Logged in as: <b>${fullName}</b>`; // สำหรับหน้าเบิก/คืน/Deduct
+                el.innerHTML = ` <b>${fullName}</b>`; // สำหรับหน้าเบิก/คืน/Deduct
             }
         }
     });
