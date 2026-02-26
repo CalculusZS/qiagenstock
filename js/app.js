@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FULL VERSION (FIXED TEAM UI & REVIEW ORDER COLOR)
+   QIAGEN INVENTORY - FULL VERSION (SPEED UP & TEAM UI UPDATED)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -63,19 +63,17 @@ window.processReset = async function(u) {
     } catch (e) { alert("❌ Error"); }
 };
 
-/* --- 2. CART & REVIEW MODAL (แก้ไขหัวข้อเป็นสีดำ) --- */
+/* --- 2. CART & REVIEW MODAL --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
-    const q = document.getElementById(qID).value;
+    const qInput = document.getElementById(qID);
+    const q = qInput ? qInput.value : 1;
     const itm = window.allRows.find(i => String(i.Material) === String(mat));
     
     window.cart.push({ 
-        type, 
-        mat, 
+        type, mat, 
         name: itm ? itm['Product Name'] : 'Unknown', 
-        qty: q, 
-        from, 
-        target 
+        qty: q, from, target 
     });
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
@@ -98,7 +96,7 @@ window.showReviewModal = function() {
             <div style="flex:1;">
                 <b style="color:#003366;">${i.mat}</b><br>
                 <small>${i.name}</small><br>
-                <small style="color:#f97316;">Qty: ${i.qty} | ${i.from} → ${i.target}</small>
+                <small style="color:black;">Qty: ${i.qty} | ${i.from} → ${i.target}</small>
             </div>
             <button onclick="window.removeFromCart(${idx})" style="background:#fee2e2; color:#dc2626; border:none; padding:5px 10px; border-radius:8px; font-weight:bold; margin-left:10px;">✕</button>
         </div>`).join('');
@@ -123,33 +121,42 @@ window.removeFromCart = function(idx) {
     window.updateCartUI();
 };
 
-/* --- 3. SYNC & FORCE EMAIL (เด้งทันที) --- */
+/* --- 3. SYNC & FORCE EMAIL --- */
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
     btn.innerText = "Syncing..."; btn.disabled = true;
-
     let bodyText = `Hi BO,\n\nPlease process the inventory transfer for: ${user}\n\n`;
-    
     try {
         for (const item of window.cart) {
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
             bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
         }
-
         window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Transfer_${user}&body=${encodeURIComponent(bodyText)}`;
-
-        window.cart = []; 
-        localStorage.removeItem('qiagen_cart');
+        window.cart = []; localStorage.removeItem('qiagen_cart');
         setTimeout(() => window.location.reload(), 2000);
     } catch (e) { alert("Sync Error"); btn.disabled = false; }
 };
 
-/* --- 4. RENDERING & DATA (แก้ไข UI TEAM STOCK ตามสั่ง) --- */
+/* --- 4. RENDERING & DATA --- */
+
+// แก้ไขฟังก์ชัน Search ให้รองรับทั้งหน้าปกติและ Team Stock
+window.searchData = function(val) {
+    const v = val.toLowerCase();
+    const filtered = window.allRows.filter(r => 
+        String(r.Material).toLowerCase().includes(v) || 
+        String(r['Product Name']||'').toLowerCase().includes(v)
+    );
+    if (window.location.pathname.includes('team-stock')) {
+        window.renderTeamTable(filtered);
+    } else {
+        window.renderTable(filtered);
+    }
+};
+
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
-    if (!container || !window.location.pathname.includes('team-stock')) return;
-
+    if (!container) return;
     const currentUser = sessionStorage.getItem('selectedUser');
     const members = Object.values(USER_MAP);
     let html = '';
@@ -157,35 +164,32 @@ window.renderTeamTable = function(data) {
         members.forEach(m => {
             const q = Number(item[m] || 0);
             if (m !== currentUser && q > 0) {
-                // แก้ไข UI: ชื่อเจ้าของใหญ่ขึ้น 2 เท่า, Mat & Name อยู่แถวเดียวกัน, จำนวนอยู่ขวาก่อนปุ่ม
                 html += `<tr>
                     <td style="padding:12px;">
-                        <div style="font-size: 20px; font-weight: bold; color: black; margin-bottom: 4px;">${m}</div>
+                        <div style="font-size: 15px; font-weight: bold; color: black; margin-bottom: 4px;">Owner: ${m}</div>
                         <b>${item.Material}</b> - <small>${item['Product Name']||''}</small>
                     </td>
                     <td align="right" style="padding-right:10px;">
                         <div style="display:flex; gap:8px; justify-content:flex-end; align-items:center;">
-                            <b style="font-size: 16px;">Stock: ${q}</b>
+                            <b style="font-size: 14px;">Stock: ${q}</b>
                             <input type="number" id="t_qty_${idx}_${m}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
-                            <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:#f97316; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">Add</button>
+                            <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:#f97316; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">Transfer</button>
                         </div>
                     </td>
                 </tr>`;
             }
         });
     });
-    container.innerHTML = html || '<tr><td colspan="2" align="center" style="padding:20px;">No Team Stock Available</td></tr>';
+    container.innerHTML = html || '<tr><td colspan="2" align="center" style="padding:20px;">No matching items found.</td></tr>';
 };
 
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); if (!tbody) return;
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
-    
     let rowsHtml = data.map((item, index) => {
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
         if (!path.includes('showall') && displayQty <= 0) return '';
-        
         let actionUI = "";
         if (path.includes('showall')) {
             actionUI = `<b style="color:${displayQty > 0 ? "#16a34a" : "#dc2626"};">${displayQty > 0 ? "In stock" : "Out of stock"}</b>`;
@@ -196,25 +200,39 @@ window.renderTable = function(data) {
                         <button onclick="window.doDeduct('${item.Material}', ${index})" style="background:#dc2626; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">Deduct</button></div>`;
         } else {
             const isW = path.includes('withdraw');
-            const btnColor = isW ? '#003366' : '#16a34a';
-            const btnName = isW ? 'Withdraw' : 'Return';
             actionUI = `<div style="display:flex; gap:5px; justify-content:flex-end; align-items:center;">
                         <input type="number" id="qty_${index}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
-                        <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${btnColor}; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">${btnName}</button></div>`;
+                        <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${isW?'#003366':'#16a34a'}; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">${isW?'Withdraw':'Return'}</button></div>`;
         }
         return `<tr><td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']||''}</small></td><td align="center"><b>${displayQty}</b></td><td align="right">${actionUI}</td></tr>`;
     }).join('');
-
-    if (path.includes('return') && !rowsHtml.trim()) {
-        tbody.innerHTML = '<tr><td colspan="3" align="center" style="padding:40px; color:gray;">❌ No items in your stock to return.</td></tr>';
-    } else {
-        tbody.innerHTML = rowsHtml;
-    }
+    tbody.innerHTML = rowsHtml || '<tr><td colspan="3" align="center" style="padding:40px; color:gray;">No items found.</td></tr>';
 };
 
+/* --- SPEED UP: CACHE SYSTEM --- */
 window.loadStockData = async function() {
-    const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { window.allRows = res.data; window.renderTable(res.data); window.renderTeamTable(res.data); }
+    // ลองดึงจาก Cache ก่อนเพื่อความไว
+    const cache = localStorage.getItem('stock_cache');
+    const cacheTime = localStorage.getItem('stock_cache_time');
+    const now = new Date().getTime();
+
+    if (cache && cacheTime && (now - cacheTime < 60000)) { // ถ้าไม่เกิน 1 นาที
+        window.allRows = JSON.parse(cache);
+        window.renderTable(window.allRows);
+        window.renderTeamTable(window.allRows);
+    }
+
+    // ดึงข้อมูลจริงจาก Server ต่อเบื้องหลัง
+    try {
+        const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
+        if (res.success) {
+            window.allRows = res.data;
+            localStorage.setItem('stock_cache', JSON.stringify(res.data));
+            localStorage.setItem('stock_cache_time', now.toString());
+            window.renderTable(res.data);
+            window.renderTeamTable(res.data);
+        }
+    } catch(e) { console.log("Fetch Error", e); }
 };
 
 window.doDeduct = async function(mat, idx) {
@@ -224,17 +242,32 @@ window.doDeduct = async function(mat, idx) {
     const user = sessionStorage.getItem('selectedUser');
     try {
         const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success) { alert("✅ Deducted Successfully"); window.loadStockData(); }
+        if (res.success) { 
+            alert("✅ Deducted Successfully"); 
+            localStorage.removeItem('stock_cache'); // ลบ cache เพื่อโหลดใหม่
+            window.loadStockData(); 
+        }
     } catch(e) { alert("❌ Error"); }
 };
 
-window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
+window.logout = () => { 
+    sessionStorage.clear(); 
+    localStorage.removeItem('qiagen_cart'); 
+    localStorage.removeItem('stock_cache');
+    window.location.replace('index.html'); 
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     const name = sessionStorage.getItem('selectedUser');
     ['user-display', 'user_display', 'display-user', 'current-user'].forEach(id => {
         const el = document.getElementById(id); if (el && name) el.innerText = name;
     });
+    // ผูกเหตุการณ์การค้นหา (ห้ามลบ)
+    const searchInput = document.getElementById('search-input') || document.querySelector('input[type="text"]');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => window.searchData(e.target.value));
+    }
+
     if (!window.location.pathname.includes('index.html')) {
         if (!name) window.location.replace('index.html'); else window.loadStockData();
     }
