@@ -1,7 +1,7 @@
 /* ========================================================================== 
    QIAGEN INVENTORY - FULL VERSION (V.FINAL - CACHE BUSTED & LOGIC LOCKED)
    ========================================================================== */
-const API = "https://script.google.com/macros/s/AKfycbyyn0uk5Pf9oimAXkiEgCKikj4hX5tO9rs0hJI1zFWqvesua1DlqF2JEr6pzx2C6l2T/exec";
+const API = "https://script.google.com/macros/s/AKfycbzX5Yuy6X5S6tVNfr128CTHKVtM3IvyJDehj1DkMoDPmP02DCLuzmBaeE3Tcx9WBHaU/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
 
