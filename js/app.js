@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FULL VERSION (OUTLOOK FORCED & EMAIL UPDATED)
+   QIAGEN INVENTORY - FULL VERSION (GROUPED ITEMS & OUTLOOK FORCED)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -55,14 +55,45 @@ window.processReset = async function(u) {
     } catch (e) { alert("❌ Error"); }
 };
 
-/* --- 2. CART & REVIEW MODAL --- */
+/* --- 2. CART (แก้ไขให้บวกรวมจำนวนถ้าเป็นชิ้นเดิม) --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
-    const q = document.getElementById(qID).value;
-    const itm = window.allRows.find(i => String(i.Material) === String(mat));
-    window.cart.push({ type, mat, name: itm ? itm['Product Name'] : 'Unknown', qty: q, from, target });
+    const addQty = parseInt(document.getElementById(qID).value) || 0;
+    
+    // หาว่าในตะกร้ามีของชิ้นนี้อยู่แล้วหรือยัง (เช็ค Material, From, Target และ Type)
+    const existingIndex = window.cart.findIndex(i => 
+        String(i.mat) === String(mat) && 
+        i.from === from && 
+        i.target === target && 
+        i.type === type
+    );
+
+    if (existingIndex > -1) {
+        // ถ้ามีอยู่แล้ว ให้บวกจำนวนเพิ่มเข้าไป
+        window.cart[existingIndex].qty = parseInt(window.cart[existingIndex].qty) + addQty;
+    } else {
+        // ถ้ายังไม่มี ให้เพิ่มเข้าไปใหม่
+        const itm = window.allRows.find(i => String(i.Material) === String(mat));
+        window.cart.push({ 
+            type, 
+            mat, 
+            name: itm ? itm['Product Name'] : 'Unknown', 
+            qty: addQty, 
+            from, 
+            target 
+        });
+    }
+    
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
+    
+    // แจ้งเตือนเล็กน้อยว่าเพิ่มแล้ว
+    const btn = document.activeElement;
+    if(btn && btn.tagName === 'BUTTON') {
+        const originalText = btn.innerText;
+        btn.innerText = "Added!";
+        setTimeout(() => btn.innerText = originalText, 800);
+    }
 };
 
 window.updateCartUI = function() {
@@ -72,7 +103,7 @@ window.updateCartUI = function() {
         btn.style = "position:fixed; bottom:25px; right:25px; z-index:9999;";
         document.body.appendChild(btn);
     }
-    btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#0ea5e9; color:white; padding:15px 25px; border-radius:50px; border:none; font-weight:bold;">Cart (${window.cart.length})</button>` : '';
+    btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#0ea5e9; color:white; padding:15px 25px; border-radius:50px; border:none; font-weight:bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">Cart (${window.cart.length})</button>` : '';
 };
 
 window.showReviewModal = function() {
@@ -81,7 +112,7 @@ window.showReviewModal = function() {
             <div style="flex:1;">
                 <b style="color:#003366;">${i.mat}</b><br>
                 <small>${i.name}</small><br>
-                <small style="color:black;">Qty: ${i.qty} | ${i.from} → ${i.target}</small>
+                <small style="color:black;"><b>Qty: ${i.qty}</b> | ${i.from} → ${i.target}</small>
             </div>
             <button onclick="window.removeFromCart(${idx})" style="background:#fee2e2; color:#dc2626; border:none; padding:5px 10px; border-radius:8px;">✕</button>
         </div>`).join('');
@@ -104,7 +135,7 @@ window.removeFromCart = function(idx) {
     window.updateCartUI();
 };
 
-/* --- 3. SYNC (FORCED OUTLOOK & EMAIL BODY) --- */
+/* --- 3. SYNC (FORCED OUTLOOK & GROUPED EMAIL BODY) --- */
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
@@ -117,6 +148,8 @@ window.confirmSendAndSync = async function() {
     let bodyText = `Hi BO,\n\nPlease transfer the following spare parts.\n\n`;
 
     try {
+        // เนื่องจากในตะกร้าเรารวมยอดไว้แล้ว (ในขั้นตอน addToCart)
+        // เมื่อวน Loop ส่ง API และสร้างเนื้อหา Email มันจะออกมาเป็นบรรทัดเดียวโดยปริยาย
         for (const item of window.cart) {
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
             bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
@@ -125,17 +158,13 @@ window.confirmSendAndSync = async function() {
         const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
         const ccTo = "gthfss@qiagen.com";
         
-        // บังคับเปิดแอป Outlook ผ่าน URL Protocol
         const outlookUrl = `ms-outlook://compose?to=${encodeURIComponent(mailTo)}&cc=${encodeURIComponent(ccTo)}&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
         const fallbackUrl = `mailto:${mailTo}?cc=${ccTo}&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
 
-        // ถ้าเป็น Mobile ให้ใช้ ms-outlook://
         if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
             window.location.href = outlookUrl;
-            // Fallback กรณีเรียกผ่านเบราว์เซอร์แล้ว ms-outlook ไม่ทำงาน
             setTimeout(() => { if (document.hasFocus()) window.location.href = fallbackUrl; }, 1500);
         } else {
-            // ถ้าเป็นคอมพิวเตอร์ ปกติ Outlook จะเป็น Default ของ mailto อยู่แล้ว
             window.location.href = fallbackUrl;
         }
 
