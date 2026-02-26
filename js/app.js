@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - SUPER FULL VERSION (LOCKED & LOADED)
+   QIAGEN INVENTORY - ULTIMATE MASTER VERSION (ALL FEATURES + AUTO ID FIX)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -8,7 +8,27 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-// --- [1] LOGIN & FORCE PASSWORD CHANGE (ห้ามหาย) ---
+/* --- 1. แสดงชื่อผู้ใช้งาน (แก้ไขปัญหาชื่อไม่ขึ้นในทุกหน้า) --- */
+window.displayUserInfo = function() {
+    const fullName = sessionStorage.getItem('selectedUser');
+    if (!fullName) return;
+
+    // ระบบจะวิ่งหาทุก ID ที่พี่ใช้ในไฟล์ HTML ต่างๆ (user_display, display-user, current-user, user-display)
+    const possibleIDs = ['user-display', 'user_display', 'display-user', 'current-user'];
+    
+    possibleIDs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (id === 'user_display') {
+                el.innerText = fullName; // สำหรับหน้า Main
+            } else {
+                el.innerHTML = `Logged in as: <b>${fullName}</b>`; // สำหรับหน้าเบิก/คืน/Deduct
+            }
+        }
+    });
+};
+
+/* --- 2. LOGIN & FORCE CHANGE PASSWORD (ห้ามหาย) --- */
 window.handleLogin = async function() {
     const u = document.getElementById('username-input').value.trim().toUpperCase();
     const p = document.getElementById('password-input').value.trim();
@@ -48,21 +68,7 @@ window.processReset = async function(u) {
     } catch(e) { alert("❌ Update Failed"); }
 };
 
-// --- [2] DISPLAY USER & LOGOUT ---
-window.displayUserInfo = function() {
-    const el = document.getElementById('user-display');
-    const name = sessionStorage.getItem('selectedUser');
-    if (el && name) {
-        el.innerHTML = `<div style="background:#f1f5f9; padding:12px 15px; border-bottom:1px solid #e2e8f0; font-size:13px; color:#475569; display:flex; justify-content:space-between; align-items:center;">
-            <span><i class="fas fa-user-circle"></i> Logged in as: <b style="color:#003366;">${name}</b></span>
-            <button onclick="window.logout()" style="background:none; border:none; color:#dc2626; font-size:12px; font-weight:bold; cursor:pointer;">Logout</button>
-        </div>`;
-    }
-};
-
-window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
-
-// --- [3] RENDER TABLE (ปุ่มชิดขวา + STATUS IN/OUT STOCK) ---
+/* --- 3. RENDER TABLE (ปุ่ม Action ชิดขวา + Status Badge) --- */
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); if (!tbody) return;
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
@@ -72,12 +78,9 @@ window.renderTable = function(data) {
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
         if (!path.includes('showall') && displayQty <= 0) return '';
 
-        let statusBadge = "";
-        if (path.includes('showall')) {
-            statusBadge = displayQty > 0 
-                ? `<div style="color:#16a34a; font-size:11px; font-weight:bold; margin-top:2px;">● In Stock</div>` 
-                : `<div style="color:#dc2626; font-size:11px; font-weight:bold; margin-top:2px;">○ Out of Stock</div>`;
-        }
+        let statusBadge = path.includes('showall') ? (displayQty > 0 
+            ? `<div style="color:#16a34a; font-size:11px; font-weight:bold;">● In Stock</div>` 
+            : `<div style="color:#dc2626; font-size:11px; font-weight:bold;">○ Out of Stock</div>`) : "";
 
         let actionUI = "";
         if (path.includes('deduct')) {
@@ -106,9 +109,33 @@ window.renderTable = function(data) {
     }).join('');
 };
 
-// --- [4] SEARCH & CART & SYNC OUTLOOK ---
+/* --- 4. CART & OUTLOOK (เปิด Outlook มือถือ) --- */
+window.confirmSendAndSync = async function() {
+    const btn = document.getElementById('sync-btn');
+    const user = sessionStorage.getItem('selectedUser');
+    const dateStr = new Date().toLocaleDateString('en-GB');
+    btn.innerText = "Syncing..."; btn.disabled = true;
+    let emailBody = `Hi BO,\n\nPlease transfer parts for: ${user}\n\n`;
+    try {
+        for (const item of window.cart) {
+            const url = `${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`;
+            await fetch(url).then(r => r.json());
+            emailBody += `- ${item.mat} | ${item.name} | Qty: ${item.qty} (${item.from} -> ${item.target})\n`;
+        }
+        window.cart = []; localStorage.removeItem('qiagen_cart');
+        
+        // ดีดไปเปิด Outlook มือถือ
+        window.location.replace(`mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Spare parts transfer ${user} ${dateStr}&body=${encodeURIComponent(emailBody)}`);
+        
+        alert("✅ Sync Success!");
+        setTimeout(() => window.location.reload(), 1500);
+    } catch (e) { alert("❌ Error: " + e.message); btn.disabled = false; }
+};
+
+/* --- 5. ฟังก์ชันสนับสนุนอื่นๆ (SEARCH, DATA LOAD, LOGOUT) --- */
 window.filterData = function() {
-    const val = (document.getElementById('search-input') || document.getElementById('search')).value.toUpperCase();
+    const input = document.getElementById('search-input') || document.getElementById('search');
+    const val = input.value.toUpperCase();
     const filtered = window.allRows.filter(i => String(i.Material).toUpperCase().includes(val) || String(i['Product Name']).toUpperCase().includes(val));
     window.renderTable(filtered);
 };
@@ -129,37 +156,12 @@ window.updateCartUI = function() {
 
 window.showReviewModal = function() {
     let html = window.cart.map((i, idx) => `<div style="font-size:12px;border-bottom:1px solid #eee;padding:10px;display:flex;justify-content:space-between;align-items:center;">
-        <span><b>${i.mat}</b> (x${i.qty})<br><small>${i.from} → ${i.target}</small></span>
-        <button onclick="window.removeFromCart(${idx})" style="color:red;border:none;background:none;font-size:18px;">✕</button>
+        <span><b>${i.mat}</b> (x${i.qty})</span><button onclick="window.removeFromCart(${idx})" style="color:red;border:none;background:none;">✕</button>
     </div>`).join('');
     const div = document.createElement('div'); div.id = "review-modal";
     div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;justify-content:center;align-items:center;padding:20px;";
-    div.innerHTML = `<div style="background:white;width:100%;max-width:400px;border-radius:20px;padding:20px;box-shadow:0 10px 25px rgba(0,0,0,0.5);">
-        <h3 style="margin-top:0;">Review Sync</h3>
-        <div style="max-height:300px;overflow-y:auto;margin-bottom:15px;">${html}</div>
-        <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%;padding:15px;background:#0ea5e9;color:white;border:none;border-radius:12px;font-weight:bold;">Confirm & Sync Outlook</button>
-        <button onclick="document.getElementById('review-modal').remove()" style="width:100%;margin-top:10px;color:gray;border:none;background:none;">Cancel</button>
-    </div>`;
+    div.innerHTML = `<div style="background:white;width:100%;max-width:400px;border-radius:20px;padding:20px;"><h3>Confirm Sync</h3><div style="max-height:250px;overflow-y:auto;">${html}</div><button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%;padding:15px;background:#0ea5e9;color:white;border:none;border-radius:12px;font-weight:bold;margin-top:15px;">Sync & Outlook</button></div>`;
     document.body.appendChild(div);
-};
-
-window.confirmSendAndSync = async function() {
-    const btn = document.getElementById('sync-btn');
-    const user = sessionStorage.getItem('selectedUser');
-    const dateStr = new Date().toLocaleDateString('en-GB');
-    btn.innerText = "Syncing..."; btn.disabled = true;
-    let emailBody = `Hi BO,\n\nPlease transfer parts for: ${user}\n\n`;
-    try {
-        for (const item of window.cart) {
-            const url = `${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`;
-            await fetch(url).then(r => r.json());
-            emailBody += `- ${item.mat} | ${item.name} | Qty: ${item.qty} (${item.from} -> ${item.target})\n`;
-        }
-        window.cart = []; localStorage.removeItem('qiagen_cart');
-        window.location.replace(`mailto:AsiaPacBackOfficeFieldService@qiagen.com?subject=Spare parts transfer ${user} ${dateStr}&body=${encodeURIComponent(emailBody)}`);
-        alert("✅ Sync Success!");
-        setTimeout(() => window.location.reload(), 1000);
-    } catch (e) { alert("❌ Error: " + e.message); btn.disabled = false; }
 };
 
 window.removeFromCart = (idx) => { window.cart.splice(idx, 1); localStorage.setItem('qiagen_cart', JSON.stringify(window.cart)); document.getElementById('review-modal').remove(); if (window.cart.length > 0) window.showReviewModal(); window.updateCartUI(); };
@@ -173,18 +175,15 @@ window.doDeduct = async function(mat, idx) {
     try {
         const res = await fetch(url).then(r => r.json());
         if (res.success) { alert("✅ Deducted"); window.loadStockData(); }
-    } catch(e) { alert("❌ Connection Error"); }
+    } catch(e) { alert("❌ Error"); }
 };
 
-// --- [5] DATA LOADING ---
 window.loadStockData = async function() {
     const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { 
-        window.allRows = res.data; 
-        window.renderTable(res.data); 
-        if(window.renderTeamTable) window.renderTeamTable(res.data); 
-    }
+    if (res.success) { window.allRows = res.data; window.renderTable(res.data); if(window.renderTeamTable) window.renderTeamTable(res.data); }
 };
+
+window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
 
 document.addEventListener('DOMContentLoaded', () => {
     window.displayUserInfo();
