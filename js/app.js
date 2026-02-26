@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - RESTORED VERSION (FIXED TEAM-STOCK & EMAIL TEMPLATE)
+   QIAGEN INVENTORY - RESTORED & EMAIL UPDATED (FULL VERSION)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -104,16 +104,20 @@ window.removeFromCart = function(idx) {
     window.updateCartUI();
 };
 
-/* --- 3. SYNC (แก้ไข Subject และ Body เมลตามสั่ง) --- */
+/* --- 3. SYNC (แก้ไขหัวข้อและเนื้อหา Email ตามที่ระบุ) --- */
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
-    const today = new Date().toLocaleDateString('th-TH'); // รูปแบบ DD/MM/YYYY
+    const now = new Date();
+    const today = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
+    
     btn.innerText = "Syncing..."; btn.disabled = true;
 
-    // แก้ไขหัวข้อเมล และเนื้อหาเมลตามสั่ง
+    // หัวข้ออีเมล: Spare parts transfer [ชื่อ] [วันที่]
     let subjectText = `Spare parts transfer ${user} ${today}`;
-    let bodyText = `Please transfer the following spare parts.\n\n`;
+    
+    // เนื้อหาอีเมล: Hi BO, (เว้นบรรทัด) Please transfer the following spare parts.
+    let bodyText = `Hi BO,\n\nPlease transfer the following spare parts.\n\n`;
 
     try {
         for (const item of window.cart) {
@@ -126,7 +130,7 @@ window.confirmSendAndSync = async function() {
     } catch (e) { alert("Sync Error"); btn.disabled = false; }
 };
 
-/* --- 4. RENDERING & DATA (แยกส่วนหน้าใครหน้ามัน) --- */
+/* --- 4. RENDERING & DATA --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
@@ -186,16 +190,10 @@ window.renderTable = function(data) {
     tbody.innerHTML = rowsHtml || '<tr><td colspan="3" align="center" style="padding:40px; color:gray;">❌ No items found.</td></tr>';
 };
 
-/* --- 5. SEARCH & SPEED (CACHE) --- */
+/* --- 5. SEARCH & CACHE --- */
 window.loadStockData = async function() {
     const cacheKey = 'qiagen_cache';
-    const cacheTime = localStorage.getItem('qiagen_cache_time');
     const now = new Date().getTime();
-    if (localStorage.getItem(cacheKey) && cacheTime && (now - cacheTime < 30000)) {
-        window.allRows = JSON.parse(localStorage.getItem(cacheKey));
-        window.renderTable(window.allRows);
-        window.renderTeamTable(window.allRows);
-    }
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
         if (res.success) { 
@@ -205,7 +203,13 @@ window.loadStockData = async function() {
             window.renderTable(res.data); 
             window.renderTeamTable(res.data); 
         }
-    } catch(e) {}
+    } catch(e) {
+        if (localStorage.getItem(cacheKey)) {
+            window.allRows = JSON.parse(localStorage.getItem(cacheKey));
+            window.renderTable(window.allRows);
+            window.renderTeamTable(window.allRows);
+        }
+    }
 };
 
 window.searchData = function(val) {
