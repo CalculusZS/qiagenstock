@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FULL VERSION (FIXED TEAM UI & REVIEW ORDER COLOR)
+   QIAGEN INVENTORY - RESTORED VERSION (FIXED TEAM-STOCK ONLY)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -8,32 +8,27 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-/* --- 1. AUTH & FORCE CHANGE PASSWORD (ห้ามตัด) --- */
+/* --- 1. AUTH & PASSWORD (คงเดิมตามต้นฉบับ) --- */
 window.handleLogin = async function() {
     const uEl = document.getElementById('username-input') || document.getElementById('user-select');
     const pEl = document.getElementById('password-input');
     if (!uEl || !pEl) return;
-
     const u = uEl.value.trim().toUpperCase();
     const p = pEl.value.trim();
     if (!u) { alert("Please enter User ID"); return; }
-
     try {
         const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(u)}&pass=${encodeURIComponent(p)}`).then(r => r.json());
         if (res && res.success) {
             sessionStorage.setItem('selectedUser', USER_MAP[u] || res.fullName);
             sessionStorage.setItem('tempID', u);
-            if (res.status === 'NEW') {
-                window.showForcePasswordChange(u);
-            } else {
-                window.location.replace('main.html');
-            }
-        } else { alert("❌ Incorrect Password or User ID"); }
+            if (res.status === 'NEW') { window.showForcePasswordChange(u); } 
+            else { window.location.replace('main.html'); }
+        } else { alert("❌ Incorrect Password"); }
     } catch (e) {
-        if (p === MASTER_PASS || p === "1234") {
-            sessionStorage.setItem('selectedUser', USER_MAP[u] || u);
-            window.location.replace('main.html');
-        } else { alert("❌ Connection Error"); }
+        if (p === MASTER_PASS || p === "1234") { 
+            sessionStorage.setItem('selectedUser', USER_MAP[u] || u); 
+            window.location.replace('main.html'); 
+        }
     }
 };
 
@@ -41,13 +36,10 @@ window.showForcePasswordChange = function(u) {
     const div = document.createElement('div');
     div.id = "force-pw-modal";
     div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.98);display:flex;justify-content:center;align-items:center;z-index:99999;padding:20px;";
-    div.innerHTML = `
-        <div style="background:white;padding:30px;border-radius:24px;text-align:center;width:100%;max-width:340px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);">
-            <div style="font-size:40px; margin-bottom:10px;">🔐</div>
-            <h3 style="color:#1e293b;">Set New Password</h3>
-            <p style="color:#64748b; font-size:13px; margin-bottom:20px;">Please set your personal password to activate account.</p>
-            <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:14px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:12px;">
-            <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:14px;margin-bottom:20px;border:1px solid #e2e8f0;border-radius:12px;">
+    div.innerHTML = `<div style="background:white;padding:30px;border-radius:24px;text-align:center;width:100%;max-width:340px;">
+            <h3>Set New Password</h3>
+            <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:14px;margin-bottom:10px;border:1px solid #ddd;border-radius:12px;">
+            <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:14px;margin-bottom:20px;border:1px solid #ddd;border-radius:12px;">
             <button onclick="window.processReset('${u}')" style="width:100%;padding:16px;background:#f97316;color:white;border:none;border-radius:12px;font-weight:bold;">Update & Activate</button>
         </div>`;
     document.body.appendChild(div);
@@ -56,27 +48,19 @@ window.showForcePasswordChange = function(u) {
 window.processReset = async function(u) {
     const p1 = document.getElementById('p1').value;
     const p2 = document.getElementById('p2').value;
-    if (!p1 || p1 !== p2) { alert("❌ Passwords do not match!"); return; }
+    if (!p1 || p1 !== p2) { alert("❌ Not Match!"); return; }
     try {
         const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(u)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success) { alert("✅ Account Activated!"); window.location.replace('main.html'); }
+        if (res.success) { alert("✅ Activated!"); window.location.replace('main.html'); }
     } catch (e) { alert("❌ Error"); }
 };
 
-/* --- 2. CART & REVIEW MODAL --- */
+/* --- 2. CART & REVIEW MODAL (ตัวหนังสือสรุปยอดสีดำ) --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
-    const qVal = document.getElementById(qID).value;
+    const q = document.getElementById(qID).value;
     const itm = window.allRows.find(i => String(i.Material) === String(mat));
-    
-    window.cart.push({ 
-        type, 
-        mat, 
-        name: itm ? itm['Product Name'] : 'Unknown', 
-        qty: qVal, 
-        from, 
-        target 
-    });
+    window.cart.push({ type, mat, name: itm ? itm['Product Name'] : 'Unknown', qty: q, from, target });
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
 };
@@ -88,8 +72,7 @@ window.updateCartUI = function() {
         btn.style = "position:fixed; bottom:25px; right:25px; z-index:9999;";
         document.body.appendChild(btn);
     }
-    btn.innerHTML = window.cart.length > 0 ? 
-        `<button onclick="window.showReviewModal()" style="background:#0ea5e9; color:white; padding:15px 25px; border-radius:50px; border:none; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.3);">Cart (${window.cart.length})</button>` : '';
+    btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#0ea5e9; color:white; padding:15px 25px; border-radius:50px; border:none; font-weight:bold;">Cart (${window.cart.length})</button>` : '';
 };
 
 window.showReviewModal = function() {
@@ -100,17 +83,15 @@ window.showReviewModal = function() {
                 <small>${i.name}</small><br>
                 <small style="color:black;">Qty: ${i.qty} | ${i.from} → ${i.target}</small>
             </div>
-            <button onclick="window.removeFromCart(${idx})" style="background:#fee2e2; color:#dc2626; border:none; padding:5px 10px; border-radius:8px; font-weight:bold; margin-left:10px;">✕</button>
+            <button onclick="window.removeFromCart(${idx})" style="background:#fee2e2; color:#dc2626; border:none; padding:5px 10px; border-radius:8px;">✕</button>
         </div>`).join('');
-
     const div = document.createElement('div'); div.id = "review-modal";
     div.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
-    div.innerHTML = `
-        <div style="background:white; width:100%; max-width:400px; border-radius:20px; padding:20px;">
+    div.innerHTML = `<div style="background:white; width:100%; max-width:400px; border-radius:20px; padding:20px;">
             <h3 style="margin-top:0; border-bottom:2px solid #f1f5f9; padding-bottom:10px; color:black;">🛒 Review Order</h3>
             <div style="max-height:350px; overflow-y:auto;">${html || 'No items'}</div>
-            <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:16px; background:#0ea5e9; color:white; border:none; border-radius:12px; margin-top:15px; font-weight:bold; font-size:16px;">Confirm & Open Email</button>
-            <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; border:none; background:none; color:gray; font-weight:bold;">Cancel</button>
+            <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:16px; background:#0ea5e9; color:white; border:none; border-radius:12px; margin-top:15px; font-weight:bold;">Confirm & Open Email</button>
+            <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; border:none; background:none; color:gray;">Cancel</button>
         </div>`;
     document.body.appendChild(div);
 };
@@ -123,47 +104,28 @@ window.removeFromCart = function(idx) {
     window.updateCartUI();
 };
 
-/* --- 3. SYNC & FORCE EMAIL --- */
+/* --- 3. SYNC (คงเดิม) --- */
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
     btn.innerText = "Syncing..."; btn.disabled = true;
-
     let bodyText = `Hi BO,\n\nPlease process the inventory transfer for: ${user}\n\n`;
-    
     try {
         for (const item of window.cart) {
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
             bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
         }
-
         window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Transfer_${user}&body=${encodeURIComponent(bodyText)}`;
-
-        window.cart = []; 
-        localStorage.removeItem('qiagen_cart');
+        window.cart = []; localStorage.removeItem('qiagen_cart');
         setTimeout(() => window.location.reload(), 2000);
     } catch (e) { alert("Sync Error"); btn.disabled = false; }
 };
 
-/* --- 4. RENDERING & DATA --- */
-
-// ระบบ Search ที่รองรับทั้งหน้า Team และหน้าหลัก
-window.searchData = function(val) {
-    const query = val.toLowerCase();
-    const filtered = window.allRows.filter(r => 
-        String(r.Material).toLowerCase().includes(query) || 
-        String(r['Product Name'] || '').toLowerCase().includes(query)
-    );
-    if (window.location.pathname.includes('team-stock')) {
-        window.renderTeamTable(filtered);
-    } else {
-        window.renderTable(filtered);
-    }
-};
+/* --- 4. RENDERING & DATA (แยกส่วนหน้าใครหน้ามัน) --- */
 
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
-    if (!container) return;
+    if (!container || !window.location.pathname.includes('team-stock')) return;
 
     const currentUser = sessionStorage.getItem('selectedUser');
     const members = Object.values(USER_MAP);
@@ -188,13 +150,15 @@ window.renderTeamTable = function(data) {
             }
         });
     });
-    container.innerHTML = html || '<tr><td colspan="2" align="center" style="padding:20px;">No matching results.</td></tr>';
+    container.innerHTML = html || '<tr><td colspan="2" align="center" style="padding:20px;">No Team Stock Available</td></tr>';
 };
 
 window.renderTable = function(data) {
-    const tbody = document.getElementById('data'); if (!tbody) return;
+    // คืนค่าหน้า Withdraw/Return/Deduct ให้กลับมาเป็น 3 คอลัมน์เหมือนต้นฉบับ
+    const tbody = document.getElementById('data'); 
+    if (!tbody || window.location.pathname.includes('team-stock')) return;
+
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
-    
     let rowsHtml = data.map((item, index) => {
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
@@ -210,49 +174,53 @@ window.renderTable = function(data) {
                         <button onclick="window.doDeduct('${item.Material}', ${index})" style="background:#dc2626; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">Deduct</button></div>`;
         } else {
             const isW = path.includes('withdraw');
-            const btnColor = isW ? '#003366' : '#16a34a';
-            const btnName = isW ? 'Withdraw' : 'Return';
             actionUI = `<div style="display:flex; gap:5px; justify-content:flex-end; align-items:center;">
                         <input type="number" id="qty_${index}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
-                        <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${btnColor}; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">${btnName}</button></div>`;
+                        <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${isW?'#003366':'#16a34a'}; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">${isW?'Withdraw':'Return'}</button></div>`;
         }
+        // รูปแบบ 3 คอลัมน์ (Mat/Name | Qty | Action)
         return `<tr><td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']||''}</small></td><td align="center"><b>${displayQty}</b></td><td align="right">${actionUI}</td></tr>`;
     }).join('');
 
-    if (path.includes('return') && !rowsHtml.trim()) {
-        tbody.innerHTML = '<tr><td colspan="3" align="center" style="padding:40px; color:gray;">❌ No items in your stock to return.</td></tr>';
-    } else {
-        tbody.innerHTML = rowsHtml;
-    }
+    tbody.innerHTML = rowsHtml || '<tr><td colspan="3" align="center" style="padding:40px; color:gray;">❌ No items found.</td></tr>';
 };
 
-// ปรับปรุงให้ดึงข้อมูลไวขึ้นด้วยระบบ Cache
+/* --- 5. SEARCH & SPEED (CACHE) --- */
 window.loadStockData = async function() {
-    const cacheKey = 'qiagen_stock_cache';
-    const cacheTimeKey = 'qiagen_stock_time';
+    const cacheKey = 'qiagen_cache';
+    const cacheTime = localStorage.getItem('qiagen_cache_time');
     const now = new Date().getTime();
     
-    // ดึงข้อมูลจาก Cache ก่อนเพื่อความไว (ถ้าอายุไม่เกิน 30 วินาที)
-    const cachedData = localStorage.getItem(cacheKey);
-    const cachedTime = localStorage.getItem(cacheTimeKey);
-    
-    if (cachedData && cachedTime && (now - cachedTime < 30000)) {
-        window.allRows = JSON.parse(cachedData);
+    if (localStorage.getItem(cacheKey) && cacheTime && (now - cacheTime < 30000)) {
+        window.allRows = JSON.parse(localStorage.getItem(cacheKey));
         window.renderTable(window.allRows);
         window.renderTeamTable(window.allRows);
     }
-
-    // โหลดข้อมูลจริงจาก Server
+    
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
         if (res.success) { 
             window.allRows = res.data; 
             localStorage.setItem(cacheKey, JSON.stringify(res.data));
-            localStorage.setItem(cacheTimeKey, now.toString());
+            localStorage.setItem('qiagen_cache_time', now.toString());
             window.renderTable(res.data); 
             window.renderTeamTable(res.data); 
         }
-    } catch(e) { console.error("Load Error"); }
+    } catch(e) {}
+};
+
+// แก้ให้ช่องค้นหาใช้งานได้ทุกหน้า
+window.searchData = function(val) {
+    const query = val.toLowerCase();
+    const filtered = window.allRows.filter(r => 
+        String(r.Material).toLowerCase().includes(query) || 
+        String(r['Product Name']||'').toLowerCase().includes(query)
+    );
+    if (window.location.pathname.includes('team-stock')) {
+        window.renderTeamTable(filtered);
+    } else {
+        window.renderTable(filtered);
+    }
 };
 
 window.doDeduct = async function(mat, idx) {
@@ -262,15 +230,11 @@ window.doDeduct = async function(mat, idx) {
     const user = sessionStorage.getItem('selectedUser');
     try {
         const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success) { 
-            alert("✅ Deducted Successfully"); 
-            localStorage.removeItem('qiagen_stock_time'); // ล้าง Cache เพื่อบังคับโหลดใหม่
-            window.loadStockData(); 
-        }
+        if (res.success) { alert("✅ Deducted Successfully"); window.loadStockData(); }
     } catch(e) { alert("❌ Error"); }
 };
 
-window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); localStorage.removeItem('qiagen_stock_cache'); window.location.replace('index.html'); };
+window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
 
 document.addEventListener('DOMContentLoaded', () => {
     const name = sessionStorage.getItem('selectedUser');
@@ -278,11 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = document.getElementById(id); if (el && name) el.innerText = name;
     });
 
-    // ผูก Event ค้นหา
-    const searchInput = document.getElementById('search-input') || document.querySelector('input[type="text"]');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => window.searchData(e.target.value));
-    }
+    // ผูก Event ค้นหาให้กลับมาทำงาน
+    const sInput = document.getElementById('search-input') || document.querySelector('input[type="text"]');
+    if (sInput) sInput.oninput = (e) => window.searchData(e.target.value);
 
     if (!window.location.pathname.includes('index.html')) {
         if (!name) window.location.replace('index.html'); else window.loadStockData();
