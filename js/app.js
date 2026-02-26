@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - ULTIMATE MASTER (FIXED TEAM-STOCK, RETURN, & MAIL)
+   QIAGEN INVENTORY - FIX TEAM UI & RETURN MESSAGE & EMAIL FORCE
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -8,7 +8,7 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-/* --- 1. AUTH & FORCE CHANGE PASSWORD (คงเดิม) --- */
+/* --- 1. AUTH & FORCE CHANGE PASSWORD (คงเดิมห้ามตัด) --- */
 window.handleLogin = async function() {
     const uEl = document.getElementById('username-input') || document.getElementById('user-select');
     const pEl = document.getElementById('password-input');
@@ -22,12 +22,12 @@ window.handleLogin = async function() {
             sessionStorage.setItem('tempID', u);
             if (res.status === 'NEW') window.showForcePasswordChange(u);
             else window.location.replace('main.html');
-        } else alert("❌ Incorrect Password or User ID");
+        } else { alert("❌ Incorrect Password or User ID"); }
     } catch (e) {
         if (p === MASTER_PASS || p === "1234") {
             sessionStorage.setItem('selectedUser', USER_MAP[u] || u);
             window.location.replace('main.html');
-        } else alert("❌ Connection Error");
+        } else { alert("❌ Connection Error"); }
     }
 };
 
@@ -36,10 +36,10 @@ window.showForcePasswordChange = function(u) {
     div.id = "force-pw-modal";
     div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.98);display:flex;justify-content:center;align-items:center;z-index:99999;padding:20px;";
     div.innerHTML = `
-        <div style="background:white;padding:30px;border-radius:24px;text-align:center;width:100%;max-width:340px;">
+        <div style="background:white;padding:30px;border-radius:24px;text-align:center;width:100%;max-width:340px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);">
             <div style="font-size:40px; margin-bottom:10px;">🔐</div>
             <h3 style="color:#1e293b;">Set New Password</h3>
-            <p style="color:#64748b; font-size:13px; margin-bottom:20px;">Activate your account with a new password.</p>
+            <p style="color:#64748b; font-size:13px; margin-bottom:20px;">Please set your personal password to activate account.</p>
             <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:14px;margin-bottom:10px;border:1px solid #e2e8f0;border-radius:12px;">
             <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:14px;margin-bottom:20px;border:1px solid #e2e8f0;border-radius:12px;">
             <button onclick="window.processReset('${u}')" style="width:100%;padding:16px;background:#f97316;color:white;border:none;border-radius:12px;font-weight:bold;">Update & Activate</button>
@@ -52,14 +52,15 @@ window.processReset = async function(u) {
     if (!p1 || p1 !== p2) { alert("❌ Passwords do not match!"); return; }
     try {
         const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(u)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success) { alert("✅ Activated!"); window.location.replace('main.html'); }
+        if (res.success) { alert("✅ Account Activated!"); window.location.replace('main.html'); }
     } catch (e) { alert("❌ Error"); }
 };
 
-/* --- 2. แก้ไขหน้า TEAM STOCK ให้เป็นตารางเหมือน WITHDRAW --- */
+/* --- 2. แก้หน้า TEAM STOCK (จัด UI เหมือน Withdraw - แสดง Material) --- */
 window.renderTeamTable = function(data) {
     const tbody = document.getElementById('team-data-container') || document.getElementById('data');
-    if (!tbody) return;
+    if (!tbody || !window.location.pathname.includes('team-stock')) return; // ทำเฉพาะหน้า team-stock
+
     const currentUser = sessionStorage.getItem('selectedUser');
     const members = Object.values(USER_MAP);
     let html = '';
@@ -70,86 +71,75 @@ window.renderTeamTable = function(data) {
             if (m !== currentUser && q > 0) {
                 html += `
                 <tr style="border-bottom:1px solid #eee;">
-                    <td style="padding:15px 10px;">
-                        <div style="font-weight:bold; color:#003366;">${item.Material}</div>
-                        <div style="font-size:11px; color:#64748b;">${item['Product Name'] || ''}</div>
-                        <div style="font-size:10px; color:#f97316;">Owner: ${m}</div>
+                    <td style="padding:12px;">
+                        <b>${item.Material}</b><br>
+                        <small>${item['Product Name'] || ''}</small><br>
+                        <span style="color:#f97316; font-size:10px;">Owner: ${m}</span>
                     </td>
-                    <td align="center" style="font-size:18px; font-weight:bold;">${q}</td>
-                    <td align="right" style="padding-right:10px;">
-                        <div style="display:flex; gap:5px; justify-content: flex-end; align-items:center;">
-                            <input type="number" id="t_qty_${idx}_${m}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px;">
-                            <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:#f97316; color:white; border:none; padding:7px 12px; border-radius:8px; font-weight:bold;">Add</button>
-                        </div>
+                    <td align="center"><b>${q}</b></td>
+                    <td align="right">
+                        <input type="number" id="t_qty_${idx}_${m}" value="1" style="width:40px; text-align:center;">
+                        <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:#f97316; color:white; border:none; padding:8px; border-radius:5px;">Add</button>
                     </td>
                 </tr>`;
             }
         });
     });
-    tbody.innerHTML = html || '<tr><td colspan="3" align="center" style="padding:20px;">No Team Stock Available</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="3" align="center">No Team Stock Available</td></tr>';
 };
 
-/* --- 3. แก้ไขหน้า RETURN ให้แจ้งเตือนเมื่อไม่มีอะไหล่ --- */
+/* --- 3. แก้หน้า RETURN (เพิ่มข้อความแจ้งเตือนเมื่อสต็อกว่าง) --- */
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); if (!tbody) return;
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
     
-    let rowsHtml = data.map((item, index) => {
+    let rowContent = data.map((item, index) => {
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
         if (!path.includes('showall') && displayQty <= 0) return '';
-
+        
         let actionUI = "";
         if (path.includes('showall')) {
             actionUI = `<b style="color:${displayQty > 0 ? "#16a34a" : "#dc2626"};">${displayQty > 0 ? "In stock" : "Out of stock"}</b>`;
         } else {
             const isW = path.includes('withdraw');
-            actionUI = `
-                <div style="display:flex; gap:5px; justify-content: flex-end; align-items:center;">
-                    <input type="number" id="qty_${index}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px;">
-                    <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${isW?'#003366':'#16a34a'}; color:white; border:none; padding:7px 12px; border-radius:8px; font-weight:bold;">Add</button>
-                </div>`;
+            actionUI = `<input type="number" id="qty_${index}" value="1" style="width:40px; text-align:center;">
+                        <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${isW?'#003366':'#16a34a'}; color:white; border:none; padding:8px; border-radius:5px;">Add</button>`;
         }
-        return `<tr style="border-bottom:1px solid #eee;"><td style="padding:15px 10px;"><b>${item.Material}</b><br><small>${item['Product Name']||''}</small></td><td align="center" style="font-size:18px; font-weight:bold;">${displayQty}</td><td align="right">${actionUI}</td></tr>`;
+        return `<tr><td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']||''}</small></td><td align="center"><b>${displayQty}</b></td><td align="right">${actionUI}</td></tr>`;
     }).join('');
 
-    // แจ้งเตือนถ้าไม่มีข้อมูล (สำหรับหน้า Return)
-    if (!rowsHtml && path.includes('return')) {
-        tbody.innerHTML = `<tr><td colspan="3" align="center" style="padding:40px; color:#64748b;">
-            <div style="font-size:40px; margin-bottom:10px;">📦</div>
-            <b>No items in your stock to return.</b>
-        </td></tr>`;
+    // จุดที่แก้: ถ้าเป็นหน้า Return แล้วไม่มีของ ให้โชว์ข้อความบอก
+    if (path.includes('return') && !rowContent.trim()) {
+        tbody.innerHTML = '<tr><td colspan="3" align="center" style="padding:30px; color:gray;"><b>❌ No items in your stock to return.</b></td></tr>';
     } else {
-        tbody.innerHTML = rowsHtml;
+        tbody.innerHTML = rowContent;
     }
 };
 
-/* --- 4. แก้ไข SYNC & NEW EMAIL ให้เด้งทันที --- */
+/* --- 4. แก้ให้ NEW EMAIL เด้งทันที --- */
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
-    const dateStr = new Date().toLocaleDateString('en-GB');
     btn.innerText = "Syncing..."; btn.disabled = true;
-
-    let emailBody = `Hi BO,\n\nPlease process the following inventory transfer for: ${user}\n\n`;
+    let bodyText = `Hi BO,\n\nPlease process the following transfer for: ${user}\n\n`;
+    
     try {
         for (const item of window.cart) {
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
-            emailBody += `- ${item.mat} | ${item.name} | Qty: ${item.qty} (${item.from} -> ${item.target})\n`;
+            bodyText += `• ${item.mat} | ${item.name} | Qty: ${item.qty} (${item.from} -> ${item.target})\n`;
         }
         
-        // ใช้ mailto: ที่รองรับ CC และ Subject สมบูรณ์เพื่อให้แอปเมล์เด้งทันที
-        const mailtoLink = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Spare parts transfer ${user} ${dateStr}&body=${encodeURIComponent(emailBody)}`;
-        
-        window.location.href = mailtoLink; // สั่งเปิดหน้าเขียนเมล์
+        // บังคับเด้งเมล์ทันที
+        const mailto = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Transfer_${user}&body=${encodeURIComponent(bodyText)}`;
+        window.location.href = mailto;
 
-        window.cart = []; 
-        localStorage.removeItem('qiagen_cart');
+        window.cart = []; localStorage.removeItem('qiagen_cart');
         setTimeout(() => window.location.reload(), 1500);
-    } catch (e) { alert("Sync Error"); btn.disabled = false; }
+    } catch (e) { alert("Error"); btn.disabled = false; }
 };
 
-/* --- ฟังก์ชันช่วยเหลืออื่นๆ (คงเดิม) --- */
+/* --- CART FUNCTIONS (คงเดิมห้ามลบ) --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
     const q = document.getElementById(qID).value;
@@ -161,51 +151,46 @@ window.addToCart = function(type, mat, idx, from, target) {
 
 window.updateCartUI = function() {
     let btn = document.getElementById('cart-floating-btn');
-    if (!btn) {
-        btn = document.createElement('div'); btn.id = 'cart-floating-btn';
-        btn.style = "position:fixed; bottom:25px; right:25px; z-index:9999;";
-        document.body.appendChild(btn);
-    }
-    btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#0ea5e9; color:white; padding:15px 25px; border-radius:50px; border:none; font-weight:bold; box-shadow:0 4px 15px rgba(0,0,0,0.3);">Cart (${window.cart.length})</button>` : '';
+    if (!btn) { btn = document.createElement('div'); btn.id = 'cart-floating-btn'; btn.style = "position:fixed;bottom:25px;right:25px;z-index:9999;"; document.body.appendChild(btn); }
+    btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#0ea5e9;color:white;padding:15px 25px;border-radius:50px;border:none;font-weight:bold;">Cart (${window.cart.length})</button>` : '';
 };
 
 window.showReviewModal = function() {
     let html = window.cart.map((i, idx) => `
-        <div style="padding:12px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
-            <div style="flex:1;"><b style="color:#003366;">${i.mat}</b> (x${i.qty})<br><small>${i.name}</small><br><small style="color:#f97316;">${i.from} → ${i.target}</small></div>
-            <button onclick="window.removeFromCart(${idx})" style="background:#fee2e2; color:#dc2626; border:none; padding:5px 10px; border-radius:8px; font-weight:bold;">X</button>
+        <div style="padding:10px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+            <div style="flex:1;"><b>${i.mat}</b> (x${i.qty})<br><small>${i.name}</small><br><small style="color:orange;">${i.from} → ${i.target}</small></div>
+            <button onclick="window.removeFromCart(${idx})" style="color:red; background:none; border:none; font-weight:bold;">X</button>
         </div>`).join('');
     const div = document.createElement('div'); div.id = "review-modal";
-    div.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
-    div.innerHTML = `<div style="background:white; width:100%; max-width:400px; border-radius:20px; padding:20px;">
-        <h3 style="margin-top:0;">🛒 Review Order</h3>
-        <div style="max-height:350px; overflow-y:auto;">${html || 'Empty'}</div>
-        <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:16px; background:#0ea5e9; color:white; border:none; border-radius:12px; margin-top:15px; font-weight:bold;">Sync & Open Email</button>
-        <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; border:none; background:none; color:gray;">Cancel</button>
+    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;justify-content:center;align-items:center;padding:15px;";
+    div.innerHTML = `<div style="background:white;width:100%;max-width:400px;border-radius:20px;padding:20px;">
+        <h3>🛒 Selected Items</h3>
+        <div style="max-height:300px; overflow-y:auto;">${html || 'Empty'}</div>
+        <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%;padding:15px;background:#0ea5e9;color:white;border:none;border-radius:12px;margin-top:15px;font-weight:bold;">Sync & Open Email</button>
+        <button onclick="document.getElementById('review-modal').remove()" style="width:100%;margin-top:10px;border:none;background:none;color:gray;">Cancel</button>
     </div>`;
     document.body.appendChild(div);
 };
 
-window.removeFromCart = function(idx) {
-    window.cart.splice(idx, 1);
-    localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
-    document.getElementById('review-modal').remove();
-    if (window.cart.length > 0) window.showReviewModal();
-    window.updateCartUI();
-};
+window.removeFromCart = (idx) => { window.cart.splice(idx, 1); localStorage.setItem('qiagen_cart', JSON.stringify(window.cart)); document.getElementById('review-modal').remove(); if (window.cart.length > 0) window.showReviewModal(); window.updateCartUI(); };
 
+/* --- INITIALIZE --- */
 window.loadStockData = async function() {
     const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { window.allRows = res.data; window.renderTable(res.data); window.renderTeamTable(res.data); }
+    if (res.success) { 
+        window.allRows = res.data; 
+        window.renderTable(res.data); 
+        window.renderTeamTable(res.data); 
+    }
 };
-
-window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
 
 document.addEventListener('DOMContentLoaded', () => {
     const name = sessionStorage.getItem('selectedUser');
-    ['user-display', 'user_display', 'display-user', 'current-user'].forEach(id => {
-        const el = document.getElementById(id); if (el && name) el.innerText = (id === 'user_display') ? name : `User: ${name}`;
-    });
+    if (name) {
+        ['user-display', 'user_display', 'display-user', 'current-user'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.innerText = (id === 'user_display') ? name : `User: ${name}`;
+        });
+    }
     if (!window.location.pathname.includes('index.html')) {
         if (!name) window.location.replace('index.html'); else window.loadStockData();
     }
