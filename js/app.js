@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - RESTORED VERSION (FIXED TEAM-STOCK ONLY)
+   QIAGEN INVENTORY - RESTORED VERSION (FIXED TEAM-STOCK & EMAIL TEMPLATE)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -8,7 +8,7 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-/* --- 1. AUTH & PASSWORD (คงเดิมตามต้นฉบับ) --- */
+/* --- 1. AUTH & PASSWORD --- */
 window.handleLogin = async function() {
     const uEl = document.getElementById('username-input') || document.getElementById('user-select');
     const pEl = document.getElementById('password-input');
@@ -55,7 +55,7 @@ window.processReset = async function(u) {
     } catch (e) { alert("❌ Error"); }
 };
 
-/* --- 2. CART & REVIEW MODAL (ตัวหนังสือสรุปยอดสีดำ) --- */
+/* --- 2. CART & REVIEW MODAL --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
     const q = document.getElementById(qID).value;
@@ -104,25 +104,29 @@ window.removeFromCart = function(idx) {
     window.updateCartUI();
 };
 
-/* --- 3. SYNC (คงเดิม) --- */
+/* --- 3. SYNC (แก้ไข Subject และ Body เมลตามสั่ง) --- */
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
+    const today = new Date().toLocaleDateString('th-TH'); // รูปแบบ DD/MM/YYYY
     btn.innerText = "Syncing..."; btn.disabled = true;
-    let bodyText = `Hi BO,\n\nPlease process the inventory transfer for: ${user}\n\n`;
+
+    // แก้ไขหัวข้อเมล และเนื้อหาเมลตามสั่ง
+    let subjectText = `Spare parts transfer ${user} ${today}`;
+    let bodyText = `Please transfer the following spare parts.\n\n`;
+
     try {
         for (const item of window.cart) {
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
             bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
         }
-        window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Transfer_${user}&body=${encodeURIComponent(bodyText)}`;
+        window.location.href = `mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
         window.cart = []; localStorage.removeItem('qiagen_cart');
         setTimeout(() => window.location.reload(), 2000);
     } catch (e) { alert("Sync Error"); btn.disabled = false; }
 };
 
 /* --- 4. RENDERING & DATA (แยกส่วนหน้าใครหน้ามัน) --- */
-
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
@@ -154,7 +158,6 @@ window.renderTeamTable = function(data) {
 };
 
 window.renderTable = function(data) {
-    // คืนค่าหน้า Withdraw/Return/Deduct ให้กลับมาเป็น 3 คอลัมน์เหมือนต้นฉบับ
     const tbody = document.getElementById('data'); 
     if (!tbody || window.location.pathname.includes('team-stock')) return;
 
@@ -178,10 +181,8 @@ window.renderTable = function(data) {
                         <input type="number" id="qty_${index}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
                         <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${isW?'#003366':'#16a34a'}; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">${isW?'Withdraw':'Return'}</button></div>`;
         }
-        // รูปแบบ 3 คอลัมน์ (Mat/Name | Qty | Action)
         return `<tr><td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']||''}</small></td><td align="center"><b>${displayQty}</b></td><td align="right">${actionUI}</td></tr>`;
     }).join('');
-
     tbody.innerHTML = rowsHtml || '<tr><td colspan="3" align="center" style="padding:40px; color:gray;">❌ No items found.</td></tr>';
 };
 
@@ -190,13 +191,11 @@ window.loadStockData = async function() {
     const cacheKey = 'qiagen_cache';
     const cacheTime = localStorage.getItem('qiagen_cache_time');
     const now = new Date().getTime();
-    
     if (localStorage.getItem(cacheKey) && cacheTime && (now - cacheTime < 30000)) {
         window.allRows = JSON.parse(localStorage.getItem(cacheKey));
         window.renderTable(window.allRows);
         window.renderTeamTable(window.allRows);
     }
-    
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
         if (res.success) { 
@@ -209,7 +208,6 @@ window.loadStockData = async function() {
     } catch(e) {}
 };
 
-// แก้ให้ช่องค้นหาใช้งานได้ทุกหน้า
 window.searchData = function(val) {
     const query = val.toLowerCase();
     const filtered = window.allRows.filter(r => 
@@ -241,11 +239,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ['user-display', 'user_display', 'display-user', 'current-user'].forEach(id => {
         const el = document.getElementById(id); if (el && name) el.innerText = name;
     });
-
-    // ผูก Event ค้นหาให้กลับมาทำงาน
     const sInput = document.getElementById('search-input') || document.querySelector('input[type="text"]');
     if (sInput) sInput.oninput = (e) => window.searchData(e.target.value);
-
     if (!window.location.pathname.includes('index.html')) {
         if (!name) window.location.replace('index.html'); else window.loadStockData();
     }
