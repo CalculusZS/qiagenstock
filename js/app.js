@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - ULTIMATE MASTER (FULL FEATURES - ENGLISH REV)
+   QIAGEN INVENTORY - STABLE MASTER (RECOVERY VERSION)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -7,71 +7,78 @@ const MASTER_PASS = "Service";
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-/* --- 1. LOGIN SYSTEM (Fixes: handleLogin is not defined) --- */
+/* --- 1. LOGIN SYSTEM (Fixes: login error/freeze) --- */
 window.handleLogin = async function() {
-    const userSelect = document.getElementById('user-select');
+    // ดึงค่าจาก ID ให้ตรงกับหน้า index.html ของพี่
+    const userSelect = document.getElementById('user-select') || document.getElementById('username-input');
     const passInput = document.getElementById('password-input');
-    if (!userSelect || !passInput) return;
+    
+    if (!userSelect || !passInput) {
+        console.error("Login elements not found");
+        return;
+    }
 
     const selectedUser = userSelect.value;
     const password = passInput.value;
 
-    if (!selectedUser) { 
-        alert("Please select a user."); 
-        return; 
-    }
+    if (!selectedUser) { alert("Please select a user."); return; }
     
     if (password === MASTER_PASS) {
         sessionStorage.setItem('selectedUser', selectedUser);
         window.location.href = 'main.html';
     } else {
-        alert("❌ Invalid Password");
+        alert("❌ Incorrect Password");
     }
 };
 
-/* --- 2. TABLE RENDERING (Includes ShowAll Logic) --- */
+/* --- 2. TABLE RENDERING (Matches your showall.html logic) --- */
 window.renderTable = function(data) {
-    const tbody = document.getElementById('data'); if (!tbody) return;
-    const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
+    const tbody = document.getElementById('data'); 
+    if (!tbody) return;
+
+    const user = sessionStorage.getItem('selectedUser');
+    const path = window.location.pathname.toLowerCase();
     
     tbody.innerHTML = data.map((item, index) => {
-        let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
+        let q0 = Number(item['0243'] || 0);
+        let qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
         
-        // Hide empty rows unless on Show All page
+        // Don't show empty items unless on Show All page
         if (!path.includes('showall') && displayQty <= 0) return '';
 
         let actionUI = "";
         if (path.includes('showall')) {
+            // Logic for Green/Red status in showall.html
             const statusText = displayQty > 0 ? "In stock" : "Out of stock";
             const statusColor = displayQty > 0 ? "#16a34a" : "#dc2626";
             actionUI = `<b style="color:${statusColor}; font-size:14px;">${statusText}</b>`;
         } else if (path.includes('deduct')) {
-            actionUI = `<div style="display:flex; gap:5px; justify-content: flex-end; align-items:center;">
-                <input type="text" id="wo_${index}" placeholder="WO#" style="width:65px; padding:6px; border:1px solid #ddd; border-radius:6px;">
-                <input type="number" id="qty_${index}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
-                <button onclick="window.doDeduct('${item.Material}', ${index})" style="background:#dc2626; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold;">Used</button>
+            actionUI = `<div style="display:flex; gap:5px; justify-content: flex-end;">
+                <input type="text" id="wo_${index}" placeholder="WO#" style="width:60px; padding:5px; border:1px solid #ddd; border-radius:5px;">
+                <input type="number" id="qty_${index}" value="1" style="width:40px; text-align:center;">
+                <button onclick="window.doDeduct('${item.Material}', ${index})" style="background:#dc2626; color:white; border:none; padding:8px 10px; border-radius:5px;">Used</button>
             </div>`;
         } else {
             const isW = path.includes('withdraw');
-            actionUI = `<div style="display:flex; gap:5px; justify-content: flex-end; align-items:center;">
-                <input type="number" id="qty_${index}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
-                <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${isW?'#003366':'#16a34a'}; color:white; border:none; padding:8px 12px; border-radius:8px; font-weight:bold;">Add</button>
+            actionUI = `<div style="display:flex; gap:5px; justify-content: flex-end;">
+                <input type="number" id="qty_${index}" value="1" style="width:40px; text-align:center;">
+                <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${isW?'#003366':'#16a34a'}; color:white; border:none; padding:8px 10px; border-radius:5px;">Add</button>
             </div>`;
         }
 
         return `<tr style="border-bottom:1px solid #eee;">
-            <td style="padding:15px 10px;">
+            <td style="padding:12px 8px;">
                 <div style="font-weight:bold; color:#003366;">${item.Material}</div>
-                <div style="font-size:11px; color:#64748b;">${item['Product Name'] || ''}</div>
+                <div style="font-size:11px; color:#666;">${item['Product Name'] || ''}</div>
             </td>
-            <td align="center" style="font-size:18px; font-weight:bold;">${displayQty}</td>
-            <td align="right" style="padding-right:15px;">${actionUI}</td>
+            <td align="center" style="font-size:16px; font-weight:bold;">${displayQty}</td>
+            <td align="right" style="padding-right:10px;">${actionUI}</td>
         </tr>`;
     }).join('');
 };
 
-/* --- 3. SEARCH SYSTEM (Works for all pages) --- */
+/* --- 3. SEARCH & TEAM STOCK --- */
 window.searchStock = function(val) {
     const query = val.toUpperCase();
     const filtered = window.allRows.filter(i => 
@@ -81,7 +88,6 @@ window.searchStock = function(val) {
     window.renderTable(filtered);
 };
 
-/* --- 4. TEAM STOCK (Team stock page functionality) --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('stock-list'); 
     if (!container) return;
@@ -92,94 +98,104 @@ window.renderTeamTable = function(data) {
         members.forEach(m => {
             const q = Number(item[m] || 0);
             if (m !== currentUser && q > 0) {
-                html += `<div class="card" style="background:white; margin:12px; padding:15px; border-radius:15px; display:flex; justify-content:space-between; align-items:center; border-left:5px solid #f97316;">
-                    <div style="flex:1;"><b>${item.Material}</b><br><small>${item['Product Name'] || ''}</small><div style="font-size:12px; color:#f97316; margin-top:5px;">User: ${m}</div></div>
-                    <div style="text-align:right;"><div style="font-size:20px; font-weight:bold;">${q}</div><div style="display:flex; gap:5px; margin-top:5px;"><input type="number" id="t_qty_${idx}_${m}" value="1" style="width:40px; border:1px solid #ddd; text-align:center;"><button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:#f97316; color:white; border:none; padding:8px 12px; border-radius:8px;">Add</button></div></div></div>`;
+                html += `<div style="background:white; margin:10px; padding:15px; border-radius:10px; border-left:5px solid #f97316; display:flex; justify-content:space-between; align-items:center;">
+                    <div><b>${item.Material}</b><br><small>${m}</small></div>
+                    <div style="text-align:right;"><b>${q}</b><br><button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:#f97316; color:white; border:none; padding:5px 10px; border-radius:5px; margin-top:5px;">Add</button></div>
+                </div>`;
             }
         });
     });
-    container.innerHTML = html || '<p style="text-align:center; padding:50px; color:gray;">No team stock found.</p>';
+    container.innerHTML = html || '<p align="center">No Stock Found</p>';
 };
 
-/* --- 5. CART & SYNC (Forces Outlook) --- */
+/* --- 4. CART & SYNC --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
-    const q = document.getElementById(qID).value;
-    const itm = window.allRows.find(i => String(i.Material) === String(mat));
-    window.cart.push({ type, mat, name: itm ? itm['Product Name'] : '', qty: q, from, target });
+    const qEl = document.getElementById(qID);
+    const q = qEl ? qEl.value : 1;
+    window.cart.push({ type, mat, qty: q, from, target });
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
 };
 
 window.updateCartUI = function() {
     let btn = document.getElementById('cart-floating-btn');
-    if (!btn) { btn = document.createElement('div'); btn.id = 'cart-floating-btn'; btn.style = "position:fixed;bottom:25px;right:25px;z-index:1000;"; document.body.appendChild(btn); }
-    btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#0078d4;color:white;padding:15px 25px;border-radius:50px;border:none;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.3);">Cart (${window.cart.length})</button>` : '';
+    if (!btn) {
+        btn = document.createElement('div');
+        btn.id = 'cart-floating-btn';
+        btn.style = "position:fixed; bottom:20px; right:20px; z-index:9999;";
+        document.body.appendChild(btn);
+    }
+    btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#0078d4; color:white; padding:15px 20px; border-radius:50px; border:none; box-shadow:0 4px 10px rgba(0,0,0,0.2);">Cart (${window.cart.length})</button>` : '';
 };
 
 window.showReviewModal = function() {
-    let html = window.cart.map((i, idx) => `<div style="padding:10px 0; border-bottom:1px solid #eee;"><b>${i.mat} (x${i.qty})</b><br><small>${i.from} → ${i.target}</small></div>`).join('');
-    const div = document.createElement('div'); div.id = "review-modal";
-    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;justify-content:center;align-items:center;padding:15px;";
-    div.innerHTML = `<div style="background:white;width:100%;max-width:400px;border-radius:20px;padding:20px;"><h3>🛒 Review Order</h3><div style="max-height:300px; overflow-y:auto;">${html}</div>
-        <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%;padding:15px;background:#0078d4;color:white;border:none;border-radius:12px;font-weight:bold;margin-top:15px;">Open Outlook</button>
-        <button onclick="document.getElementById('review-modal').remove()" style="width:100%;margin-top:10px;border:none;background:none;color:gray;">Cancel</button></div>`;
+    let html = window.cart.map((i, idx) => `<div style="padding:8px 0; border-bottom:1px dotted #ccc;">${i.mat} (x${i.qty})<br><small>${i.from} → ${i.target}</small></div>`).join('');
+    const div = document.createElement('div');
+    div.id = "review-modal";
+    div.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; justify-content:center; align-items:center;";
+    div.innerHTML = `<div style="background:white; width:90%; max-width:350px; border-radius:15px; padding:20px;">
+        <h3>Confirm Order</h3>
+        <div style="max-height:250px; overflow-y:auto;">${html}</div>
+        <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:12px; background:#0078d4; color:white; border:none; border-radius:10px; margin-top:15px; font-weight:bold;">Open Outlook</button>
+        <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; border:none; background:none; color:gray;">Cancel</button>
+    </div>`;
     document.body.appendChild(div);
 };
 
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
-    btn.innerText = "Syncing..."; btn.disabled = true;
-    let bodyText = `Hi BO,\n\nPlease transfer parts for: ${user}\n\n`;
+    btn.innerText = "Processing..."; btn.disabled = true;
+    let bodyText = `Hi BO,\n\nPlease transfer items for: ${user}\n\n`;
     try {
         for (const item of window.cart) {
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
-            bodyText += `- ${item.mat} | Qty: ${item.qty} (${item.from} -> ${item.target})\n`;
+            bodyText += `- ${item.mat} (x${item.qty})\n`;
         }
-        window.location.href = `ms-outlook://compose?to=AsiaPacBackOfficeFieldService@qiagen.com&subject=Spare parts transfer ${user}&body=${encodeURIComponent(bodyText)}`;
+        window.location.href = `ms-outlook://compose?to=AsiaPacBackOfficeFieldService@qiagen.com&subject=Transfer_${user}&body=${encodeURIComponent(bodyText)}`;
         window.cart = []; localStorage.removeItem('qiagen_cart');
         setTimeout(() => window.location.reload(), 1500);
     } catch (e) { alert("Sync Error"); btn.disabled = false; }
 };
 
-/* --- 6. UTILITIES (User Display & Data Loading) --- */
+/* --- 5. DATA LOADING --- */
 window.loadStockData = async function() {
-    const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { 
-        window.allRows = res.data; 
-        window.renderTable(res.data); 
-        window.renderTeamTable(res.data);
-    }
+    try {
+        const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
+        if (res.success) { 
+            window.allRows = res.data; 
+            window.renderTable(res.data); 
+            if (window.renderTeamTable) window.renderTeamTable(res.data);
+        }
+    } catch (e) { console.error("Load failed"); }
 };
 
 window.displayUserInfo = function() {
     const fullName = sessionStorage.getItem('selectedUser');
     if (!fullName) return;
-    const possibleIDs = ['user-display', 'user_display', 'display-user', 'current-user'];
-    possibleIDs.forEach(id => {
+    ['user-display', 'user_display', 'display-user', 'current-user'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.innerText = (id === 'user_display') ? fullName : `Logged in as: ${fullName}`;
+        if (el) el.innerText = (id === 'user_display') ? fullName : `User: ${fullName}`;
     });
 };
 
 window.doDeduct = async function(mat, idx) {
     const qty = document.getElementById('qty_' + idx).value;
     const wo = document.getElementById('wo_' + idx).value.trim();
-    if (!wo) return alert("❌ Please enter WO#");
+    if (!wo) { alert("Enter WO#"); return; }
     const user = sessionStorage.getItem('selectedUser');
-    const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
     try {
+        const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
         const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ Deducted successfully"); window.loadStockData(); }
-    } catch(e) { alert("❌ Sync Error"); }
+        if (res.success) { alert("Deducted!"); window.loadStockData(); }
+    } catch(e) { alert("Error"); }
 };
-
-window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
 
 document.addEventListener('DOMContentLoaded', () => {
     window.displayUserInfo();
-    if (!window.location.pathname.includes('index.html')) {
+    const path = window.location.pathname;
+    if (!path.includes('index.html')) {
         if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html');
         else window.loadStockData();
     }
