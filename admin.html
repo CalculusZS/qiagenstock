@@ -5,50 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QIAGEN - Admin Audit System</title>
     <style>
-        body { background: #f1f5f9; font-family: sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: auto; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h2, h3 { color: #003366; margin-top: 0; }
-        textarea { width: 100%; height: 150px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; font-family: monospace; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
-        th { background: #f8fafc; padding: 12px; text-align: left; border-bottom: 2px solid #eee; font-size: 13px; }
-        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
-        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; }
-        .btn-blue { background: #003366; width: 100%; margin-top: 10px; }
-        #status { padding: 10px; border-radius: 8px; margin: 10px 0; display: none; }
+        body { background: #f1f5f9; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: auto; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        h2 { color: white; margin: 0; font-size: 22px; }
+        h3 { color: #003366; margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        textarea { width: 100%; height: 160px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 12px; font-family: 'Courier New', monospace; box-sizing: border-box; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: #f8fafc; padding: 12px; text-align: left; border-bottom: 2px solid #eee; font-size: 12px; color: #64748b; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: top; }
+        .btn-main { background: #003366; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
+        .btn-main:hover { background: #002244; }
+        .batch-pill { font-size: 11px; color: #475569; background: #e2e8f0; padding: 3px 6px; border-radius: 4px; display: inline-block; margin: 2px 0; }
+        .status-success { color: #16a34a; font-weight: bold; }
     </style>
 </head>
 <body onload="loadStockData()">
     <div class="container">
-        <div class="card" style="background: #003366; color: white; display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="margin:0; color:white;">🛡️ Admin & Audit Control</h2>
-            <button onclick="window.location.href='main.html'" style="background:rgba(255,255,255,0.2); border:1px solid white; color:white; padding:8px 15px; border-radius:6px; cursor:pointer;">Back to Home</button>
+        <div class="card" style="background: #003366; display: flex; justify-content: space-between; align-items: center;">
+            <h2>🛡️ Admin Dashboard & Audit Trail</h2>
+            <button onclick="window.location.href='main.html'" style="background:rgba(255,255,255,0.2); border:1px solid white; color:white; padding:8px 18px; border-radius:8px; cursor:pointer; font-weight:bold;">BACK TO HOME</button>
         </div>
 
         <div class="card">
-            <h3>➕ Add Stock to Central (Excel Paste)</h3>
-            <p style="font-size:12px; color:#666;">ก๊อปจาก Excel 7 คอลัมน์ (ดึง ช่อง3=Batch, ช่อง4=Material, ช่อง6=Qty, ช่อง7=Date)</p>
+            <h3>➕ Bulk Import Stock (FIFO Basis)</h3>
+            <p style="font-size:13px; color:#64748b;">
+                🚩 <b>Instructions:</b> Copy 7 columns from Excel. The system extracts: 
+                <span class="status-success">[3] Batch</span>, <span class="status-success">[4] Material</span>, 
+                <span class="status-success">[6] Qty</span>, and <span class="status-success">[7] Date</span>.
+            </p>
             <textarea id="excel-input" placeholder="Paste Excel Data here..."></textarea>
-            <div id="status"></div>
-            <button class="btn btn-blue" id="btn-up" onclick="submitExcel()">UPLOAD & LOG TO ADMIN_LOG</button>
+            <button class="btn-main" id="btn-up" onclick="submitExcel()">PROCESS UPLOAD & RECORD LOG</button>
         </div>
 
         <div class="card">
-            <h3>📦 Inventory Audit (FIFO Check)</h3>
-            <input type="text" id="search" placeholder="Search Material..." oninput="window.searchData(this.value)" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+            <h3>📦 Inventory Traceability Audit</h3>
+            <input type="text" id="search" placeholder="Quick Search Material or Product..." oninput="window.searchData(this.value)" style="width:100%; padding:14px; border-radius:8px; border:1px solid #ddd; margin-bottom:15px; box-sizing:border-box;">
             <div style="overflow-x:auto;">
                 <table>
                     <thead>
                         <tr>
                             <th>Material</th>
-                            <th>Product Name</th>
+                            <th>Product Name (Col C)</th>
                             <th>Holder</th>
-                            <th>Qty</th>
-                            <th>Batch (Col R)</th>
-                            <th>Date (Col S)</th>
+                            <th style="text-align:center">Qty</th>
+                            <th>Batch Info (Col R) / Date (Col S)</th>
                         </tr>
                     </thead>
-                    <tbody id="data"></tbody>
+                    <tbody id="data">
+                        <tr><td colspan="5" align="center">⌛ Fetching Inventory Data...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -58,9 +64,9 @@
     <script>
         async function submitExcel() {
             const raw = document.getElementById('excel-input').value.trim();
-            if (!raw) return alert("กรุณาวางข้อมูล");
+            if (!raw) return alert("Please paste Excel data.");
             const btn = document.getElementById('btn-up');
-            const user = sessionStorage.getItem('selectedUser') || 'Admin';
+            const operator = sessionStorage.getItem('selectedUser') || 'Admin';
             
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
@@ -69,36 +75,44 @@
 
             if (!confirm(`บันทึก ${items.length} รายการลงใน Admin_Log?`)) return;
 
-            btn.disabled = true; btn.innerText = "Processing...";
+            btn.disabled = true; btn.innerText = "Writing to Audit Log...";
             try {
-                const res = await fetch(`${API}?action=addstock_excel&pass=${MASTER_PASS}&operator=${encodeURIComponent(user)}&items=${encodeURIComponent(JSON.stringify(items))}`).then(r => r.json());
+                const url = `${API}?action=addstock_excel&pass=${MASTER_PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`;
+                const res = await fetch(url).then(r => r.json());
                 if (res.success) {
-                    alert("✅ บันทึกสำเร็จและลง Log เรียบร้อย");
+                    alert("✅ บันทึกสำเร็จ! ตรวจสอบประวัติได้ที่ Sheet 'Admin_Log'");
                     document.getElementById('excel-input').value = "";
                     window.loadStockData();
                 }
-            } catch (e) { alert("Error: " + e.message); }
-            finally { btn.disabled = false; btn.innerText = "UPLOAD & LOG TO ADMIN_LOG"; }
+            } catch (e) { alert("System Error: " + e.message); }
+            finally { btn.disabled = false; btn.innerText = "PROCESS UPLOAD & RECORD LOG"; }
         }
 
-        // Custom Render สำหรับ Audit
+        // Custom Table Render for Admin
         window.renderTable = function(data) {
             const tbody = document.getElementById('data');
-            tbody.innerHTML = data.map(item => {
-                const holders = ['0243', 'Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+            const holders = ['0243', 'Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+            
+            let html = data.map(item => {
                 return holders.map(h => {
                     const q = parseInt(item[h]) || 0;
                     if (q <= 0) return '';
+                    const is0243 = (h === '0243');
                     return `<tr>
                         <td><b>${item.Material}</b></td>
-                        <td>${item['Product Name'] || '-'}</td>
-                        <td style="color:${h==='0243'?'#003366':'#16a34a'}"><b>${h}</b></td>
-                        <td><b>${q}</b></td>
-                        <td style="font-size:11px;">${h==='0243' ? (item['Batch'] || item['R'] || '-') : '-'}</td>
-                        <td style="font-size:11px;">${h==='0243' ? (item['Date'] || item['S'] || '-') : '-'}</td>
+                        <td style="max-width:350px;">${item['Product Name'] || '-'}</td>
+                        <td style="color:${is0243?'#003366':'#16a34a'}; font-weight:bold;">${h}</td>
+                        <td align="center"><b>${q}</b></td>
+                        <td>
+                            ${is0243 ? `
+                                <div class="batch-pill">B: ${item['Batch'] || item['R'] || '-'}</div><br>
+                                <div class="batch-pill">D: ${item['Date'] || item['S'] || '-'}</div>
+                            ` : '<span style="color:#cbd5e1;">-</span>'}
+                        </td>
                     </tr>`;
                 }).join('');
             }).join('');
+            tbody.innerHTML = html || '<tr><td colspan="5" align="center">No inventory found</td></tr>';
         };
     </script>
 </body>
