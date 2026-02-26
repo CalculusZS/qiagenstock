@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - ULTIMATE MASTER VERSION (ALL FEATURES + AUTO ID FIX)
+   QIAGEN INVENTORY - ULTIMATE MASTER VERSION (REV. CART FULL INFO)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbzG1H23irpdroTLl5VwRUpbjmXxzotzvy1v6IcoElH5u6yBYe2vo9DaHCsRL5jKmKWU/exec";
 const MASTER_PASS = "Service";
@@ -8,27 +8,21 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-/* --- 1. แสดงชื่อผู้ใช้งาน (แก้ไขปัญหาชื่อไม่ขึ้นในทุกหน้า) --- */
+/* --- 1. แสดงชื่อผู้ใช้งาน (รองรับทุก ID ในไฟล์ HTML ของพี่) --- */
 window.displayUserInfo = function() {
     const fullName = sessionStorage.getItem('selectedUser');
     if (!fullName) return;
-
-    // ระบบจะวิ่งหาทุก ID ที่พี่ใช้ในไฟล์ HTML ต่างๆ (user_display, display-user, current-user, user-display)
     const possibleIDs = ['user-display', 'user_display', 'display-user', 'current-user'];
-    
     possibleIDs.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
-            if (id === 'user_display') {
-                el.innerText = fullName; // สำหรับหน้า Main
-            } else {
-                el.innerHTML = ` <b>${fullName}</b>`; // สำหรับหน้าเบิก/คืน/Deduct
-            }
+            if (id === 'user_display') el.innerText = fullName; 
+            else el.innerHTML = `Logged in as: <b>${fullName}</b>`;
         }
     });
 };
 
-/* --- 2. LOGIN & FORCE CHANGE PASSWORD (ห้ามหาย) --- */
+/* --- 2. AUTH & FORCE PASSWORD CHANGE --- */
 window.handleLogin = async function() {
     const u = document.getElementById('username-input').value.trim().toUpperCase();
     const p = document.getElementById('password-input').value.trim();
@@ -36,25 +30,20 @@ window.handleLogin = async function() {
         const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(u)}&pass=${encodeURIComponent(p)}`).then(r => r.json());
         if (res && res.success) {
             sessionStorage.setItem('selectedUser', USER_MAP[u] || res.fullName);
-            if (res.status === 'NEW') { 
-                window.showForcePasswordChange(u); 
-            } else { 
-                window.location.replace('main.html'); 
-            }
+            if (res.status === 'NEW') { window.showForcePasswordChange(u); } 
+            else { window.location.replace('main.html'); }
         } else alert("❌ Login Failed");
     } catch (e) { alert("❌ Connection Error"); }
 };
 
 window.showForcePasswordChange = function(u) {
     const div = document.createElement('div');
-    div.id="force-pw-modal";
     div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:flex;justify-content:center;align-items:center;z-index:99999;padding:20px;";
     div.innerHTML = `<div style="background:white;padding:30px;border-radius:20px;text-align:center;width:100%;max-width:320px;">
-        <h3 style="color:#f97316;margin-top:0;">Set New Password</h3>
-        <p style="font-size:12px;color:#666;">Please confirm your new password.</p>
-        <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;">
-        <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;box-sizing:border-box;">
-        <button onclick="window.processReset('${u}')" style="width:100%;padding:15px;background:#f97316;color:white;border:none;border-radius:10px;font-weight:bold;margin-top:10px;">Update & Login</button>
+        <h3 style="color:#f97316;">Set New Password</h3>
+        <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;">
+        <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:8px;">
+        <button onclick="window.processReset('${u}')" style="width:100%;padding:15px;background:#f97316;color:white;border:none;border-radius:10px;font-weight:bold;">Update & Login</button>
     </div>`;
     document.body.appendChild(div);
 };
@@ -68,7 +57,7 @@ window.processReset = async function(u) {
     } catch(e) { alert("❌ Update Failed"); }
 };
 
-/* --- 3. RENDER TABLE (ปุ่ม Action ชิดขวา + Status Badge) --- */
+/* --- 3. RENDER TABLE (ปุ่ม Action ชิดขวา) --- */
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); if (!tbody) return;
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
@@ -77,10 +66,6 @@ window.renderTable = function(data) {
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
         if (!path.includes('showall') && displayQty <= 0) return '';
-
-        let statusBadge = path.includes('showall') ? (displayQty > 0 
-            ? `<div style="color:#16a34a; font-size:11px; font-weight:bold;">● In Stock</div>` 
-            : `<div style="color:#dc2626; font-size:11px; font-weight:bold;">○ Out of Stock</div>`) : "";
 
         let actionUI = "";
         if (path.includes('deduct')) {
@@ -97,24 +82,49 @@ window.renderTable = function(data) {
             </div>`;
         }
 
-        return `<tr style="border-bottom:1px solid #f1f5f9;">
-            <td style="padding:15px 10px; width:55%;">
-                <div style="font-weight:bold; color:#1e293b; font-size:14px;">${item.Material}</div>
-                <div style="font-size:12px; color:#64748b; line-height:1.3;">${item['Product Name'] || ''}</div>
-                ${statusBadge}
+        return `<tr style="border-bottom:1px solid #eee;">
+            <td style="padding:15px 10px;">
+                <div style="font-weight:bold; color:#003366;">${item.Material}</div>
+                <div style="font-size:11px; color:#64748b;">${item['Product Name'] || ''}</div>
             </td>
-            <td align="center" style="font-size:18px; font-weight:bold; color:#0f172a; width:15%;">${displayQty}</td>
-            <td align="right" style="padding-right:10px; width:30%;">${actionUI}</td>
+            <td align="center" style="font-size:18px; font-weight:bold;">${displayQty}</td>
+            <td align="right" style="padding-right:10px;">${actionUI}</td>
         </tr>`;
     }).join('');
 };
 
-/* --- 4. CART & OUTLOOK (เปิด Outlook มือถือ) --- */
+/* --- 4. หน้าตะกร้า (REVIEW CART - โชว์ Material, Product Name, From, To) --- */
+window.showReviewModal = function() {
+    let html = window.cart.map((i, idx) => `
+        <div style="font-size:13px; border-bottom:1px solid #e2e8f0; padding:12px 0; display:flex; justify-content:space-between; align-items:start;">
+            <div style="flex:1;">
+                <div style="font-weight:bold; color:#0369a1;">${i.mat} (x${i.qty})</div>
+                <div style="font-size:11px; color:#64748b; margin:2px 0;">${i.name || 'No Name'}</div>
+                <div style="font-size:10px; color:#0f172a; margin-top:4px;">
+                    <span style="background:#f1f5f9; padding:2px 5px; border-radius:4px;">${i.from} → ${i.target}</span>
+                </div>
+            </div>
+            <button onclick="window.removeFromCart(${idx})" style="color:#dc2626; border:none; background:none; font-size:18px;">✕</button>
+        </div>
+    `).join('');
+
+    const div = document.createElement('div'); div.id = "review-modal";
+    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;justify-content:center;align-items:center;padding:15px;";
+    div.innerHTML = `<div style="background:white;width:100%;max-width:400px;border-radius:20px;padding:20px;">
+        <h3 style="margin-top:0;">🛒 Selected Parts</h3>
+        <div style="max-height:300px; overflow-y:auto; margin-bottom:15px;">${html || '<p align="center">Empty</p>'}</div>
+        <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%;padding:15px;background:#0ea5e9;color:white;border:none;border-radius:12px;font-weight:bold;">Sync & Open Outlook</button>
+        <button onclick="document.getElementById('review-modal').remove()" style="width:100%;margin-top:10px;border:none;background:none;color:gray;">Close</button>
+    </div>`;
+    document.body.appendChild(div);
+};
+
+/* --- 5. SYNC & OUTLOOK --- */
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
     const dateStr = new Date().toLocaleDateString('en-GB');
-    btn.innerText = "Syncing..."; btn.disabled = true;
+    btn.innerText = "Processing..."; btn.disabled = true;
     let emailBody = `Hi BO,\n\nPlease transfer parts for: ${user}\n\n`;
     try {
         for (const item of window.cart) {
@@ -123,23 +133,12 @@ window.confirmSendAndSync = async function() {
             emailBody += `- ${item.mat} | ${item.name} | Qty: ${item.qty} (${item.from} -> ${item.target})\n`;
         }
         window.cart = []; localStorage.removeItem('qiagen_cart');
-        
-        // ดีดไปเปิด Outlook มือถือ
         window.location.replace(`mailto:AsiaPacBackOfficeFieldService@qiagen.com?cc=gthfss@qiagen.com&subject=Spare parts transfer ${user} ${dateStr}&body=${encodeURIComponent(emailBody)}`);
-        
-        alert("✅ Sync Success!");
-        setTimeout(() => window.location.reload(), 1500);
-    } catch (e) { alert("❌ Error: " + e.message); btn.disabled = false; }
+        alert("✅ Sync Success!"); setTimeout(() => window.location.reload(), 1000);
+    } catch (e) { alert("❌ Error"); btn.disabled = false; }
 };
 
-/* --- 5. ฟังก์ชันสนับสนุนอื่นๆ (SEARCH, DATA LOAD, LOGOUT) --- */
-window.filterData = function() {
-    const input = document.getElementById('search-input') || document.getElementById('search');
-    const val = input.value.toUpperCase();
-    const filtered = window.allRows.filter(i => String(i.Material).toUpperCase().includes(val) || String(i['Product Name']).toUpperCase().includes(val));
-    window.renderTable(filtered);
-};
-
+/* --- ฟังก์ชันมาตรฐานที่เหลือ --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const q = document.getElementById('qty_' + idx).value;
     const itm = window.allRows.find(i => String(i.Material) === String(mat));
@@ -147,25 +146,21 @@ window.addToCart = function(type, mat, idx, from, target) {
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
 };
-
 window.updateCartUI = function() {
     let btn = document.getElementById('cart-floating-btn');
     if (!btn) { btn = document.createElement('div'); btn.id = 'cart-floating-btn'; btn.style = "position:fixed;bottom:25px;right:25px;z-index:1000;"; document.body.appendChild(btn); }
     btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#0ea5e9;color:white;padding:15px 25px;border-radius:50px;border:none;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.3);">Cart (${window.cart.length})</button>` : '';
 };
-
-window.showReviewModal = function() {
-    let html = window.cart.map((i, idx) => `<div style="font-size:12px;border-bottom:1px solid #eee;padding:10px;display:flex;justify-content:space-between;align-items:center;">
-        <span><b>${i.mat}</b> (x${i.qty})</span><button onclick="window.removeFromCart(${idx})" style="color:red;border:none;background:none;">✕</button>
-    </div>`).join('');
-    const div = document.createElement('div'); div.id = "review-modal";
-    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;justify-content:center;align-items:center;padding:20px;";
-    div.innerHTML = `<div style="background:white;width:100%;max-width:400px;border-radius:20px;padding:20px;"><h3>Confirm Sync</h3><div style="max-height:250px;overflow-y:auto;">${html}</div><button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%;padding:15px;background:#0ea5e9;color:white;border:none;border-radius:12px;font-weight:bold;margin-top:15px;">Sync & Outlook</button></div>`;
-    document.body.appendChild(div);
-};
-
 window.removeFromCart = (idx) => { window.cart.splice(idx, 1); localStorage.setItem('qiagen_cart', JSON.stringify(window.cart)); document.getElementById('review-modal').remove(); if (window.cart.length > 0) window.showReviewModal(); window.updateCartUI(); };
-
+window.loadStockData = async function() {
+    const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
+    if (res.success) { window.allRows = res.data; window.renderTable(res.data); }
+};
+window.filterData = function() {
+    const val = (document.getElementById('search-input') || document.getElementById('search')).value.toUpperCase();
+    const filtered = window.allRows.filter(i => String(i.Material).toUpperCase().includes(val) || String(i['Product Name']).toUpperCase().includes(val));
+    window.renderTable(filtered);
+};
 window.doDeduct = async function(mat, idx) {
     const qty = document.getElementById('qty_' + idx).value;
     const wo = document.getElementById('wo_' + idx).value.trim();
@@ -177,14 +172,7 @@ window.doDeduct = async function(mat, idx) {
         if (res.success) { alert("✅ Deducted"); window.loadStockData(); }
     } catch(e) { alert("❌ Error"); }
 };
-
-window.loadStockData = async function() {
-    const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-    if (res.success) { window.allRows = res.data; window.renderTable(res.data); if(window.renderTeamTable) window.renderTeamTable(res.data); }
-};
-
 window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
-
 document.addEventListener('DOMContentLoaded', () => {
     window.displayUserInfo();
     if (!window.location.pathname.includes('index.html')) {
