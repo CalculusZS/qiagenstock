@@ -3,65 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Team Stock</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>Team Stock - QIAGEN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card-animate { transition: all 0.2s ease; }
+        .card-animate:active { transform: scale(0.98); }
+    </style>
 </head>
-<body style="background:#f1f5f9; margin:0; font-family:sans-serif;">
-    <div style="background:#f97316; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100;">
-        <h2 style="margin:0; font-size:18px;">TEAM STOCK</h2>
-        <a href="main.html" style="color:white; text-decoration:none; font-weight:bold;">BACK</a>
+<body class="pb-20">
+
+    <div class="bg-[#003366] text-white p-4 sticky top-0 z-50 shadow-md">
+        <div class="flex items-center justify-between">
+            <button onclick="location.href='main.html'" class="p-2"><i class="fas fa-arrow-left text-xl"></i></button>
+            <h1 class="text-xl font-bold">Team Stock</h1>
+            <div class="w-10"></div>
+        </div>
     </div>
 
-    <div style="padding:15px;">
-        <input type="text" id="search" placeholder="Search Part or Member..." oninput="window.filterTeam()" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:10px; font-size:16px;">
+    <div class="p-4 bg-white shadow-sm sticky top-[60px] z-40">
+        <div class="relative">
+            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+            <input type="text" id="search" placeholder="Search Material or Owner..." 
+                class="w-100 w-full pl-10 pr-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+                onkeyup="filterTeamStock()">
+        </div>
     </div>
 
-    <div id="team-list" style="padding:0 15px 100px;"></div>
+    <div id="team-list" class="p-4 space-y-3">
+        <div class="text-center py-10 text-gray-400">
+            <i class="fas fa-spinner fa-spin text-3xl mb-2"></i>
+            <p>Loading team data...</p>
+        </div>
+    </div>
 
     <script src="js/app.js"></script>
     <script>
+        // ฟังก์ชันกรองข้อมูล (Search)
+        function filterTeamStock() {
+            const val = document.getElementById('search').value.toLowerCase();
+            const cards = document.querySelectorAll('.stock-card');
+            cards.forEach(card => {
+                const text = card.innerText.toLowerCase();
+                card.style.display = text.includes(val) ? 'flex' : 'none';
+            });
+        }
+
+        // ฟังก์ชัน Render (แก้ไข Logic From/To ตามสั่ง)
         window.renderTeamTable = function(data) {
             const container = document.getElementById('team-list');
             const currentUser = sessionStorage.getItem('selectedUser');
+            // รายชื่อ Engineer ในระบบ
             const members = ['Kitti','Tatchai','Parinyachat','Phurilap','Penporn','Phuriwat'];
             
             let html = '';
             data.forEach((item, idx) => {
                 members.forEach(m => {
                     const q = Number(item[m] || 0);
+                    
+                    // เงื่อนไข: 1. ไม่โชว์ชื่อตัวเอง 2. โชว์เฉพาะคนที่มีของ
                     if (m !== currentUser && q > 0) {
                         html += `
-                        <div style="background:white; padding:15px; border-radius:12px; margin-bottom:10px; border-left:5px solid #f97316; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-                            <div>
-                                <div style="font-weight:bold; color:#003366;">${item.Material}</div>
-                                <div style="font-size:11px; color:#64748b; margin-top:3px;">${item['Product Name']}</div>
-                                <div style="color:#c2410c; font-size:11px; font-weight:bold; margin-top:5px;">👤 From: ${m}</div>
+                        <div class="stock-card card-animate bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border-l-4 border-orange-500">
+                            <div class="flex-1">
+                                <div class="font-bold text-[#003366] text-lg">${item.Material}</div>
+                                <div class="text-xs text-gray-500 line-clamp-1">${item['Product Name']}</div>
+                                <div class="mt-2 inline-block px-2 py-1 bg-orange-50 text-orange-700 rounded-lg text-[10px] font-bold border border-orange-100">
+                                    <i class="fas fa-user-circle mr-1"></i> Owner: ${m}
+                                </div>
                             </div>
-                            <div style="text-align:right;">
-                                <div style="font-size:20px; font-weight:bold; color:#f97316;">${q}</div>
-                                <div style="display:flex; gap:5px; margin-top:5px;">
-                                    <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" style="width:40px; text-align:center; border:1px solid #ddd; border-radius:5px;">
-                                    <button onclick="window.addToCart('transfer', '${item.Material}', ${idx}, '${m}', '${currentUser}')" style="background:#f97316; color:white; border:none; padding:8px 10px; border-radius:6px; font-size:12px; font-weight:bold;">Transfer</button>
+                            
+                            <div class="text-right ml-4">
+                                <div class="text-2xl font-black text-orange-500">${q}</div>
+                                <div class="flex gap-2 mt-2 justify-end">
+                                    <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" 
+                                        class="w-12 p-2 border rounded-lg text-center font-bold focus:ring-1 focus:ring-orange-500 outline-none">
+                                    
+                                    <button onclick="window.addToCart('transfer', '${item.Material}', ${idx}, '${m}', '${currentUser}')" 
+                                        class="bg-orange-500 text-white px-3 py-2 rounded-lg font-bold text-xs shadow-sm hover:bg-orange-600 transition-colors">
+                                        TRANSFER
+                                    </button>
                                 </div>
                             </div>
                         </div>`;
                     }
                 });
             });
-            container.innerHTML = html || '<div style="text-align:center; padding:50px; color:#94a3b8;">No Stock Found</div>';
+
+            if (!html) {
+                container.innerHTML = `
+                    <div class="text-center py-20 text-gray-400">
+                        <i class="fas fa-box-open text-5xl mb-4 opacity-20"></i>
+                        <p>No stock available in other members.</p>
+                    </div>`;
+            } else {
+                container.innerHTML = html;
+            }
         };
 
-        window.filterTeam = function() {
-            const query = document.getElementById('search').value.toLowerCase();
-            const filtered = window.allRows.filter(i => 
-                String(i.Material).toLowerCase().includes(query) || 
-                String(i['Product Name']).toLowerCase().includes(query)
-            );
-            window.renderTeamTable(filtered);
-        };
-
-        // เมื่อโหลดหน้า ให้ดึงข้อมูลทันที
-        window.onload = () => { if(window.checkAuth()) window.loadStockData(); };
+        // เรียกโหลดข้อมูลทันทีเมื่อเปิดหน้า
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof window.loadStockData === 'function') {
+                window.loadStockData();
+            }
+        });
     </script>
 </body>
 </html>
