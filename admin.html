@@ -3,73 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supervisor - QIAGEN Stock</title>
+    <title>QIAGEN Inventory - Admin Panel</title>
     <style>
-        body { background: #f1f5f9; font-family: sans-serif; margin: 0; }
-        .container { max-width: 1000px; margin: 20px auto; padding: 0 15px; }
-        .header-sup { background: #1e293b; color: white; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        body { background: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; }
+        .container { max-width: 1100px; margin: 20px auto; padding: 0 15px; }
+        
+        /* Header */
+        .header-admin { 
+            background: #003366; 
+            color: white; 
+            padding: 20px; 
+            border-radius: 12px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Card Style */
+        .card { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+            margin-bottom: 25px; 
+        }
+        
+        h3 { color: #003366; margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+
+        /* Excel Input Area */
+        textarea { 
+            width: 100%; 
+            height: 180px; 
+            padding: 15px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 10px; 
+            font-family: 'Courier New', monospace; 
+            box-sizing: border-box; 
+            margin-bottom: 15px;
+            font-size: 13px;
+            background: #fdfdfd;
+        }
+
+        .instruction { 
+            font-size: 13px; 
+            color: #475569; 
+            background: #eff6ff; 
+            padding: 15px; 
+            border-radius: 8px; 
+            border-left: 5px solid #3b82f6; 
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        /* Buttons */
+        .btn-primary { 
+            background: #003366; 
+            color: white; 
+            border: none; 
+            padding: 14px 28px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            width: 100%; 
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        .btn-primary:hover { background: #002244; }
+        .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        .btn-logout { 
+            background: #ef4444; 
+            color: white; 
+            border: none; 
+            padding: 10px 18px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+
+        /* Table */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th { text-align: left; padding: 12px; background: #f8fafc; color: #64748b; font-size: 13px; border-bottom: 2px solid #edf2f7; }
-        td { padding: 12px; border-bottom: 1px solid #edf2f7; font-size: 14px; }
-        .btn-add { background: #003366; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-logout { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        input { padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
+        td { padding: 12px; border-bottom: 1px solid #edf2f7; font-size: 14px; color: #1e293b; }
+
+        /* Status Message */
+        #status-msg { 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 15px; 
+            display: none; 
+            font-weight: bold; 
+            text-align: center;
+        }
     </style>
 </head>
-<body onload="initSup()">
+<body onload="checkAuth()">
+
     <div class="container">
-        <div class="header-sup">
+        <div class="header-admin">
             <div>
-                <h2 style="margin:0">🛡️ Supervisor Panel</h2>
-                <small>Management & Audit Controls</small>
+                <h2 style="margin:0">🛡️ Admin Dashboard</h2>
+                <small>QIAGEN Stock Control & FIFO Management</small>
             </div>
-            <button class="btn-logout" onclick="logout()">LOGOUT</button>
-        </div>
-
-        <div class="card">
-            <h3 style="margin-top:0">➕ Add Stock to Central (0243)</h3>
-            <div style="display:flex; gap:10px; flex-wrap: wrap;">
-                <input type="text" id="s_mat" placeholder="Material Code" style="width:200px">
-                <input type="number" id="s_qty" value="1" min="1" style="width:70px">
-                <button class="btn-add" onclick="window.doSupAdd()">ADD STOCK</button>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-logout" style="background:#64748b;" onclick="window.location.href='main.html'">BACK TO MAIN</button>
+                <button class="btn-logout" onclick="logout()">LOGOUT</button>
             </div>
         </div>
 
         <div class="card">
-            <h3>📦 Staff Inventory Audit</h3>
-            <input type="text" placeholder="Search staff or material..." oninput="window.searchStock(this.value, 'supervisor')" style="width:100%; margin-bottom:15px; box-sizing:border-box">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Material</th>
-                        <th>Holder</th>
-                        <th style="text-align:center">Qty</th>
-                        <th style="text-align:right">Control</th>
-                    </tr>
-                </thead>
-                <tbody id="staff-data">
-                    <tr><td colspan="4" align="center">⌛ Loading Inventory...</td></tr>
-                </tbody>
-            </table>
+            <h3>➕ Add Stock to Central (0243) via Excel</h3>
+            <div class="instruction">
+                <strong>💡 วิธีใช้งาน:</strong> ก๊อปปี้ข้อมูลจาก Excel (ต้องครอบคลุมอย่างน้อย 7 คอลัมน์) แล้ววางลงในช่องด้านล่าง<br>
+                ระบบจะดึงข้อมูลอัตโนมัติ: <strong>ช่อง3=Batch/Serial | ช่อง4=Material | ช่อง6=Qty | ช่อง7=Date</strong>
+            </div>
+            
+            <textarea id="excel-data" placeholder="Paste Excel data here... (e.g., Batch [Tab] Material [Tab] Qty [Tab] Date)"></textarea>
+            
+            <div id="status-msg"></div>
+            
+            <button class="btn-primary" id="btn-submit" onclick="submitExcelData()">
+                CONFIRM & UPDATE CENTRAL STOCK
+            </button>
+        </div>
+
+        <div class="card">
+            <h3>📦 Inventory Audit (All Staff)</h3>
+            <input type="text" id="search-box" placeholder="Search Material, Batch or Holder..." 
+                   oninput="window.searchData(this.value)" 
+                   style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; margin-bottom:15px; box-sizing:border-box;">
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Product Name</th>
+                            <th>Holder</th>
+                            <th style="text-align:center">Stock</th>
+                            <th>Batch (Col R)</th>
+                            <th>Date (Col S)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data">
+                        <tr><td colspan="6" align="center" style="padding:40px; color:#94a3b8;">⌛ Loading Inventory Data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script src="js/app.js"></script>
     <script>
-        function initSup() {
-            // ตรวจสอบสิทธิ์: ถ้าไม่ใช่ Supervisor ให้เด้งกลับไปหน้า Login
+        // ตรวจสอบสิทธิ์ (ต้องเป็น Admin หรือชื่อที่กำหนดไว้)
+        function checkAuth() {
             const user = sessionStorage.getItem('selectedUser');
-            if (user !== 'Supervisor') {
-                alert("Access Denied: Please Login as Admin");
+            if (!user) {
+                alert("Please Login First");
                 window.location.replace('index.html');
                 return;
             }
-            // ถ้าผ่าน ให้โหลดข้อมูลสต็อกทันที
+            // เรียกโหลดข้อมูลสต็อก
             if (typeof window.loadStockData === 'function') {
-                window.loadStockData('supervisor');
+                window.loadStockData(); 
             }
         }
+
+        // ฟังก์ชันประมวลผลการวางข้อมูลจาก Excel
+        async function submitExcelData() {
+            const rawData = document.getElementById('excel-data').value.trim();
+            const btn = document.getElementById('btn-submit');
+            const statusBox = document.getElementById('status-msg');
+
+            if (!rawData) {
+                updateStatus("❌ กรุณาวางข้อมูลจาก Excel ก่อน", "#fee2e2", "#991b1b");
+                return;
+            }
+
+            const rows = rawData.split('\n');
+            const items = [];
+
+            rows.forEach(row => {
+                const cols = row.split('\t'); // แยกคอลัมน์ด้วย Tab (Standard Excel)
+                if (cols.length >= 7) {
+                    items.push({
+                        batch: cols[2].trim(), // ช่อง 3
+                        mat: cols[3].trim(),   // ช่อง 4
+                        qty: cols[5].trim(),   // ช่อง 6
+                        date: cols[6].trim()   // ช่อง 7
+                    });
+                }
+            });
+
+            if (items.length === 0) {
+                updateStatus("❌ รูปแบบข้อมูลไม่ถูกต้อง (ต้องมีอย่างน้อย 7 คอลัมน์)", "#fee2e2", "#991b1b");
+                return;
+            }
+
+            if (!confirm(`ยืนยันการเพิ่มรายการทั้งหมด ${items.length} รายการ?`)) return;
+
+            // เริ่มส่งข้อมูล
+            btn.disabled = true;
+            btn.innerText = "Processing... Please wait";
+            updateStatus("⏳ กำลังบันทึกลง Google Sheets และจัดการระบบ FIFO...", "#fef9c3", "#854d0e");
+
+            try {
+                // ส่งไปยัง API พร้อม action addstock_excel ที่เราสร้างใน GAS
+                const response = await fetch(`${API}?action=addstock_excel&pass=${MASTER_PASS}&items=${encodeURIComponent(JSON.stringify(items))}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    updateStatus(`✅ สำเร็จ! อัปเดตข้อมูล ${items.length} รายการเรียบร้อยแล้ว`, "#dcfce7", "#166534");
+                    document.getElementById('excel-data').value = ""; // ล้างช่อง input
+                    window.loadStockData(); // รีโหลดตารางด้านล่าง
+                } else {
+                    throw new Error(result.message || "Server Error");
+                }
+            } catch (e) {
+                updateStatus("❌ เกิดข้อผิดพลาด: " + e.message, "#fee2e2", "#991b1b");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "CONFIRM & UPDATE CENTRAL STOCK";
+            }
+        }
+
+        function updateStatus(msg, bg, color) {
+            const box = document.getElementById('status-msg');
+            box.innerText = msg;
+            box.style.background = bg;
+            box.style.color = color;
+            box.style.display = 'block';
+        }
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.replace('index.html');
+        }
+
+        // ปรับแต่งการ Render ตารางให้แสดง Col R และ S (ใช้ FIFO)
+        // หมายเหตุ: ฟังก์ชันนี้จะไป Override renderTable ใน app.js เฉพาะหน้า Admin
+        window.renderTable = function(data) {
+            const tbody = document.getElementById('data');
+            if (!tbody) return;
+
+            let html = data.map(item => {
+                // แสดงข้อมูลคอลัมน์ R และ S (Batch และ Date)
+                const colR = item['Batch'] || item['R'] || '-'; 
+                const colS = item['Date'] || item['S'] || '-';
+                
+                // ค้นหาว่าใครถือของชิ้นนี้อยู่บ้าง (Owner ต่างๆ)
+                const owners = Object.keys(USER_MAP).map(k => USER_MAP[k]);
+                owners.push('0243'); // รวม Stock กลาง
+
+                return owners.map(owner => {
+                    const qty = parseInt(item[owner]) || 0;
+                    if (qty <= 0) return ''; // ไม่แสดงถ้าไม่มีของ
+
+                    return `<tr>
+                        <td><b>${item.Material}</b></td>
+                        <td><small>${item['Product Name'] || '-'}</small></td>
+                        <td><span style="color:#0ea5e9; font-weight:bold;">${owner}</span></td>
+                        <td align="center"><b>${qty}</b></td>
+                        <td style="font-size:12px; color:#64748b;">${owner === '0243' ? colR : '-'}</td>
+                        <td style="font-size:12px; color:#64748b;">${owner === '0243' ? colS : '-'}</td>
+                    </tr>`;
+                }).join('');
+            }).join('');
+
+            tbody.innerHTML = html || '<tr><td colspan="6" align="center">❌ No data found</td></tr>';
+        };
     </script>
 </body>
 </html>
