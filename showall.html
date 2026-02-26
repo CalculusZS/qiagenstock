@@ -2,36 +2,120 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>All Stock Status - QIAGEN</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* UI พื้นฐานสำหรับหน้า Show All */
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f4f6f8; margin: 0; padding-bottom: 50px; }
+        .header { 
+            background: #1e293b; 
+            color: #fff; 
+            padding: 15px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            position: sticky; 
+            top: 0; 
+            z-index: 1000; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .container { padding: 15px; max-width: 900px; margin: auto; }
+        .btn-back { background: rgba(255,255,255,0.2); border: 1px solid #fff; color: white; padding: 8px 15px; border-radius: 8px; text-decoration: none; font-size: 13px; font-weight: bold; }
+        
+        /* กล่องค้นหา */
+        .search-box { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #ddd; 
+            border-radius: 12px; 
+            margin-bottom: 15px; 
+            font-size: 16px; 
+            box-sizing: border-box; 
+            outline: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        /* ตารางข้อมูล */
+        .table-container { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f8fafc; color: #64748b; font-size: 12px; text-transform: uppercase; padding: 15px 10px; text-align: left; border-bottom: 2px solid #edf2f7; }
+        td { padding: 15px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        
+        /* สถานะสต็อก */
+        .badge { padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; display: inline-block; }
+        .in-stock { background: #dcfce7; color: #16a34a; }
+        .out-of-stock { background: #fee2e2; color: #dc2626; }
+
+        #user-info-bar { background: #fff; padding: 10px 15px; font-size: 13px; color: #475569; border-bottom: 1px solid #e2e8f0; margin-bottom: 10px; }
+    </style>
 </head>
 <body onload="initShowAll()">
-    <div class="header" style="background:#1e293b; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-weight:bold; font-size:18px;">📋 0243 INVENTORY STATUS</div>
-        <button onclick="location.href='main.html'" style="background:none; border:1px solid white; color:white; padding:5px 10px; border-radius:5px;">BACK</button>
+
+    <div class="header">
+        <div style="font-weight: bold; font-size: 18px;">📋 0243 INVENTORY</div>
+        <a href="main.html" class="btn-back">BACK</a>
     </div>
-    <div class="container" style="padding:15px;">
-        <input type="text" class="search-box" placeholder="🔍 Search Stock Item..." oninput="searchStock(this.value, 'all')" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px; font-size:16px;">
-        <table style="width:100%; border-collapse:collapse; background:white; border-radius:12px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
-            <thead>
-                <tr style="background:#f1f5f9;">
-                    <th style="padding:12px; text-align:left;">Material Details</th>
-                    <th style="padding:12px; text-align:center;">0243 Stock</th>
-                    <th style="padding:12px; text-align:right;">Availability</th>
-                </tr>
-            </thead>
-            <tbody id="data">
-                <tr><td colspan="3" align="center">Fetching data...</td></tr>
-            </tbody>
-        </table>
+
+    <div id="user-info-bar">
+        Logged in as: <strong id="user-display" style="color:#003366;">-</strong>
     </div>
+
+    <div class="container">
+        <input type="text" id="search-input" class="search-box" 
+               placeholder="🔍 Search Material ID or Product Name..." 
+               oninput="window.filterData()">
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">DETAILS</th>
+                        <th style="text-align:center; width: 20%;">STOCK</th>
+                        <th style="text-align:right; width: 30%; padding-right:15px;">AVAILABILITY</th>
+                    </tr>
+                </thead>
+                <tbody id="data">
+                    <tr>
+                        <td colspan="3" align="center" style="padding:40px; color:#94a3b8;">
+                            <i class="fas fa-spinner fa-spin"></i> Loading inventory data...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <script src="js/app.js"></script>
     <script>
-        function initShowAll() {
-            if(!checkAuth()) return;
-            loadStockData('all'); 
+        async function initShowAll() {
+            // 1. แสดงชื่อผู้ใช้ (ใช้ฟังก์ชันจาก app.js)
+            if (typeof window.displayUserInfo === "function") {
+                window.displayUserInfo();
+            }
+
+            // 2. โหลดข้อมูล (ใช้ฟังก์ชันจาก app.js)
+            if (typeof window.loadStockData === "function") {
+                await window.loadStockData();
+            }
         }
+
+        // ฟังก์ชันค้นหาข้อมูลในตาราง
+        window.filterData = function() {
+            const val = document.getElementById('search-input').value.toUpperCase();
+            if (!window.allRows) return;
+
+            const filtered = window.allRows.filter(item => {
+                const mat = String(item.Material || "").toUpperCase();
+                const name = String(item['Product Name'] || "").toUpperCase();
+                return mat.includes(val) || name.includes(val);
+            });
+
+            // เรียก renderTable ที่อยู่ใน app.js เพื่อวาดตารางใหม่ตามข้อมูลที่กรอง
+            if (typeof window.renderTable === "function") {
+                window.renderTable(filtered);
+            }
+        };
     </script>
 </body>
 </html>
