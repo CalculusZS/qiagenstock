@@ -8,19 +8,22 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 
-/* 1. ค้นหาอะไหล่ (Fix: แก้ให้ค้นหาได้ทุกหน้า) */
+/* --- 1. SEARCH SYSTEM (แก้ไขให้ค้นหาได้ทุกหน้า) --- */
 window.filterData = function() {
     const searchInput = document.getElementById('search-input') || document.getElementById('search');
     if (!searchInput) return;
     const val = searchInput.value.toUpperCase();
+    
+    // กรองข้อมูลจาก Material และ Product Name
     const filtered = window.allRows.filter(item => {
-        return (item.Material && item.Material.toString().toUpperCase().includes(val)) ||
-               (item['Product Name'] && item['Product Name'].toString().toUpperCase().includes(val));
+        const mat = (item.Material || '').toString().toUpperCase();
+        const name = (item['Product Name'] || '').toString().toUpperCase();
+        return mat.includes(val) || name.includes(val);
     });
     window.renderTable(filtered);
 };
 
-/* 2. บังคับเปิด Outlook (Fix: บังคับ Mobile Redirect) */
+/* --- 2. SYNC & OUTLOOK (บังคับเปิด Outlook เท่านั้น) --- */
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
@@ -33,34 +36,57 @@ window.confirmSendAndSync = async function() {
     let emailBody = `Hi BO,\n\nPlease transfer the below spare parts for user: ${user}\n\n`;
     
     try {
+        // วนลูปส่งค่าไปที่ Google Sheets (Backend)
         for (const item of window.cart) {
-            // ส่งไป Backend V10
             const url = `${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`;
             await fetch(url).then(r => r.json());
-            emailBody += `- ${item.mat} | ${item.name} | Qty: ${item.qty} (${item.from} -> ${item.target})\n`;
+            emailBody += `- ${item.mat} | ${item.name} | Qty: ${item.qty} (From: ${item.from} -> To: ${item.target})\n`;
         }
 
-        // ล้างตะกร้า
+        // ล้างข้อมูลตะกร้าหลัง Sync สำเร็จ
         window.cart = [];
         localStorage.removeItem('qiagen_cart');
 
-        // บังคับเปิดแอป Outlook ในมือถือทันที
+        // บังคับเปิด Outlook ทันที
         const to = "AsiaPacBackOfficeFieldService@qiagen.com";
         const cc = "gthfss@qiagen.com";
         const subject = encodeURIComponent(`Spare parts transfer ${user} ${dateStr}`);
         const body = encodeURIComponent(emailBody);
         
+        // ใช้ mailto: เพื่อดีดเข้าแอป Outlook ในมือถือ
         window.location.replace(`mailto:${to}?cc=${cc}&subject=${subject}&body=${body}`);
 
-        alert("✅ Sync Success! Outlook will open.");
-        setTimeout(() => { window.location.reload(); }, 1000);
+        alert("✅ Sync Success! Switching to Outlook...");
+        setTimeout(() => { window.location.reload(); }, 1500);
+
     } catch (e) {
         alert("❌ Error: " + e.message);
         btn.disabled = false;
+        btn.innerText = "Sync & Open Outlook";
     }
 };
 
-/* 3. การแสดงผลตาราง (Render Table) */
+/* --- 3. DEDUCT PART (ข้อ 4: USED PART) --- */
+window.doDeduct = async function(mat, idx) {
+    const qty = document.getElementById('qty_' + idx).value;
+    const wo = document.getElementById('wo_' + idx).value.trim();
+    if (!wo) return alert("❌ Please enter Work Order#");
+    
+    const user = sessionStorage.getItem('selectedUser');
+    const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
+    
+    try {
+        const res = await fetch(url).then(r => r.json());
+        if (res.success) { 
+            alert("✅ Deduct Success!"); 
+            window.loadStockData(); 
+        } else {
+            alert("❌ Failed: " + res.msg);
+        }
+    } catch(e) { alert("❌ Error connecting to server"); }
+};
+
+/* --- 4. RENDER TABLE (จัดการการแสดงผล) --- */
 window.renderTable = function(data) {
     const tbody = document.getElementById('data');
     if (!tbody) return;
@@ -72,7 +98,6 @@ window.renderTable = function(data) {
         let qUser = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0243 : qUser;
 
-        // ซ่อนถ้าของไม่มี (ยกเว้นหน้าดูทั้งหมด)
         if (!path.includes('showall') && displayQty <= 0) return '';
 
         let actionUI = "";
@@ -100,19 +125,7 @@ window.renderTable = function(data) {
     }).join('');
 };
 
-/* 4. ฟังก์ชันเสริมอื่นๆ (Deduct, Cart, Login) */
-window.doDeduct = async function(mat, idx) {
-    const qty = document.getElementById('qty_' + idx).value;
-    const wo = document.getElementById('wo_' + idx).value.trim();
-    if (!wo) return alert("❌ Please enter WO#");
-    const user = sessionStorage.getItem('selectedUser');
-    const url = `${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`;
-    try {
-        const res = await fetch(url).then(r => r.json());
-        if (res.success) { alert("✅ Deducted"); window.loadStockData(); }
-    } catch(e) { alert("❌ Error"); }
-};
-
+/* --- 5. UTILS (CART, LOGIN, LOAD) --- */
 window.addToCart = function(type, mat, idx, fromUser, targetUser) {
     let qInput = document.getElementById('qty_' + idx) || document.getElementById(`t_qty_${idx}_${fromUser}`);
     const item = window.allRows.find(i => String(i.Material) === String(mat));
@@ -138,7 +151,7 @@ window.showReviewModal = function() {
     html += `</div>`;
     const div = document.createElement('div'); div.id = "review-modal";
     div.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; display:flex; justify-content:center; align-items:center;";
-    div.innerHTML = `<div style="background:white; width:85%; border-radius:20px; padding:20px;"><h3>Review & Sync</h3>${html}<button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:15px; background:#0ea5e9; color:white; border:none; border-radius:12px; font-weight:bold;">Sync & Open Outlook</button><button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; border:none; background:none; color:gray;">Cancel</button></div>`;
+    div.innerHTML = `<div style="background:white; width:85%; border-radius:20px; padding:20px;"><h3>Review & Sync</h3>${html}<button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:15px; background:#0ea5e9; color:white; border:none; border-radius:12px; font-weight:bold;">Confirm & Sync</button><button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; border:none; background:none; color:gray;">Cancel</button></div>`;
     document.body.appendChild(div);
 };
 
