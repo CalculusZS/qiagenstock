@@ -7,74 +7,52 @@
     <style>
         body { background: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; }
         .container { max-width: 1400px; margin: auto; }
-        
-        /* Card & Layout */
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .header-section { background: #003366; color: white; display: flex; justify-content: space-between; align-items: center; padding: 20px; border-radius: 12px; margin-bottom: 25px; }
-        
-        /* Form Elements */
-        h3 { color: #003366; margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
-        textarea { width: 100%; height: 180px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 15px; font-family: 'Courier New', monospace; box-sizing: border-box; font-size: 13px; background: #fafafa; }
-        textarea:focus { border-color: #003366; outline: none; background: white; }
-        
-        .btn-main { background: #003366; color: white; border: none; padding: 16px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; margin-top: 15px; transition: 0.3s; }
-        .btn-main:hover { background: #002244; transform: translateY(-1px); }
-        .btn-main:disabled { background: #94a3b8; cursor: not-allowed; }
-
-        /* Audit Table */
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
-        th { background: #f8fafc; padding: 12px; text-align: left; border-bottom: 2px solid #eee; font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: top; color: #334155; }
-        
-        /* Tags & Indicators */
+        h3 { color: #003366; margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        textarea { width: 100%; height: 180px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 15px; font-family: 'Courier New', monospace; box-sizing: border-box; }
+        .btn-main { background: #003366; color: white; border: none; padding: 16px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; margin-top: 15px; }
+        .btn-main:disabled { background: #94a3b8; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: #f8fafc; padding: 12px; text-align: left; border-bottom: 2px solid #eee; font-size: 12px; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
         .owner-tag { font-weight: bold; color: #0ea5e9; background: #f0f9ff; padding: 4px 8px; border-radius: 6px; }
         .central-tag { color: #003366; background: #e0f2fe; }
-        .batch-pill { font-size: 11px; color: #475569; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; border: 1px solid #e2e8f0; line-height: 1.4; }
-        .status-msg { padding: 12px; border-radius: 8px; margin-top: 10px; display: none; font-weight: bold; text-align: center; }
-
-        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; box-sizing: border-box; }
+        .status-msg { padding: 12px; border-radius: 8px; margin-top: 10px; display: none; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body onload="checkAuth()">
-
     <div class="container">
         <div class="header-section">
+            <h2 style="margin:0;">🛡️ QIAGEN Stock Admin</h2>
             <div>
-                <h2 style="margin:0;">🛡️ QIAGEN Stock Admin</h2>
-            </div>
-            <div style="display:flex; gap:10px;">
-                <button onclick="window.location.href='main.html'" style="background:rgba(255,255,255,0.2); border:1px solid white; color:white; padding:8px 15px; border-radius:6px; cursor:pointer;">🏠 MAIN</button>
-                <button onclick="logout()" style="background:#ef4444; border:none; color:white; padding:8px 15px; border-radius:6px; cursor:pointer; font-weight:bold;">LOGOUT</button>
+                <button onclick="window.location.href='main.html'" style="padding:8px 15px; cursor:pointer;">🏠 MAIN</button>
+                <button onclick="logout()" style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer;">LOGOUT</button>
             </div>
         </div>
 
         <div class="card">
             <h3>➕ Add Stock to Central (0243)</h3>
-            <div style="background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6; margin-bottom: 15px; font-size: 13px; color: #1e40af;">
-                <strong>📋 Audit Requirement:</strong> ก๊อปปี้ข้อมูลจาก Excel แล้ววางด้านล่าง (ดึงข้อมูลช่อง: 3=Batch, 4=Material, 6=Qty, 7=Date)
-            </div>
-            <textarea id="excel-input" placeholder="วางข้อมูลจาก Excel ที่นี่..."></textarea>
+            <textarea id="excel-input" placeholder="ก๊อปปี้จาก Excel แล้ววางที่นี่..."></textarea>
             <div id="status-box" class="status-msg"></div>
-            <button class="btn-main" id="btn-up" onclick="submitExcel()">CONFIRM UPLOAD & RECORD ADMIN_LOG</button>
+            <button class="btn-main" id="btn-up" onclick="submitExcel()">CONFIRM UPLOAD & RECORD LOG</button>
         </div>
 
         <div class="card">
-            <h3>📦 Inventory Traceability (FIFO Audit)</h3>
-            <input type="text" id="search" placeholder="🔍 Search Material or Product Name..." oninput="window.searchData(this.value)">
-            <div class="table-container">
+            <h3>📦 Inventory Traceability</h3>
+            <div style="overflow-x: auto;">
                 <table>
                     <thead>
                         <tr>
-                            <th width="15%">Material</th>
-                            <th width="30%">Product Name</th>
-                            <th width="15%">Holder</th>
-                            <th width="10%" style="text-align:center">Qty</th>
-                            <th width="30%">Batch Detail (R) / Date (S)</th>
+                            <th>Material</th>
+                            <th>Product Name</th>
+                            <th>Holder</th>
+                            <th>Qty</th>
+                            <th>Batch / Date (FIFO)</th>
                         </tr>
                     </thead>
-                    <tbody id="data">
-                        <tr><td colspan="5" align="center" style="padding:40px; color:#94a3b8;">⌛ กำลังโหลดข้อมูลสต็อก...</td></tr>
+                    <tbody id="data-table">
+                        <tr><td colspan="5" align="center">⌛ กำลังโหลดข้อมูล...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -82,126 +60,83 @@
     </div>
 
     <script>
-        // 🚩 วาง URL ของพี่ที่นี่
+        // แก้ไข URL ให้เป็นอันล่าสุด
         const API = "https://script.google.com/macros/s/AKfycbyv_0dUx3otAN-9ghDIUHwB4jWXrUhkzSMDTrRB54fnysTvQ7SpMkZMGKkXsU5lqT9X/exec";
-        const MASTER_PASS = "Service";
+        const PASS = "Service";
 
-        // ตรวจสอบสิทธิ์
         function checkAuth() {
-            const user = sessionStorage.getItem('selectedUser');
-            if (!user) {
-                alert("Access Denied: Please Login");
-                window.location.replace('index.html');
-                return;
-            }
-            loadStockData();
+            if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html');
+            loadData();
         }
 
-        // โหลดข้อมูลสต็อก
-        async function loadStockData() {
+        async function loadData() {
             try {
-                const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}`);
-                const data = await response.json();
-                window.fullData = data; // เก็บข้อมูลไว้สำหรับ Search
+                const res = await fetch(`${API}?action=read&pass=${PASS}`);
+                const data = await res.json();
                 renderTable(data);
-            } catch (e) {
-                console.error("Load Error:", e);
-            }
+            } catch (e) { console.error(e); }
         }
 
-        // ฟังก์ชัน Upload จาก Excel
+        function renderTable(data) {
+            const tbody = document.getElementById('data-table');
+            const holders = ['0243', 'Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+            let html = '';
+            data.forEach(item => {
+                holders.forEach(h => {
+                    const q = parseInt(item[h]) || 0;
+                    if (q > 0) {
+                        html += `<tr>
+                            <td>${item.Material}</td>
+                            <td>${item['Product Name'] || '-'}</td>
+                            <td><span class="owner-tag ${h === '0243' ? 'central-tag' : ''}">${h}</span></td>
+                            <td>${q}</td>
+                            <td>${h === '0243' ? `B: ${item['R'] || '-'}<br>D: ${item['S'] || '-'}` : '-'}</td>
+                        </tr>`;
+                    }
+                });
+            });
+            tbody.innerHTML = html || '<tr><td colspan="5" align="center">ไม่มีข้อมูล</td></tr>';
+        }
+
         async function submitExcel() {
             const raw = document.getElementById('excel-input').value.trim();
-            const btn = document.getElementById('btn-up');
-            const operator = sessionStorage.getItem('selectedUser') || 'Admin';
-
-            if (!raw) {
-                showStatus("❌ กรุณาวางข้อมูลจาก Excel", "#fee2e2", "#991b1b");
-                return;
-            }
+            const operator = sessionStorage.getItem('selectedUser');
+            if (!raw) return alert("กรุณาวางข้อมูล");
 
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
-                return c.length >= 7 ? { batch: c[2].trim(), mat: c[3].trim(), qty: c[5].trim(), date: c[6].trim() } : null;
+                return c.length >= 7 ? { batch: c[2], mat: c[3], qty: c[5], date: c[6] } : null;
             }).filter(i => i);
 
-            if (items.length === 0) {
-                showStatus("❌ รูปแบบข้อมูลไม่ถูกต้อง", "#fee2e2", "#991b1b");
-                return;
-            }
+            if (!confirm(`ยืนยันเพิ่ม ${items.length} รายการ?`)) return;
 
-            if (!confirm(`ยืนยันการเพิ่ม ${items.length} รายการลงใน Admin_Log?`)) return;
-
+            const btn = document.getElementById('btn-up');
             btn.disabled = true;
-            btn.innerText = "Processing Audit Log...";
-            showStatus("⌛ กำลังบันทึกข้อมูลและลง Log...", "#fef9c3", "#854d0e");
+            showStatus("⌛ กำลังบันทึก...", "#fef9c3", "#854d0e");
 
             try {
-                const url = `${API}?action=addstock_excel&pass=${MASTER_PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`;
+                const url = `${API}?action=addstock_excel&pass=${PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`;
                 const res = await fetch(url).then(r => r.json());
-                
                 if (res.success) {
-                    showStatus("✅ สำเร็จ! ข้อมูลถูกบันทึกลง Admin_Log เรียบร้อย", "#dcfce7", "#166534");
+                    showStatus("✅ สำเร็จ! ข้อมูลลง Sheet แล้ว", "#dcfce7", "#166534");
                     document.getElementById('excel-input').value = "";
-                    loadStockData();
+                    loadData();
+                } else {
+                    showStatus("❌ ผิดพลาด: " + res.msg, "#fee2e2", "#991b1b");
                 }
             } catch (e) {
                 showStatus("❌ Error: " + e.message, "#fee2e2", "#991b1b");
             } finally {
                 btn.disabled = false;
-                btn.innerText = "CONFIRM UPLOAD & RECORD ADMIN_LOG";
             }
-        }
-
-        // การแสดงผลตาราง Audit
-        function renderTable(data) {
-            const tbody = document.getElementById('data');
-            const holders = ['0243', 'Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
-            
-            let html = data.map(item => {
-                return holders.map(h => {
-                    const q = parseInt(item[h]) || 0;
-                    if (q <= 0) return '';
-                    
-                    const isCentral = (h === '0243');
-                    return `<tr>
-                        <td><b>${item.Material}</b></td>
-                        <td>${item['Product Name'] || '-'}</td>
-                        <td><span class="owner-tag ${isCentral ? 'central-tag' : ''}">${h}</span></td>
-                        <td align="center"><b>${q}</b></td>
-                        <td>
-                            ${isCentral ? `
-                                <div class="batch-pill"><b>B:</b> ${item['Batch'] || item['R'] || '-'}</div><br>
-                                <div class="batch-pill"><b>D:</b> ${item['Date'] || item['S'] || '-'}</div>
-                            ` : '<span style="color:#cbd5e1;">-</span>'}
-                        </td>
-                    </tr>`;
-                }).join('');
-            }).join('');
-            tbody.innerHTML = html || '<tr><td colspan="5" align="center">ไม่พบข้อมูล</td></tr>';
-        }
-
-        // ระบบค้นหา
-        window.searchData = function(query) {
-            const filtered = window.fullData.filter(item => 
-                item.Material.toLowerCase().includes(query.toLowerCase()) || 
-                item['Product Name'].toLowerCase().includes(query.toLowerCase())
-            );
-            renderTable(filtered);
         }
 
         function showStatus(msg, bg, color) {
             const box = document.getElementById('status-box');
-            box.innerText = msg;
-            box.style.background = bg;
-            box.style.color = color;
-            box.style.display = 'block';
+            box.innerText = msg; box.style.background = bg; box.style.color = color; box.style.display = 'block';
         }
 
-        function logout() {
-            sessionStorage.clear();
-            window.location.replace('index.html');
-        }
+        function logout() { sessionStorage.clear(); window.location.replace('index.html'); }
     </script>
 </body>
 </html>
