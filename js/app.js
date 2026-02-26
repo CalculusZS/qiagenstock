@@ -17,7 +17,7 @@ window.displayUserInfo = function() {
         const el = document.getElementById(id);
         if (el) {
             if (id === 'user_display') el.innerText = fullName; 
-            else el.innerHTML = `Logged in as: <b>${fullName}</b>`;
+            else el.innerHTML = `<b>${fullName}</b>`;
         }
     });
 };
