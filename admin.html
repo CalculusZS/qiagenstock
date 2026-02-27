@@ -10,9 +10,8 @@
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .header-section { background: #003366; color: white; display: flex; justify-content: space-between; align-items: center; padding: 20px; border-radius: 12px; margin-bottom: 25px; }
         h3 { color: #003366; margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
-        textarea { width: 100%; height: 180px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 15px; font-family: 'Courier New', monospace; box-sizing: border-box; }
+        textarea { width: 100%; height: 120px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 15px; font-family: 'Courier New', monospace; box-sizing: border-box; }
         .btn-main { background: #003366; color: white; border: none; padding: 16px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; margin-top: 15px; }
-        .btn-main:disabled { background: #94a3b8; }
         .btn-reset { background: #f59e0b; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-right: 10px; }
         .btn-logout { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -22,14 +21,32 @@
         .central-tag { color: #003366; background: #e0f2fe; }
         .status-msg { padding: 12px; border-radius: 8px; margin-top: 10px; display: none; text-align: center; font-weight: bold; }
         .fifo-text { white-space: pre-line; font-size: 11px; line-height: 1.4; color: #475569; }
+
+        /* --- Modal Styles --- */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 10% auto; padding: 20px; border-radius: 12px; width: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
+        .user-item:hover { background: #f8fafc; color: #0ea5e9; }
+        .close-modal { float: right; font-size: 24px; cursor: pointer; color: #64748b; }
     </style>
 </head>
 <body onload="checkAuth()">
+
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h3 style="border:none;">👤 Select User to Reset</h3>
+            <div id="user-list-container" style="max-height: 400px; overflow-y: auto;">
+                <p align="center">⌛ Loading Users...</p>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header-section">
             <h2 style="margin:0;">🛡️ QIAGEN Stock Admin</h2>
             <div>
-                <button class="btn-reset" onclick="resetPasswordPrompt()">🔑 RESET PASSWORD</button>
+                <button class="btn-reset" onclick="openUserModal()">🔑 RESET PASSWORD</button>
                 <button class="btn-logout" onclick="logout()">LOGOUT</button>
             </div>
         </div>
@@ -44,7 +61,7 @@
         <div class="card">
             <h3>📦 Inventory Traceability</h3>
             <div style="overflow-x: auto;">
-                <table>
+                <table id="inventory-table">
                     <thead>
                         <tr>
                             <th>Material</th>
@@ -83,23 +100,18 @@
             const tbody = document.getElementById('data-table');
             const holders = ['0243', 'Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
             let html = '';
-            
             data.forEach(item => {
                 holders.forEach(h => {
                     const q = parseFloat(item[h]) || 0;
                     if (q > 0) {
-                        // จัดการการแสดงผล FIFO แบบขึ้นบรรทัดใหม่
-                        const batchInfo = (h === '0243' && item['R']) ? item['R'] : '-';
-                        const dateInfo = (h === '0243' && item['S']) ? item['S'] : '-';
-                        
                         html += `<tr>
                             <td>${item.Material}</td>
                             <td>${item['Product Name'] || '-'}</td>
                             <td><span class="owner-tag ${h === '0243' ? 'central-tag' : ''}">${h}</span></td>
                             <td><b>${q}</b></td>
                             <td>
-                                <div class="fifo-text"><b>Batch:</b>\n${batchInfo}</div>
-                                <div class="fifo-text" style="margin-top:5px; border-top:1px dashed #ccc; padding-top:5px;"><b>Date:</b>\n${dateInfo}</div>
+                                <div class="fifo-text"><b>Batch:</b>\n${(h === '0243' ? item['R'] : '-') || '-'}</div>
+                                <div class="fifo-text" style="margin-top:5px; border-top:1px dashed #ccc; padding-top:5px;"><b>Date:</b>\n${(h === '0243' ? item['S'] : '-') || '-'}</div>
                             </td>
                         </tr>`;
                     }
@@ -108,24 +120,65 @@
             tbody.innerHTML = html || '<tr><td colspan="5" align="center">ไม่มีข้อมูล</td></tr>';
         }
 
+        // --- ระบบ Reset Password แบบ Modal ---
+        function openUserModal() {
+            document.getElementById('userModal').style.display = 'block';
+            fetchUserList();
+        }
+
+        function closeModal() { document.getElementById('userModal').style.display = 'none'; }
+
+        async function fetchUserList() {
+            const container = document.getElementById('user-list-container');
+            try {
+                // ดึงข้อมูลจากฐานข้อมูลเดียวกับหน้า Login
+                const res = await fetch(`${API}?action=read&pass=${PASS}`);
+                const data = await res.json();
+                
+                // ใช้รายชื่อ Holder เป็นตัวตั้งต้น (หรือพี่จะดึงจาก USERS sheet โดยตรงก็ได้)
+                const users = ['KM', 'TK', 'PSO', 'PK', 'PST', 'PA']; // อ้างอิงจาก UserKey
+                let html = '';
+                users.forEach(u => {
+                    html += `<div class="user-item" onclick="resetUserPass('${u}')">
+                                <span><strong>${u}</strong></span>
+                                <span style="font-size:12px; color:gray;">Click to Reset</span>
+                             </div>`;
+                });
+                container.innerHTML = html;
+            } catch (e) { container.innerHTML = "Error loading users."; }
+        }
+
+        async function resetUserPass(username) {
+            const newPass = prompt(`กรุณากรอกรหัสผ่านใหม่สำหรับ User: ${username}`);
+            if (!newPass) return;
+            if (!confirm(`ยืนยันเปลี่ยนรหัสผ่าน ${username} เป็น: ${newPass}?`)) return;
+
+            closeModal();
+            showStatus("⌛ กำลังเปลี่ยนรหัสผ่าน...", "#fef9c3", "#854d0e");
+
+            try {
+                const url = `${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(username)}&newPass=${encodeURIComponent(newPass)}`;
+                const res = await fetch(url).then(r => r.json());
+                if (res.success) {
+                    alert("✅ สำเร็จ!");
+                    showStatus("✅ เปลี่ยนรหัสผ่านเรียบร้อย", "#dcfce7", "#166534");
+                } else {
+                    alert("❌ ล้มเหลว: " + res.msg);
+                }
+            } catch (e) { alert("Error: " + e.message); }
+        }
+
         async function submitExcel() {
             const raw = document.getElementById('excel-input').value.trim();
             const operator = sessionStorage.getItem('selectedUser');
             if (!raw) return alert("กรุณาวางข้อมูล");
-
-            // การ Map คอลัมน์ตามลำดับ Excel: 2=Batch, 3=Mat, 5=Qty, 6=Date
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
                 return c.length >= 7 ? { batch: c[2], mat: c[3], qty: c[5], date: c[6] } : null;
             }).filter(i => i);
-
-            if (items.length === 0) return alert("รูปแบบข้อมูลไม่ถูกต้อง");
             if (!confirm(`ยืนยันเพิ่ม ${items.length} รายการ?`)) return;
-
             const btn = document.getElementById('btn-up');
             btn.disabled = true;
-            showStatus("⌛ กำลังบันทึก...", "#fef9c3", "#854d0e");
-
             try {
                 const url = `${API}?action=addstock_excel&pass=${PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`;
                 const res = await fetch(url).then(r => r.json());
@@ -133,38 +186,9 @@
                     showStatus("✅ สำเร็จ! ข้อมูลลง Sheet แล้ว", "#dcfce7", "#166534");
                     document.getElementById('excel-input').value = "";
                     loadData();
-                } else {
-                    showStatus("❌ ผิดพลาด: " + res.msg, "#fee2e2", "#991b1b");
                 }
-            } catch (e) {
-                showStatus("❌ Error: " + e.message, "#fee2e2", "#991b1b");
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        // --- ฟังก์ชัน Reset Password ใหม่ ---
-        async function resetPasswordPrompt() {
-            const user = prompt("กรุณากรอก Username ของ User ที่ต้องการ Reset:");
-            if (!user) return;
-            const newPass = prompt(`กรุณากรอกรหัสผ่านใหม่สำหรับคุณ ${user}:`);
-            if (!newPass) return;
-
-            if (!confirm(`ยืนยันการเปลี่ยนรหัสผ่านของ ${user} เป็น ${newPass}?`)) return;
-
-            try {
-                showStatus("⌛ กำลังเปลี่ยนรหัสผ่าน...", "#fef9c3", "#854d0e");
-                const url = `${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(user)}&newPass=${encodeURIComponent(newPass)}`;
-                const res = await fetch(url).then(r => r.json());
-                
-                if (res.success) {
-                    alert("✅ เปลี่ยนรหัสผ่านสำเร็จ!");
-                    showStatus("✅ เปลี่ยนรหัสผ่านสำเร็จ", "#dcfce7", "#166534");
-                } else {
-                    alert("❌ ไม่พบชื่อผู้ใช้งานนี้ หรือเกิดข้อผิดพลาด");
-                    showStatus("❌ ไม่สามารถ Reset รหัสผ่านได้", "#fee2e2", "#991b1b");
-                }
-            } catch (e) { alert("Error: " + e.message); }
+            } catch (e) { showStatus("❌ Error: " + e.message, "#fee2e2", "#991b1b"); }
+            finally { btn.disabled = false; }
         }
 
         function showStatus(msg, bg, color) {
@@ -173,6 +197,7 @@
         }
 
         function logout() { sessionStorage.clear(); window.location.replace('index.html'); }
+        window.onclick = function(event) { if (event.target == document.getElementById('userModal')) closeModal(); }
     </script>
 </body>
 </html>
