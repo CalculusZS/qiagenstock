@@ -23,7 +23,6 @@
 
         .container { max-width: 900px; margin: auto; }
 
-        /* Header */
         .header-section { 
             background: var(--qiagen-blue); 
             color: white; 
@@ -33,7 +32,6 @@
             margin-bottom: 25px;
         }
 
-        /* Action Grid */
         .action-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -63,7 +61,6 @@
         .c-value { color: var(--qiagen-light); border-bottom: 4px solid var(--qiagen-light); }
         .c-reset { color: var(--warning); border-bottom: 4px solid var(--warning); }
 
-        /* Main Card */
         .main-card { 
             background: white; 
             padding: 35px; 
@@ -91,7 +88,6 @@
         }
         .btn-submit:hover { filter: brightness(1.2); letter-spacing: 1px; }
 
-        /* Modal */
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(5px); }
         .modal-content { 
             background: white; margin: 8% auto; padding: 30px; 
@@ -112,7 +108,6 @@
         .btn-mini-reset:hover { background: var(--warning); color: white; border-color: var(--warning); }
 
         .status-msg { padding: 18px; border-radius: 15px; margin-top: 20px; display: none; text-align: center; font-weight: bold; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body onload="checkAuth()">
@@ -138,7 +133,7 @@
         <div class="action-grid">
             <div class="action-card c-download" onclick="downloadData()">
                 <span>📊</span>
-                <label>Export Data</label>
+                <label>Export Data / Log Viewer</label>
             </div>
             <div class="action-card c-value" onclick="checkValue()">
                 <span>💰</span>
@@ -159,24 +154,23 @@
     </div>
 
     <script>
-        const API = "https://script.google.com/macros/s/AKfycbzhiGqD_JiTSjqUgdHUAq_TjqaarMX7ACPYpQPtjYmz9dQCGbWqEfpGEqKZq6chnRAp/exec";
+        const API = "https://script.google.com/macros/s/AKfycbzYv4bor1Y4OQLTQmt86IAwbsZfUpViuVX7ugp4AK39uc2fiFWPFa9xwwFMMIF02aSc/exec";
         const PASS = "Service";
 
         function checkAuth() {
             if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html');
         }
 
-        // --- Core Functions ---
+        // --- แก้ไขเฉพาะจุดนี้เพื่อเชื่อมไปหน้า Log Viewer ---
         function downloadData() {
-            showStatus("⌛ Preparing data export...", "#dcfce7", "#166534");
-            window.open(`${API}?action=read&pass=${PASS}`, '_blank');
+            showStatus("⌛ Opening Log Management...", "#eff6ff", "#1e40af");
+            window.open(`${API}?page=logs`, '_blank');
         }
 
         function checkValue() {
             alert("Stock Valuation Module: Integration in progress...");
         }
 
-        // --- Reset Password System ---
         function openUserModal() {
             document.getElementById('userModal').style.display = 'block';
             renderUserList();
@@ -188,11 +182,7 @@
             const users = ['KM', 'TK', 'PSO', 'PK', 'PST', 'PA'];
             let html = '';
             users.forEach(u => {
-                html += `
-                    <div class="user-item">
-                        <span><strong>${u}</strong></span>
-                        <button class="btn-mini-reset" onclick="quickReset('${u}')">CLICK TO RESET</button>
-                    </div>`;
+                html += `<div class="user-item"><span><strong>${u}</strong></span><button class="btn-mini-reset" onclick="quickReset('${u}')">CLICK TO RESET</button></div>`;
             });
             container.innerHTML = html;
         }
@@ -208,23 +198,18 @@
             } catch (e) { showStatus("❌ Error connecting to server", "#fee2e2", "#991b1b"); }
         }
 
-        // --- Import System ---
         async function submitExcel() {
             const raw = document.getElementById('excel-input').value.trim();
             const operator = sessionStorage.getItem('selectedUser');
             if (!raw) return alert("Please paste data from Excel.");
-
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
                 return c.length >= 7 ? { batch: c[2], mat: c[3], qty: c[5], date: c[6] } : null;
             }).filter(i => i);
-
             if (items.length === 0) return alert("Invalid data format.");
-            
             const btn = document.getElementById('btn-up');
             btn.disabled = true;
             showStatus("⌛ Synchronizing with database...", "#eff6ff", "#1e40af");
-
             try {
                 const url = `${API}?action=addstock_excel&pass=${PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`;
                 const res = await fetch(url).then(r => r.json());
