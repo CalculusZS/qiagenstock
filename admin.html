@@ -88,12 +88,26 @@
         }
         .btn-submit:hover { filter: brightness(1.2); letter-spacing: 1px; }
 
-        .status-msg { padding: 18px; border-radius: 15px; margin-top: 20px; display: none; text-align: center; font-weight: bold; animation: fadeIn 0.3s; }
-        
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(5px); }
-        .modal-content { background: white; margin: 8% auto; padding: 30px; border-radius: 24px; width: 420px; }
-        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #f8fafc; border-radius: 12px; margin-top: 10px; border: 1px solid #e2e8f0; }
-        .btn-mini-reset { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; padding: 8px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .modal-content { 
+            background: white; margin: 8% auto; padding: 30px; 
+            border-radius: 24px; width: 420px; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        }
+
+        .user-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background: #f8fafc; border-radius: 12px;
+            margin-top: 10px; border: 1px solid #e2e8f0;
+        }
+        .btn-mini-reset {
+            background: #fffbeb; color: #92400e; border: 1px solid #fde68a;
+            padding: 8px 15px; border-radius: 10px; font-weight: bold; cursor: pointer;
+            font-size: 12px; transition: 0.2s;
+        }
+        .btn-mini-reset:hover { background: var(--warning); color: white; border-color: var(--warning); }
+
+        .status-msg { padding: 18px; border-radius: 15px; margin-top: 20px; display: none; text-align: center; font-weight: bold; animation: fadeIn 0.3s; }
     </style>
 </head>
 <body onload="checkAuth()">
@@ -102,7 +116,7 @@
         <div class="modal-content">
             <span style="float:right; cursor:pointer; font-size:28px;" onclick="closeModal()">&times;</span>
             <h3 style="margin-bottom: 5px;">🔑 Reset User Credentials</h3>
-            <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Password will be set to 1234</p>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Password will be set to <b>1234</b> (Status: NEW)</p>
             <div id="user-list-container"></div>
         </div>
     </div>
@@ -121,7 +135,7 @@
                 <span>📊</span>
                 <label>Export Data / Log Viewer</label>
             </div>
-            <div class="action-card c-value" onclick="alert('Module in progress...')">
+            <div class="action-card c-value" onclick="checkValue()">
                 <span>💰</span>
                 <label>Stock Valuation</label>
             </div>
@@ -140,192 +154,59 @@
     </div>
 
     <script>
-        // *** แก้ไข: ใส่ URL Web App ของพี่ที่นี่ ***
-        const API = "<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>QIAGEN - Log Management</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <style>
-        :root { --blue: #003366; --qiagen: #00a3e0; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: auto; }
-        
-        /* Navigation Header with Logo */
-        .nav-header { 
-            background: var(--blue); color: white; padding: 20px 30px; 
-            border-radius: 15px; display: flex; justify-content: space-between; 
-            align-items: center; margin-bottom: 25px; position: relative;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .logo-box { background: white; padding: 10px; border-radius: 10px; display: flex; align-items: center; }
-        .logo-box img { height: 35px; } 
-
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-        .menu-card { background: white; padding: 30px; border-radius: 20px; text-align: center; cursor: pointer; transition: 0.3s; border: 1px solid #e2e8f0; }
-        .menu-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-color: var(--qiagen); }
-        .menu-card h2 { color: var(--blue); }
-        
-        .data-card { background: white; padding: 25px; border-radius: 20px; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 15px; }
-        th { background: #f8fafc; color: var(--blue); padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
-        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
-        
-        .btn-home { background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; margin-right: 10px; font-weight: bold; }
-        .btn-export { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="nav-header">
-        <div>
-            <h2 style="margin:0;">📋 LOG MANAGEMENT CENTER</h2>
-            <small style="opacity:0.9">QIAGEN Thailand Inventory Control System</small>
-        </div>
-        <div style="display: flex; align-items: center;">
-            <button class="btn-home" onclick="location.reload()">🏠 HOME</button>
-            <div class="logo-box">
-                <img src="https://www.qiagen.com/us/_/media/project/qiagen/qiagen-logos/qiagen_logo_blue.png" alt="QIAGEN Logo">
-            </div>
-        </div>
-    </div>
-
-    <div class="menu-grid" id="mainMenu">
-        <div class="menu-card" onclick="viewLog('transaction')">
-            <div style="font-size: 40px;">🔄</div>
-            <h2>View TRANSACTION_LOG</h2>
-            <p>Withdrawal, Return, Transfer, and Deduct History</p>
-        </div>
-        <div class="menu-card" onclick="viewLog('admin')">
-            <div style="font-size: 40px;">📦</div>
-            <h2>View Add Stock Log</h2>
-            <p>Admin Stock Inbound and Refill History</p>
-        </div>
-    </div>
-
-    <div id="displaySection" class="data-card">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3 id="tableTitle" style="color: var(--blue); margin:0;">Log Preview</h3>
-            <button class="btn-export" onclick="processExport()">📤 EXPORT PDF (Immediate Download)</button>
-        </div>
-        <div id="tableContainer" style="overflow-x: auto;"></div>
-    </div>
-</div>
-
-<script>
-    // Replace with your Web App URL
-    const API = "https://script.google.com/macros/s/AKfycbzYv4bor1Y4OQLTQmt86IAwbsZfUpViuVX7ugp4AK39uc2fiFWPFa9xwwFMMIF02aSc/exec";
-    let currentLogType = ''; 
-    let fullData = [];
-
-    async function viewLog(type) {
-        currentLogType = type;
-        document.getElementById('mainMenu').style.display = 'none';
-        document.getElementById('displaySection').style.display = 'block';
-        document.getElementById('tableTitle').innerText = type === 'transaction' ? "🔄 Transaction Log Table" : "📦 Add Stock Log Table";
-        document.getElementById('tableContainer').innerHTML = "<div style='text-align:center; padding:20px;'>⌛ Loading data from server...</div>";
-        
-        const action = type === 'transaction' ? 'gethistory' : 'getadminlog';
-        try {
-            const res = await fetch(`${API}?action=${action}`).then(r => r.json());
-            fullData = res.data;
-            renderTable();
-        } catch(e) {
-            document.getElementById('tableContainer').innerHTML = "<b style='color:red;'>❌ Error fetching data. Please check connection.</b>";
-        }
-    }
-
-    function renderTable() {
-        let html = `<table><thead><tr>`;
-        if (currentLogType === 'transaction') {
-            // Columns: Date/Time (A), Material (B), Product Name (D), Transaction Type (E), Qty (F), FormUser/To (G), Work Order (H)
-            html += `<th>Date and Time</th><th>Material</th><th>Product Name</th><th>Transaction Type</th><th>Qty</th><th>FormUser/To</th><th>Work Order</th>`;
-        } else {
-            // Columns: Timestamp (A), Operator/User (B), Action (C), Material (D), CodeProduct Name (E), Qty (F), Batch/Ref (G)
-            html += `<th>Timestamp</th><th>Operator / User</th><th>Action</th><th>Material</th><th>Product Name</th><th>Qty</th><th>Batch/Ref</th>`;
-        }
-        html += `</tr></thead><tbody>`;
-
-        fullData.forEach(r => {
-            html += `<tr>`;
-            if (currentLogType === 'transaction') {
-                html += `<td>${new Date(r[0]).toLocaleString()}</td><td>${r[1]}</td><td>${r[3]}</td><td><b>${r[4]}</b></td><td>${r[5]}</td><td>${r[6]}</td><td>${r[8] || '-'}</td>`;
-            } else {
-                html += `<td>${new Date(r[0]).toLocaleString()}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6] || '-'}</td>`;
-            }
-            html += `</tr>`;
-        });
-        html += `</tbody></table>`;
-        document.getElementById('tableContainer').innerHTML = html;
-    }
-
-    function processExport() {
-        if (fullData.length === 0) return alert("No data available to export");
-        
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape A4
-        
-        // --- PDF Design ---
-        doc.setTextColor(0, 51, 102); 
-        doc.setFontSize(22); doc.text("QIAGEN", 245, 15); // Logo Text substitute
-        
-        doc.setFontSize(10); 
-        const title = currentLogType === 'transaction' ? "INVENTORY TRANSACTION REPORT" : "ADMIN ADD STOCK REPORT";
-        doc.text(title, 15, 15);
-        doc.setDrawColor(0, 51, 102); doc.line(15, 20, 280, 20);
-
-        // Header mapping
-        const head = currentLogType === 'transaction' 
-            ? [['Date and Time', 'Material', 'Product Name', 'Transaction Type', 'Qty', 'User/To', 'Work Order']]
-            : [['Timestamp', 'Operator / User', 'Action', 'Material', 'Product Name', 'Qty', 'Batch/Ref']];
-
-        // Data mapping
-        const body = fullData.map(r => currentLogType === 'transaction'
-            ? [new Date(r[0]).toLocaleString(), r[1], r[3], r[4], r[5], r[6], r[8] || '-']
-            : [new Date(r[0]).toLocaleString(), r[1], r[2], r[3], r[4], r[5], r[6] || '-']
-        );
-
-        doc.autoTable({
-            startY: 25,
-            head: head,
-            body: body,
-            headStyles: { fillColor: [0, 51, 102], fontSize: 9 },
-            styles: { fontSize: 8, overflow: 'linebreak' },
-            columnStyles: { 
-                2: { cellWidth: 50 }, // Product Name column wider
-            }
-        });
-        
-        const fileName = `QIAGEN_${currentLogType.toUpperCase()}_REPORT_${new Date().getTime()}.pdf`;
-        doc.save(fileName);
-    }
-</script>
-</body>
-</html>";
+        const API = "https://script.google.com/macros/s/AKfycbw9b0yXeiQBMrJvUYUXY-jKBPaygWYJrdW_fqVfzk_uJahtlPfH3IhLdCUeCZpvlkoM/exec";
         const PASS = "Service";
 
         function checkAuth() {
             const urlParams = new URLSearchParams(window.location.search);
-            // ถ้าเป็นหน้า log ไม่ต้องเด้งออก
-            if (urlParams.get('page') === 'logs') return;
-            if (!sessionStorage.getItem('selectedUser')) {
+            const isLogPage = urlParams.get('page') === 'logs';
+            if (!isLogPage && !sessionStorage.getItem('selectedUser')) {
                 window.location.replace('index.html');
             }
         }
 
-        // --- แก้ไข: ให้เปลี่ยนหน้าในหน้าต่างเดิม ---
+        // --- แก้ไข: ให้อยู่หน้าเดิม ไม่เปิดหน้าใหม่ ---
         function downloadData() {
-            showStatus("⌛ Loading Log Viewer...", "#eff6ff", "#1e40af");
-            window.location.href = API + "?page=logs";
+            showStatus("⌛ Opening Log Management...", "#eff6ff", "#1e40af");
+            // ใช้ location.href เพื่อเปลี่ยนหน้าในหน้าเดิม
+            window.location.href = `${API}?page=logs`;
+        }
+
+        function checkValue() {
+            alert("Stock Valuation Module: Integration in progress...");
+        }
+
+        function openUserModal() {
+            document.getElementById('userModal').style.display = 'block';
+            renderUserList();
+        }
+        function closeModal() { document.getElementById('userModal').style.display = 'none'; }
+
+        function renderUserList() {
+            const container = document.getElementById('user-list-container');
+            const users = ['KM', 'TK', 'PSO', 'PK', 'PST', 'PA'];
+            let html = '';
+            users.forEach(u => {
+                html += `<div class="user-item"><span><strong>${u}</strong></span><button class="btn-mini-reset" onclick="quickReset('${u}')">CLICK TO RESET</button></div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        async function quickReset(username) {
+            if (!confirm(`Are you sure you want to reset ${username}?`)) return;
+            closeModal();
+            showStatus(`⌛ Resetting ${username}...`, "#fffbeb", "#92400e");
+            try {
+                const url = `${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(username)}&newPass=1234`;
+                const res = await fetch(url).then(r => r.json());
+                if (res.success) showStatus(`✅ Successfully reset ${username} (Pass: 1234)`, "#dcfce7", "#166534");
+            } catch (e) { showStatus("❌ Error connecting to server", "#fee2e2", "#991b1b"); }
         }
 
         async function submitExcel() {
             const raw = document.getElementById('excel-input').value.trim();
-            if (!raw) return alert("Please paste data.");
             const operator = sessionStorage.getItem('selectedUser') || "Admin";
+            if (!raw) return alert("Please paste data from Excel.");
             
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
@@ -336,16 +217,16 @@
             
             const btn = document.getElementById('btn-up');
             btn.disabled = true;
-            showStatus("⌛ Synchronizing...", "#eff6ff", "#1e40af");
+            showStatus("⌛ Synchronizing with database...", "#eff6ff", "#1e40af");
 
             try {
                 const url = `${API}?action=addstock_excel&pass=${PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`;
                 const res = await fetch(url).then(r => r.json());
                 if (res.success) {
-                    showStatus("✅ Success!", "#dcfce7", "#166534");
+                    showStatus("✅ Stock successfully updated!", "#dcfce7", "#166534");
                     document.getElementById('excel-input').value = "";
                 }
-            } catch (e) { showStatus("❌ Error", "#fee2e2", "#991b1b"); }
+            } catch (e) { showStatus("❌ Sync Error: " + e.message, "#fee2e2", "#991b1b"); }
             finally { btn.disabled = false; }
         }
 
@@ -355,27 +236,8 @@
             setTimeout(() => { box.style.display = 'none'; }, 4000);
         }
 
-        function openUserModal() { document.getElementById('userModal').style.display = 'block'; renderUserList(); }
-        function closeModal() { document.getElementById('userModal').style.display = 'none'; }
-        function renderUserList() {
-            const container = document.getElementById('user-list-container');
-            const users = ['KM', 'TK', 'PSO', 'PK', 'PST', 'PA'];
-            container.innerHTML = users.map(u => `
-                <div class="user-item">
-                    <span><strong>${u}</strong></span>
-                    <button class="btn-mini-reset" onclick="quickReset('${u}')">RESET</button>
-                </div>
-            `).join('');
-        }
-        async function quickReset(username) {
-            if (!confirm(`Reset ${username}?`)) return;
-            const url = `${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(username)}&newPass=1234`;
-            await fetch(url);
-            alert('Reset Complete');
-            closeModal();
-        }
-
         function logout() { sessionStorage.clear(); window.location.replace('index.html'); }
+        window.onclick = function(event) { if (event.target == document.getElementById('userModal')) closeModal(); }
     </script>
 </body>
 </html>
