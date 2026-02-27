@@ -3,79 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QIAGEN - Admin Audit System (0243)</title>
+    <title>QIAGEN - Admin Control Panel</title>
     <style>
-        body { background: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; }
-        .container { max-width: 1400px; margin: auto; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        .header-section { background: #003366; color: white; display: flex; justify-content: space-between; align-items: center; padding: 20px; border-radius: 12px; margin-bottom: 25px; }
-        h3 { color: #003366; margin-top: 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
-        textarea { width: 100%; height: 120px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 15px; font-family: 'Courier New', monospace; box-sizing: border-box; }
-        .btn-main { background: #003366; color: white; border: none; padding: 16px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; margin-top: 15px; }
-        .btn-reset { background: #f59e0b; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-right: 10px; }
-        .btn-logout { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { background: #f8fafc; padding: 12px; text-align: left; border-bottom: 2px solid #eee; font-size: 12px; }
-        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: top; }
-        .owner-tag { font-weight: bold; color: #0ea5e9; background: #f0f9ff; padding: 4px 8px; border-radius: 6px; }
-        .central-tag { color: #003366; background: #e0f2fe; }
-        .status-msg { padding: 12px; border-radius: 8px; margin-top: 10px; display: none; text-align: center; font-weight: bold; }
-        .fifo-text { white-space: pre-line; font-size: 11px; line-height: 1.4; color: #475569; }
+        :root {
+            --primary: #003366;
+            --secondary: #f59e0b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --bg: #f8fafc;
+        }
+        body { background: var(--bg); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; color: #1e293b; }
+        .container { max-width: 800px; margin: auto; }
+        
+        /* Header */
+        .header-section { 
+            background: var(--primary); 
+            color: white; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 20px 30px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
 
-        /* --- Modal Styles --- */
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
-        .modal-content { background: white; margin: 10% auto; padding: 20px; border-radius: 12px; width: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
-        .user-item:hover { background: #f8fafc; color: #0ea5e9; }
-        .close-modal { float: right; font-size: 24px; cursor: pointer; color: #64748b; }
+        /* Card Style */
+        .card { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 16px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+            margin-bottom: 25px; 
+        }
+        h3 { color: var(--primary); margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 1.25rem; }
+        
+        /* Input & Button */
+        textarea { 
+            width: 100%; height: 120px; border-radius: 12px; 
+            border: 2px solid #e2e8f0; padding: 15px; 
+            font-family: 'Courier New', monospace; box-sizing: border-box;
+            transition: border 0.3s; resize: none;
+        }
+        textarea:focus { border-color: var(--primary); outline: none; }
+        
+        .btn-main { 
+            background: var(--primary); color: white; border: none; 
+            padding: 16px; border-radius: 12px; font-weight: bold; 
+            cursor: pointer; width: 100%; font-size: 16px; margin-top: 15px;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        .btn-main:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-main:active { transform: translateY(0); }
+
+        .btn-reset-nav { 
+            background: var(--secondary); color: white; border: none; 
+            padding: 10px 20px; border-radius: 10px; cursor: pointer; 
+            font-weight: bold; transition: 0.3s;
+        }
+
+        .btn-logout { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+
+        /* Modal UI */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+        .modal-content { 
+            background: white; margin: 8% auto; padding: 30px; 
+            border-radius: 20px; width: 450px; position: relative;
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .user-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 20px; }
+        .user-card {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background: #f1f5f9; border-radius: 12px;
+            border: 1px solid #e2e8f0; transition: 0.2s;
+        }
+        .user-card:hover { border-color: var(--secondary); background: #fffcf2; }
+        
+        .btn-click-reset {
+            background: white; color: var(--secondary); border: 2px solid var(--secondary);
+            padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 12px;
+            cursor: pointer; transition: 0.2s;
+        }
+        .btn-click-reset:hover { background: var(--secondary); color: white; }
+
+        .status-msg { padding: 15px; border-radius: 12px; margin-top: 15px; display: none; text-align: center; font-weight: bold; }
     </style>
 </head>
 <body onload="checkAuth()">
 
     <div id="userModal" class="modal">
         <div class="modal-content">
-            <span class="close-modal" onclick="closeModal()">&times;</span>
-            <h3 style="border:none;">👤 Select User to Reset</h3>
-            <div id="user-list-container" style="max-height: 400px; overflow-y: auto;">
-                <p align="center">⌛ Loading Users...</p>
-            </div>
+            <span style="float:right; cursor:pointer; font-size:24px;" onclick="closeModal()">&times;</span>
+            <h3>🔑 Reset User Password</h3>
+            <p style="color: #64748b; font-size: 14px;">คลิกปุ่มเพื่อ Reset เป็น <b>1234</b> และสถานะ <b>NEW</b></p>
+            <div id="user-list-container" class="user-grid">
+                </div>
         </div>
     </div>
 
     <div class="container">
         <div class="header-section">
-            <h2 style="margin:0;">🛡️ QIAGEN Stock Admin</h2>
-            <div>
-                <button class="btn-reset" onclick="openUserModal()">🔑 RESET PASSWORD</button>
+            <h2 style="margin:0; font-size: 1.5rem;">🛡️ Admin Panel</h2>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-reset-nav" onclick="openUserModal()">🔑 RESET USER</button>
                 <button class="btn-logout" onclick="logout()">LOGOUT</button>
             </div>
         </div>
 
         <div class="card">
             <h3>➕ Add Stock to Central (0243)</h3>
-            <textarea id="excel-input" placeholder="ก๊อปปี้จาก Excel แล้ววางที่นี่..."></textarea>
+            <textarea id="excel-input" placeholder="วางข้อมูลจาก Excel (Material, Qty, Batch, Date)..."></textarea>
             <div id="status-box" class="status-msg"></div>
-            <button class="btn-main" id="btn-up" onclick="submitExcel()">CONFIRM UPLOAD & RECORD LOG</button>
-        </div>
-
-        <div class="card">
-            <h3>📦 Inventory Traceability</h3>
-            <div style="overflow-x: auto;">
-                <table id="inventory-table">
-                    <thead>
-                        <tr>
-                            <th>Material</th>
-                            <th>Product Name</th>
-                            <th>Holder</th>
-                            <th>Qty</th>
-                            <th>Batch / Date (FIFO)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="data-table">
-                        <tr><td colspan="5" align="center">⌛ กำลังโหลดข้อมูล...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <button class="btn-main" id="btn-up" onclick="submitExcel()">CONFIRM UPLOAD TO STOCK</button>
         </div>
     </div>
 
@@ -85,115 +126,86 @@
 
         function checkAuth() {
             if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html');
-            loadData();
         }
 
-        async function loadData() {
-            try {
-                const res = await fetch(`${API}?action=read&pass=${PASS}`);
-                const data = await res.json();
-                renderTable(data.data);
-            } catch (e) { console.error(e); }
-        }
-
-        function renderTable(data) {
-            const tbody = document.getElementById('data-table');
-            const holders = ['0243', 'Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
-            let html = '';
-            data.forEach(item => {
-                holders.forEach(h => {
-                    const q = parseFloat(item[h]) || 0;
-                    if (q > 0) {
-                        html += `<tr>
-                            <td>${item.Material}</td>
-                            <td>${item['Product Name'] || '-'}</td>
-                            <td><span class="owner-tag ${h === '0243' ? 'central-tag' : ''}">${h}</span></td>
-                            <td><b>${q}</b></td>
-                            <td>
-                                <div class="fifo-text"><b>Batch:</b>\n${(h === '0243' ? item['R'] : '-') || '-'}</div>
-                                <div class="fifo-text" style="margin-top:5px; border-top:1px dashed #ccc; padding-top:5px;"><b>Date:</b>\n${(h === '0243' ? item['S'] : '-') || '-'}</div>
-                            </td>
-                        </tr>`;
-                    }
-                });
-            });
-            tbody.innerHTML = html || '<tr><td colspan="5" align="center">ไม่มีข้อมูล</td></tr>';
-        }
-
-        // --- ระบบ Reset Password แบบ Modal ---
+        // --- ระบบ Reset Password ---
         function openUserModal() {
             document.getElementById('userModal').style.display = 'block';
-            fetchUserList();
+            renderUserList();
         }
 
         function closeModal() { document.getElementById('userModal').style.display = 'none'; }
 
-        async function fetchUserList() {
+        function renderUserList() {
             const container = document.getElementById('user-list-container');
-            try {
-                // ดึงข้อมูลจากฐานข้อมูลเดียวกับหน้า Login
-                const res = await fetch(`${API}?action=read&pass=${PASS}`);
-                const data = await res.json();
-                
-                // ใช้รายชื่อ Holder เป็นตัวตั้งต้น (หรือพี่จะดึงจาก USERS sheet โดยตรงก็ได้)
-                const users = ['KM', 'TK', 'PSO', 'PK', 'PST', 'PA']; // อ้างอิงจาก UserKey
-                let html = '';
-                users.forEach(u => {
-                    html += `<div class="user-item" onclick="resetUserPass('${u}')">
-                                <span><strong>${u}</strong></span>
-                                <span style="font-size:12px; color:gray;">Click to Reset</span>
-                             </div>`;
-                });
-                container.innerHTML = html;
-            } catch (e) { container.innerHTML = "Error loading users."; }
+            const users = ['KM', 'TK', 'PSO', 'PK', 'PST', 'PA'];
+            let html = '';
+            users.forEach(u => {
+                html += `
+                    <div class="user-card">
+                        <span><strong>${u}</strong></span>
+                        <button class="btn-click-reset" onclick="quickReset('${u}')">CLICK TO RESET</button>
+                    </div>`;
+            });
+            container.innerHTML = html;
         }
 
-        async function resetUserPass(username) {
-            const newPass = prompt(`กรุณากรอกรหัสผ่านใหม่สำหรับ User: ${username}`);
-            if (!newPass) return;
-            if (!confirm(`ยืนยันเปลี่ยนรหัสผ่าน ${username} เป็น: ${newPass}?`)) return;
-
+        async function quickReset(username) {
+            if (!confirm(`ต้องการรีเซ็ตรหัสของ ${username} เป็น '1234' ใช่หรือไม่?`)) return;
+            
             closeModal();
-            showStatus("⌛ กำลังเปลี่ยนรหัสผ่าน...", "#fef9c3", "#854d0e");
+            showStatus(`⌛ กำลังรีเซ็ต ${username}...`, "#fef9c3", "#854d0e");
 
             try {
-                const url = `${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(username)}&newPass=${encodeURIComponent(newPass)}`;
+                // ส่งไปที่ฟังก์ชัน setpassword โดยกำหนด newPass เป็น 1234
+                const url = `${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(username)}&newPass=1234`;
                 const res = await fetch(url).then(r => r.json());
+                
                 if (res.success) {
-                    alert("✅ สำเร็จ!");
-                    showStatus("✅ เปลี่ยนรหัสผ่านเรียบร้อย", "#dcfce7", "#166534");
+                    showStatus(`✅ รีเซ็ต ${username} เรียบร้อยแล้ว (Pass: 1234)`, "#dcfce7", "#166534");
                 } else {
-                    alert("❌ ล้มเหลว: " + res.msg);
+                    showStatus("❌ เกิดข้อผิดพลาดในการรีเซ็ต", "#fee2e2", "#991b1b");
                 }
-            } catch (e) { alert("Error: " + e.message); }
+            } catch (e) { 
+                showStatus("❌ Connection Error", "#fee2e2", "#991b1b"); 
+            }
         }
 
+        // --- ระบบ Import Stock ---
         async function submitExcel() {
             const raw = document.getElementById('excel-input').value.trim();
             const operator = sessionStorage.getItem('selectedUser');
             if (!raw) return alert("กรุณาวางข้อมูล");
+
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
                 return c.length >= 7 ? { batch: c[2], mat: c[3], qty: c[5], date: c[6] } : null;
             }).filter(i => i);
-            if (!confirm(`ยืนยันเพิ่ม ${items.length} รายการ?`)) return;
+
+            if (items.length === 0) return alert("ข้อมูลไม่ถูกต้อง");
+            
             const btn = document.getElementById('btn-up');
             btn.disabled = true;
+            showStatus("⌛ กำลังบันทึกข้อมูล...", "#fef9c3", "#854d0e");
+
             try {
                 const url = `${API}?action=addstock_excel&pass=${PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`;
                 const res = await fetch(url).then(r => r.json());
                 if (res.success) {
-                    showStatus("✅ สำเร็จ! ข้อมูลลง Sheet แล้ว", "#dcfce7", "#166534");
+                    showStatus("✅ บันทึกสต็อกสำเร็จ!", "#dcfce7", "#166534");
                     document.getElementById('excel-input').value = "";
-                    loadData();
                 }
-            } catch (e) { showStatus("❌ Error: " + e.message, "#fee2e2", "#991b1b"); }
-            finally { btn.disabled = false; }
+            } catch (e) {
+                showStatus("❌ Error: " + e.message, "#fee2e2", "#991b1b");
+            } finally {
+                btn.disabled = false;
+            }
         }
 
         function showStatus(msg, bg, color) {
             const box = document.getElementById('status-box');
             box.innerText = msg; box.style.background = bg; box.style.color = color; box.style.display = 'block';
+            setTimeout(() => { box.style.display = 'none'; }, 5000);
         }
 
         function logout() { sessionStorage.clear(); window.location.replace('index.html'); }
