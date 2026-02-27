@@ -3,120 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QIAGEN - Admin Control Panel</title>
+    <title>QIAGEN - Admin Enterprise System</title>
     <style>
         :root {
-            --primary: #003366;
-            --secondary: #f59e0b;
-            --danger: #ef4444;
+            --qiagen-blue: #003366;
+            --qiagen-light: #00a3e0;
             --success: #10b981;
-            --bg: #f8fafc;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
         }
-        body { background: var(--bg); font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; color: #1e293b; }
-        .container { max-width: 800px; margin: auto; }
         
+        body { 
+            background: var(--bg-gradient); 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            margin: 0; padding: 20px; color: #1e293b;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 900px; margin: auto; }
+
         /* Header */
         .header-section { 
-            background: var(--primary); 
+            background: var(--qiagen-blue); 
             color: white; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding: 20px 30px; 
-            border-radius: 16px; 
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 25px 35px; border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,51,102,0.15);
+            margin-bottom: 25px;
         }
 
-        /* Card Style */
-        .card { 
+        /* Action Grid */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .action-card {
+            background: white;
+            padding: 20px;
+            border-radius: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255,255,255,0.8);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .action-card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.1); }
+        .action-card span { font-size: 2rem; }
+        .action-card label { font-weight: bold; font-size: 0.95rem; cursor: pointer; }
+
+        .c-download { color: var(--success); border-bottom: 4px solid var(--success); }
+        .c-value { color: var(--qiagen-light); border-bottom: 4px solid var(--qiagen-light); }
+        .c-reset { color: var(--warning); border-bottom: 4px solid var(--warning); }
+
+        /* Main Card */
+        .main-card { 
             background: white; 
-            padding: 30px; 
-            border-radius: 16px; 
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
-            margin-bottom: 25px; 
+            padding: 35px; 
+            border-radius: 24px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.03);
+            margin-bottom: 25px;
         }
-        h3 { color: var(--primary); margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 1.25rem; }
-        
-        /* Input & Button */
+
+        h3 { color: var(--qiagen-blue); margin-top: 0; display: flex; align-items: center; gap: 10px; }
+
         textarea { 
-            width: 100%; height: 120px; border-radius: 12px; 
-            border: 2px solid #e2e8f0; padding: 15px; 
+            width: 100%; height: 140px; border-radius: 15px; 
+            border: 2px solid #e2e8f0; padding: 20px; 
             font-family: 'Courier New', monospace; box-sizing: border-box;
-            transition: border 0.3s; resize: none;
+            background: #f8fafc; transition: 0.3s; resize: none;
+            font-size: 14px;
         }
-        textarea:focus { border-color: var(--primary); outline: none; }
-        
-        .btn-main { 
-            background: var(--primary); color: white; border: none; 
-            padding: 16px; border-radius: 12px; font-weight: bold; 
-            cursor: pointer; width: 100%; font-size: 16px; margin-top: 15px;
-            transition: transform 0.2s, opacity 0.2s;
+        textarea:focus { border-color: var(--qiagen-light); outline: none; background: white; }
+
+        .btn-submit { 
+            background: var(--qiagen-blue); color: white; border: none; 
+            padding: 18px; border-radius: 15px; font-weight: bold; 
+            cursor: pointer; width: 100%; font-size: 17px; margin-top: 20px;
+            transition: 0.3s;
         }
-        .btn-main:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-main:active { transform: translateY(0); }
+        .btn-submit:hover { filter: brightness(1.2); letter-spacing: 1px; }
 
-        .btn-reset-nav { 
-            background: var(--secondary); color: white; border: none; 
-            padding: 10px 20px; border-radius: 10px; cursor: pointer; 
-            font-weight: bold; transition: 0.3s;
-        }
-
-        .btn-logout { background: var(--danger); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-
-        /* Modal UI */
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); }
+        /* Modal */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(5px); }
         .modal-content { 
             background: white; margin: 8% auto; padding: 30px; 
-            border-radius: 20px; width: 450px; position: relative;
-            animation: slideDown 0.3s ease-out;
+            border-radius: 24px; width: 420px; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
-        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        .user-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 20px; }
-        .user-card {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px 20px; background: #f1f5f9; border-radius: 12px;
-            border: 1px solid #e2e8f0; transition: 0.2s;
-        }
-        .user-card:hover { border-color: var(--secondary); background: #fffcf2; }
-        
-        .btn-click-reset {
-            background: white; color: var(--secondary); border: 2px solid var(--secondary);
-            padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 12px;
-            cursor: pointer; transition: 0.2s;
-        }
-        .btn-click-reset:hover { background: var(--secondary); color: white; }
 
-        .status-msg { padding: 15px; border-radius: 12px; margin-top: 15px; display: none; text-align: center; font-weight: bold; }
+        .user-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background: #f8fafc; border-radius: 12px;
+            margin-top: 10px; border: 1px solid #e2e8f0;
+        }
+        .btn-mini-reset {
+            background: #fffbeb; color: #92400e; border: 1px solid #fde68a;
+            padding: 8px 15px; border-radius: 10px; font-weight: bold; cursor: pointer;
+            font-size: 12px; transition: 0.2s;
+        }
+        .btn-mini-reset:hover { background: var(--warning); color: white; border-color: var(--warning); }
+
+        .status-msg { padding: 18px; border-radius: 15px; margin-top: 20px; display: none; text-align: center; font-weight: bold; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body onload="checkAuth()">
 
     <div id="userModal" class="modal">
         <div class="modal-content">
-            <span style="float:right; cursor:pointer; font-size:24px;" onclick="closeModal()">&times;</span>
-            <h3>🔑 Reset User Password</h3>
-            <p style="color: #64748b; font-size: 14px;">คลิกปุ่มเพื่อ Reset เป็น <b>1234</b> และสถานะ <b>NEW</b></p>
-            <div id="user-list-container" class="user-grid">
-                </div>
+            <span style="float:right; cursor:pointer; font-size:28px;" onclick="closeModal()">&times;</span>
+            <h3 style="margin-bottom: 5px;">🔑 Reset User Credentials</h3>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Password will be set to <b>1234</b> (Status: NEW)</p>
+            <div id="user-list-container"></div>
         </div>
     </div>
 
     <div class="container">
         <div class="header-section">
-            <h2 style="margin:0; font-size: 1.5rem;">🛡️ Admin Panel</h2>
-            <div style="display:flex; gap:10px;">
-                <button class="btn-reset-nav" onclick="openUserModal()">🔑 RESET USER</button>
-                <button class="btn-logout" onclick="logout()">LOGOUT</button>
+            <div>
+                <h2 style="margin:0; letter-spacing: 1px;">🛡️ ADMIN PANEL</h2>
+                <small style="opacity: 0.8;">Qiagen Inventory Management System</small>
+            </div>
+            <button style="background:var(--danger); border:none; color:white; padding:10px 20px; border-radius:12px; font-weight:bold; cursor:pointer;" onclick="logout()">LOGOUT</button>
+        </div>
+
+        <div class="action-grid">
+            <div class="action-card c-download" onclick="downloadData()">
+                <span>📊</span>
+                <label>Export Data</label>
+            </div>
+            <div class="action-card c-value" onclick="checkValue()">
+                <span>💰</span>
+                <label>Stock Valuation</label>
+            </div>
+            <div class="action-card c-reset" onclick="openUserModal()">
+                <span>🔑</span>
+                <label>Reset Account</label>
             </div>
         </div>
 
-        <div class="card">
-            <h3>➕ Add Stock to Central (0243)</h3>
-            <textarea id="excel-input" placeholder="วางข้อมูลจาก Excel (Material, Qty, Batch, Date)..."></textarea>
+        <div class="main-card">
+            <h3>📥 Add Stock to Central (0243)</h3>
+            <textarea id="excel-input" placeholder="Paste Excel data here... (Material, Qty, Batch, Date)"></textarea>
             <div id="status-box" class="status-msg"></div>
-            <button class="btn-main" id="btn-up" onclick="submitExcel()">CONFIRM UPLOAD TO STOCK</button>
+            <button class="btn-submit" id="btn-up" onclick="submitExcel()">🚀 CONFIRM UPLOAD & SYNC</button>
         </div>
     </div>
 
@@ -128,12 +166,21 @@
             if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html');
         }
 
-        // --- ระบบ Reset Password ---
+        // --- Core Functions ---
+        function downloadData() {
+            showStatus("⌛ Preparing data export...", "#dcfce7", "#166534");
+            window.open(`${API}?action=read&pass=${PASS}`, '_blank');
+        }
+
+        function checkValue() {
+            alert("Stock Valuation Module: Integration in progress...");
+        }
+
+        // --- Reset Password System ---
         function openUserModal() {
             document.getElementById('userModal').style.display = 'block';
             renderUserList();
         }
-
         function closeModal() { document.getElementById('userModal').style.display = 'none'; }
 
         function renderUserList() {
@@ -142,70 +189,57 @@
             let html = '';
             users.forEach(u => {
                 html += `
-                    <div class="user-card">
+                    <div class="user-item">
                         <span><strong>${u}</strong></span>
-                        <button class="btn-click-reset" onclick="quickReset('${u}')">CLICK TO RESET</button>
+                        <button class="btn-mini-reset" onclick="quickReset('${u}')">CLICK TO RESET</button>
                     </div>`;
             });
             container.innerHTML = html;
         }
 
         async function quickReset(username) {
-            if (!confirm(`ต้องการรีเซ็ตรหัสของ ${username} เป็น '1234' ใช่หรือไม่?`)) return;
-            
+            if (!confirm(`Are you sure you want to reset ${username}?`)) return;
             closeModal();
-            showStatus(`⌛ กำลังรีเซ็ต ${username}...`, "#fef9c3", "#854d0e");
-
+            showStatus(`⌛ Resetting ${username}...`, "#fffbeb", "#92400e");
             try {
-                // ส่งไปที่ฟังก์ชัน setpassword โดยกำหนด newPass เป็น 1234
                 const url = `${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(username)}&newPass=1234`;
                 const res = await fetch(url).then(r => r.json());
-                
-                if (res.success) {
-                    showStatus(`✅ รีเซ็ต ${username} เรียบร้อยแล้ว (Pass: 1234)`, "#dcfce7", "#166534");
-                } else {
-                    showStatus("❌ เกิดข้อผิดพลาดในการรีเซ็ต", "#fee2e2", "#991b1b");
-                }
-            } catch (e) { 
-                showStatus("❌ Connection Error", "#fee2e2", "#991b1b"); 
-            }
+                if (res.success) showStatus(`✅ Successfully reset ${username} (Pass: 1234)`, "#dcfce7", "#166534");
+            } catch (e) { showStatus("❌ Error connecting to server", "#fee2e2", "#991b1b"); }
         }
 
-        // --- ระบบ Import Stock ---
+        // --- Import System ---
         async function submitExcel() {
             const raw = document.getElementById('excel-input').value.trim();
             const operator = sessionStorage.getItem('selectedUser');
-            if (!raw) return alert("กรุณาวางข้อมูล");
+            if (!raw) return alert("Please paste data from Excel.");
 
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
                 return c.length >= 7 ? { batch: c[2], mat: c[3], qty: c[5], date: c[6] } : null;
             }).filter(i => i);
 
-            if (items.length === 0) return alert("ข้อมูลไม่ถูกต้อง");
+            if (items.length === 0) return alert("Invalid data format.");
             
             const btn = document.getElementById('btn-up');
             btn.disabled = true;
-            showStatus("⌛ กำลังบันทึกข้อมูล...", "#fef9c3", "#854d0e");
+            showStatus("⌛ Synchronizing with database...", "#eff6ff", "#1e40af");
 
             try {
                 const url = `${API}?action=addstock_excel&pass=${PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`;
                 const res = await fetch(url).then(r => r.json());
                 if (res.success) {
-                    showStatus("✅ บันทึกสต็อกสำเร็จ!", "#dcfce7", "#166534");
+                    showStatus("✅ Stock successfully updated!", "#dcfce7", "#166534");
                     document.getElementById('excel-input').value = "";
                 }
-            } catch (e) {
-                showStatus("❌ Error: " + e.message, "#fee2e2", "#991b1b");
-            } finally {
-                btn.disabled = false;
-            }
+            } catch (e) { showStatus("❌ Sync Error: " + e.message, "#fee2e2", "#991b1b"); }
+            finally { btn.disabled = false; }
         }
 
         function showStatus(msg, bg, color) {
             const box = document.getElementById('status-box');
             box.innerText = msg; box.style.background = bg; box.style.color = color; box.style.display = 'block';
-            setTimeout(() => { box.style.display = 'none'; }, 5000);
+            setTimeout(() => { box.style.display = 'none'; }, 4000);
         }
 
         function logout() { sessionStorage.clear(); window.location.replace('index.html'); }
