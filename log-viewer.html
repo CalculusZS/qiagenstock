@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>QIAGEN - Log Management</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root { --qiagen: #003366; --bg: #f1f5f9; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .header { background: var(--qiagen); color: white; padding: 20px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .tab-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { padding: 12px 25px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; background: #e2e8f0; transition: 0.3s; }
+        .tab-btn.active { background: var(--qiagen); color: white; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+        th { background: #f8fafc; color: var(--qiagen); padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; }
+        
+        /* Modal Export UI */
+        .modal { display: none; position: fixed; z-index: 100; left:0; top:0; width:100%; height:100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+        .modal-content { background: white; width: 400px; margin: 10% auto; padding: 30px; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .filter-option { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+        .btn-pdf { background: #ef4444; color: white; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="exportModal" class="modal">
+    <div class="modal-content">
+        <h3 style="color:var(--qiagen)">PDF Export Options</h3>
+        <p style="font-size: 14px; color: gray;">Select transaction types to include:</p>
+        <div class="filter-option"><input type="checkbox" id="selectAll" checked onchange="toggleAll(this)"> <label for="selectAll"><b>1. Select All</b></label></div>
+        <div class="filter-option"><input type="checkbox" class="filter-cb" value="WITHDRAW" checked> WITHDRAW</div>
+        <div class="filter-option"><input type="checkbox" class="filter-cb" value="RETURN" checked> RETURN</div>
+        <div class="filter-option"><input type="checkbox" class="filter-cb" value="TRANSFER" checked> TRANSFER</div>
+        <div class="filter-option"><input type="checkbox" class="filter-cb" value="DEDUCT" checked> DEDUCT</div>
+        <button class="btn-pdf" onclick="generatePDF()">GENERATE PDF REPORT</button>
+        <button style="border:none; background:none; color:gray; width:100%; margin-top:10px; cursor:pointer;" onclick="closeModal()">Cancel</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="header">
+        <h2>📊 Inventory Log Viewer</h2>
+        <button class="tab-btn active" style="background:#10b981; color:white;" onclick="openModal()">EXPORT TO PDF</button>
+    </div>
+
+    <div class="tab-bar">
+        <button id="tab-trans" class="tab-btn active" onclick="loadData('trans')">Transaction Log</button>
+        <button id="tab-admin" class="tab-btn" onclick="loadData('admin')">Add Stock Log (Admin)</button>
+    </div>
+
+    <div class="card">
+        <div id="loading">Loading data...</div>
+        <table id="logTable">
+            <thead><tr id="tableHead"></tr></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const API = "YOUR_API_URL";
+    let currentData = [];
+    let currentMode = 'trans';
+
+    async function loadData(mode) {
+        currentMode = mode;
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('tab-trans').className = mode === 'trans' ? 'tab-btn active' : 'tab-btn';
+        document.getElementById('tab-admin').className = mode === 'admin' ? 'tab-btn active' : 'tab-btn';
+        
+        const action = mode === 'trans' ? 'gethistory' : 'getadminlog';
+        const res = await fetch(`${API}?action=${action}`).then(r => r.json());
+        currentData = res.data;
+        renderTable();
+    }
+
+    function renderTable() {
+        const head = document.getElementById('tableHead');
+        const body = document.getElementById('tableBody');
+        document.getElementById('loading').style.display = 'none';
+        
+        if (currentMode === 'trans') {
+            head.innerHTML = `<th>Date</th><th>Material</th><th>Name</th><th>Type</th><th>Qty</th><th>User</th>`;
+            body.innerHTML = currentData.map(r => `<tr><td>${new Date(r[0]).toLocaleDateString()}</td><td>${r[1]}</td><td>${r[3]}</td><td><b>${r[4]}</b></td><td>${r[5]}</td><td>${r[7]}</td></tr>`).join('');
+        } else {
+            head.innerHTML = `<th>Date</th><th>Admin</th><th>Action</th><th>Material</th><th>Qty</th><th>Batch</th>`;
+            body.innerHTML = currentData.map(r => `<tr><td>${new Date(r[0]).toLocaleDateString()}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`).join('');
+        }
+    }
+
+    function openModal() { document.getElementById('exportModal').style.display = 'block'; }
+    function closeModal() { document.getElementById('exportModal').style.display = 'none'; }
+
+    function toggleAll(src) {
+        document.querySelectorAll('.filter-cb').forEach(cb => cb.checked = src.checked);
+    }
+
+    function generatePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // --- Form Header (From image_35ffdb.png) ---
+        doc.setTextColor(0, 51, 102);
+        doc.setFontSize(20); doc.text("QIAGEN", 160, 20);
+        doc.setFontSize(10);
+        doc.text("Product Support", 15, 20);
+        doc.text("QIAGEN (Thailand) Ltd.", 15, 28);
+        doc.setFontSize(8); doc.setTextColor(100);
+        doc.text("No. 689 Bhiraj Tower at Emquartier | 41 Floor Unit No. 4105-4107 | Sukhumvit Road", 15, 33);
+        doc.text("North Klongton Sub-District, Vadhana District, Bangkok 10110 | Thailand Tel. 020268262", 15, 37);
+        doc.line(15, 42, 195, 42);
+
+        // Filter Data
+        const selectedTypes = Array.from(document.querySelectorAll('.filter-cb:checked')).map(cb => cb.value);
+        const filtered = currentMode === 'trans' ? currentData.filter(r => selectedTypes.includes(r[4])) : currentData;
+
+        // Table
+        const head = currentMode === 'trans' ? [['Date', 'Material', 'Type', 'Qty', 'User']] : [['Date', 'Admin', 'Action', 'Material', 'Qty']];
+        const body = filtered.map(r => [new Date(r[0]).toLocaleDateString(), r[1], (currentMode === 'trans' ? r[4] : r[2]), r[5], (currentMode === 'trans' ? r[7] : r[1])]);
+
+        doc.autoTable({
+            startY: 50, head: head, body: body,
+            headStyles: { fillColor: [0, 51, 102] },
+            theme: 'striped'
+        });
+
+        doc.save(`QIAGEN_LOG_${currentMode.toUpperCase()}.pdf`);
+        closeModal();
+    }
+
+    loadData('trans');
+</script>
+</body>
+</html>
