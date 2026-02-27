@@ -88,26 +88,12 @@
         }
         .btn-submit:hover { filter: brightness(1.2); letter-spacing: 1px; }
 
-        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(5px); }
-        .modal-content { 
-            background: white; margin: 8% auto; padding: 30px; 
-            border-radius: 24px; width: 420px; 
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-        }
-
-        .user-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 15px 20px; background: #f8fafc; border-radius: 12px;
-            margin-top: 10px; border: 1px solid #e2e8f0;
-        }
-        .btn-mini-reset {
-            background: #fffbeb; color: #92400e; border: 1px solid #fde68a;
-            padding: 8px 15px; border-radius: 10px; font-weight: bold; cursor: pointer;
-            font-size: 12px; transition: 0.2s;
-        }
-        .btn-mini-reset:hover { background: var(--warning); color: white; border-color: var(--warning); }
-
         .status-msg { padding: 18px; border-radius: 15px; margin-top: 20px; display: none; text-align: center; font-weight: bold; animation: fadeIn 0.3s; }
+        
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(5px); }
+        .modal-content { background: white; margin: 8% auto; padding: 30px; border-radius: 24px; width: 420px; }
+        .user-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #f8fafc; border-radius: 12px; margin-top: 10px; border: 1px solid #e2e8f0; }
+        .btn-mini-reset { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; padding: 8px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; }
     </style>
 </head>
 <body onload="checkAuth()">
@@ -116,7 +102,7 @@
         <div class="modal-content">
             <span style="float:right; cursor:pointer; font-size:28px;" onclick="closeModal()">&times;</span>
             <h3 style="margin-bottom: 5px;">🔑 Reset User Credentials</h3>
-            <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Password will be set to <b>1234</b> (Status: NEW)</p>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Password will be set to 1234</p>
             <div id="user-list-container"></div>
         </div>
     </div>
@@ -135,7 +121,7 @@
                 <span>📊</span>
                 <label>Export Data / Log Viewer</label>
             </div>
-            <div class="action-card c-value" onclick="checkValue()">
+            <div class="action-card c-value" onclick="alert('Module in progress...')">
                 <span>💰</span>
                 <label>Stock Valuation</label>
             </div>
@@ -154,59 +140,29 @@
     </div>
 
     <script>
+        // *** แก้ไข: ใส่ URL Web App ของพี่ที่นี่ ***
         const API = "https://script.google.com/macros/s/AKfycbzYv4bor1Y4OQLTQmt86IAwbsZfUpViuVX7ugp4AK39uc2fiFWPFa9xwwFMMIF02aSc/exec";
         const PASS = "Service";
 
         function checkAuth() {
             const urlParams = new URLSearchParams(window.location.search);
-            const isLogPage = urlParams.get('page') === 'logs';
-            if (!isLogPage && !sessionStorage.getItem('selectedUser')) {
+            // ถ้าเป็นหน้า log ไม่ต้องเด้งออก
+            if (urlParams.get('page') === 'logs') return;
+            if (!sessionStorage.getItem('selectedUser')) {
                 window.location.replace('index.html');
             }
         }
 
-        // --- แก้ไข: ให้อยู่หน้าเดิม ไม่เปิดหน้าใหม่ ---
+        // --- แก้ไข: ให้เปลี่ยนหน้าในหน้าต่างเดิม ---
         function downloadData() {
-            showStatus("⌛ Opening Log Management...", "#eff6ff", "#1e40af");
-            // ใช้ location.href เพื่อเปลี่ยนหน้าในหน้าเดิม
-            window.location.href = `${API}?page=logs`;
-        }
-
-        function checkValue() {
-            alert("Stock Valuation Module: Integration in progress...");
-        }
-
-        function openUserModal() {
-            document.getElementById('userModal').style.display = 'block';
-            renderUserList();
-        }
-        function closeModal() { document.getElementById('userModal').style.display = 'none'; }
-
-        function renderUserList() {
-            const container = document.getElementById('user-list-container');
-            const users = ['KM', 'TK', 'PSO', 'PK', 'PST', 'PA'];
-            let html = '';
-            users.forEach(u => {
-                html += `<div class="user-item"><span><strong>${u}</strong></span><button class="btn-mini-reset" onclick="quickReset('${u}')">CLICK TO RESET</button></div>`;
-            });
-            container.innerHTML = html;
-        }
-
-        async function quickReset(username) {
-            if (!confirm(`Are you sure you want to reset ${username}?`)) return;
-            closeModal();
-            showStatus(`⌛ Resetting ${username}...`, "#fffbeb", "#92400e");
-            try {
-                const url = `${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(username)}&newPass=1234`;
-                const res = await fetch(url).then(r => r.json());
-                if (res.success) showStatus(`✅ Successfully reset ${username} (Pass: 1234)`, "#dcfce7", "#166534");
-            } catch (e) { showStatus("❌ Error connecting to server", "#fee2e2", "#991b1b"); }
+            showStatus("⌛ Loading Log Viewer...", "#eff6ff", "#1e40af");
+            window.location.href = API + "?page=logs";
         }
 
         async function submitExcel() {
             const raw = document.getElementById('excel-input').value.trim();
+            if (!raw) return alert("Please paste data.");
             const operator = sessionStorage.getItem('selectedUser') || "Admin";
-            if (!raw) return alert("Please paste data from Excel.");
             
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
@@ -217,16 +173,16 @@
             
             const btn = document.getElementById('btn-up');
             btn.disabled = true;
-            showStatus("⌛ Synchronizing with database...", "#eff6ff", "#1e40af");
+            showStatus("⌛ Synchronizing...", "#eff6ff", "#1e40af");
 
             try {
                 const url = `${API}?action=addstock_excel&pass=${PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`;
                 const res = await fetch(url).then(r => r.json());
                 if (res.success) {
-                    showStatus("✅ Stock successfully updated!", "#dcfce7", "#166534");
+                    showStatus("✅ Success!", "#dcfce7", "#166534");
                     document.getElementById('excel-input').value = "";
                 }
-            } catch (e) { showStatus("❌ Sync Error: " + e.message, "#fee2e2", "#991b1b"); }
+            } catch (e) { showStatus("❌ Error", "#fee2e2", "#991b1b"); }
             finally { btn.disabled = false; }
         }
 
@@ -236,8 +192,27 @@
             setTimeout(() => { box.style.display = 'none'; }, 4000);
         }
 
+        function openUserModal() { document.getElementById('userModal').style.display = 'block'; renderUserList(); }
+        function closeModal() { document.getElementById('userModal').style.display = 'none'; }
+        function renderUserList() {
+            const container = document.getElementById('user-list-container');
+            const users = ['KM', 'TK', 'PSO', 'PK', 'PST', 'PA'];
+            container.innerHTML = users.map(u => `
+                <div class="user-item">
+                    <span><strong>${u}</strong></span>
+                    <button class="btn-mini-reset" onclick="quickReset('${u}')">RESET</button>
+                </div>
+            `).join('');
+        }
+        async function quickReset(username) {
+            if (!confirm(`Reset ${username}?`)) return;
+            const url = `${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(username)}&newPass=1234`;
+            await fetch(url);
+            alert('Reset Complete');
+            closeModal();
+        }
+
         function logout() { sessionStorage.clear(); window.location.replace('index.html'); }
-        window.onclick = function(event) { if (event.target == document.getElementById('userModal')) closeModal(); }
     </script>
 </body>
 </html>
