@@ -13,12 +13,15 @@
         textarea { width: 100%; height: 180px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 15px; font-family: 'Courier New', monospace; box-sizing: border-box; }
         .btn-main { background: #003366; color: white; border: none; padding: 16px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; margin-top: 15px; }
         .btn-main:disabled { background: #94a3b8; }
+        .btn-reset { background: #f59e0b; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-right: 10px; }
+        .btn-logout { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th { background: #f8fafc; padding: 12px; text-align: left; border-bottom: 2px solid #eee; font-size: 12px; }
-        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+        td { padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: top; }
         .owner-tag { font-weight: bold; color: #0ea5e9; background: #f0f9ff; padding: 4px 8px; border-radius: 6px; }
         .central-tag { color: #003366; background: #e0f2fe; }
         .status-msg { padding: 12px; border-radius: 8px; margin-top: 10px; display: none; text-align: center; font-weight: bold; }
+        .fifo-text { white-space: pre-line; font-size: 11px; line-height: 1.4; color: #475569; }
     </style>
 </head>
 <body onload="checkAuth()">
@@ -26,8 +29,8 @@
         <div class="header-section">
             <h2 style="margin:0;">🛡️ QIAGEN Stock Admin</h2>
             <div>
-                <button onclick="window.location.href='main.html'" style="padding:8px 15px; cursor:pointer;">🏠 MAIN</button>
-                <button onclick="logout()" style="background:#ef4444; color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer;">LOGOUT</button>
+                <button class="btn-reset" onclick="resetPasswordPrompt()">🔑 RESET PASSWORD</button>
+                <button class="btn-logout" onclick="logout()">LOGOUT</button>
             </div>
         </div>
 
@@ -60,7 +63,6 @@
     </div>
 
     <script>
-        // แก้ไข URL ให้เป็นอันล่าสุด
         const API = "https://script.google.com/macros/s/AKfycbygN9d0QcOY5RqL9UiezChXbs_d8cY4TVErjjP-y86R1E-ProE39rl7CtJJOvZhjXcO/exec";
         const PASS = "Service";
 
@@ -73,7 +75,7 @@
             try {
                 const res = await fetch(`${API}?action=read&pass=${PASS}`);
                 const data = await res.json();
-                renderTable(data);
+                renderTable(data.data);
             } catch (e) { console.error(e); }
         }
 
@@ -81,16 +83,24 @@
             const tbody = document.getElementById('data-table');
             const holders = ['0243', 'Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
             let html = '';
+            
             data.forEach(item => {
                 holders.forEach(h => {
-                    const q = parseInt(item[h]) || 0;
+                    const q = parseFloat(item[h]) || 0;
                     if (q > 0) {
+                        // จัดการการแสดงผล FIFO แบบขึ้นบรรทัดใหม่
+                        const batchInfo = (h === '0243' && item['R']) ? item['R'] : '-';
+                        const dateInfo = (h === '0243' && item['S']) ? item['S'] : '-';
+                        
                         html += `<tr>
                             <td>${item.Material}</td>
                             <td>${item['Product Name'] || '-'}</td>
                             <td><span class="owner-tag ${h === '0243' ? 'central-tag' : ''}">${h}</span></td>
-                            <td>${q}</td>
-                            <td>${h === '0243' ? `B: ${item['R'] || '-'}<br>D: ${item['S'] || '-'}` : '-'}</td>
+                            <td><b>${q}</b></td>
+                            <td>
+                                <div class="fifo-text"><b>Batch:</b>\n${batchInfo}</div>
+                                <div class="fifo-text" style="margin-top:5px; border-top:1px dashed #ccc; padding-top:5px;"><b>Date:</b>\n${dateInfo}</div>
+                            </td>
                         </tr>`;
                     }
                 });
@@ -103,11 +113,13 @@
             const operator = sessionStorage.getItem('selectedUser');
             if (!raw) return alert("กรุณาวางข้อมูล");
 
+            // การ Map คอลัมน์ตามลำดับ Excel: 2=Batch, 3=Mat, 5=Qty, 6=Date
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
                 return c.length >= 7 ? { batch: c[2], mat: c[3], qty: c[5], date: c[6] } : null;
             }).filter(i => i);
 
+            if (items.length === 0) return alert("รูปแบบข้อมูลไม่ถูกต้อง");
             if (!confirm(`ยืนยันเพิ่ม ${items.length} รายการ?`)) return;
 
             const btn = document.getElementById('btn-up');
@@ -129,6 +141,30 @@
             } finally {
                 btn.disabled = false;
             }
+        }
+
+        // --- ฟังก์ชัน Reset Password ใหม่ ---
+        async function resetPasswordPrompt() {
+            const user = prompt("กรุณากรอก Username ของ User ที่ต้องการ Reset:");
+            if (!user) return;
+            const newPass = prompt(`กรุณากรอกรหัสผ่านใหม่สำหรับคุณ ${user}:`);
+            if (!newPass) return;
+
+            if (!confirm(`ยืนยันการเปลี่ยนรหัสผ่านของ ${user} เป็น ${newPass}?`)) return;
+
+            try {
+                showStatus("⌛ กำลังเปลี่ยนรหัสผ่าน...", "#fef9c3", "#854d0e");
+                const url = `${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(user)}&newPass=${encodeURIComponent(newPass)}`;
+                const res = await fetch(url).then(r => r.json());
+                
+                if (res.success) {
+                    alert("✅ เปลี่ยนรหัสผ่านสำเร็จ!");
+                    showStatus("✅ เปลี่ยนรหัสผ่านสำเร็จ", "#dcfce7", "#166534");
+                } else {
+                    alert("❌ ไม่พบชื่อผู้ใช้งานนี้ หรือเกิดข้อผิดพลาด");
+                    showStatus("❌ ไม่สามารถ Reset รหัสผ่านได้", "#fee2e2", "#991b1b");
+                }
+            } catch (e) { alert("Error: " + e.message); }
         }
 
         function showStatus(msg, bg, color) {
