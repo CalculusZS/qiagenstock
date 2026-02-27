@@ -6,99 +6,122 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
-        :root { --blue: #003366; --light: #00a3e0; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; padding: 20px; }
-        .header { background: var(--blue); color: white; padding: 20px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .tab-bar { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab { padding: 12px 20px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; background: #e2e8f0; color: #475569; }
-        .tab.active { background: var(--blue); color: white; }
-        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        :root { --blue: #003366; --light-blue: #00a3e0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; margin: 0; padding: 20px; }
+        .header { background: var(--blue); color: white; padding: 25px; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .btn-pdf { background: #10b981; color: white; border: none; padding: 12px 25px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-pdf:hover { background: #059669; transform: translateY(-2px); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
         th { background: #f1f5f9; color: var(--blue); padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
-        td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
-        .btn-pdf { background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+        tr:hover { background: #f8fafc; }
+        .loading { text-align: center; padding: 40px; color: var(--blue); font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <div>
-        <h2 style="margin:0">📊 DATA CENTER</h2>
-        <small>Audit Trail & Records</small>
+        <h2 style="margin:0; letter-spacing: 1px;">📊 TRANSACTION LOG CENTER</h2>
+        <small style="opacity:0.8">QIAGEN Thailand Inventory Audit Trail</small>
     </div>
-    <button class="btn-pdf" onclick="exportPDF()">📥 EXPORT REPORT (PDF)</button>
-</div>
-
-<div class="tab-bar">
-    <button id="t1" class="tab active" onclick="switchTab('trans')">Transaction Log</button>
-    <button id="t2" class="tab" onclick="switchTab('admin')">Admin Add Stock Log</button>
+    <button class="btn-pdf" onclick="exportPDF()">📥 DOWNLOAD PDF REPORT</button>
 </div>
 
 <div class="card">
-    <div id="loader" style="text-align:center; padding:30px;">Fetching Data...</div>
+    <div id="loader" class="loading">⌛ Fetching latest transactions...</div>
     <table id="tbl" style="display:none">
-        <thead><tr id="thr"></tr></thead>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Material</th>
+                <th>Product Name</th>
+                <th>Action</th>
+                <th>Qty</th>
+                <th>User</th>
+                <th>Reference</th>
+            </tr>
+        </thead>
         <tbody id="tbd"></tbody>
     </table>
 </div>
 
 <script>
     const API = "https://script.google.com/macros/s/AKfycbzYv4bor1Y4OQLTQmt86IAwbsZfUpViuVX7ugp4AK39uc2fiFWPFa9xwwFMMIF02aSc/exec";
-    let currentData = [];
-    let currentMode = 'trans';
+    let logData = [];
 
-    async function loadData() {
-        document.getElementById('loader').style.display = 'block';
-        document.getElementById('tbl').style.display = 'none';
-        const res = await fetch(`${API}?action=${currentMode === 'trans' ? 'gethistory' : 'getadminlog'}`).then(r => r.json());
-        currentData = res.data;
-        render();
-    }
-
-    function render() {
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('tbl').style.display = 'table';
-        const h = document.getElementById('thr'), b = document.getElementById('tbd');
-        if (currentMode === 'trans') {
-            h.innerHTML = '<th>Date</th><th>Material</th><th>Name</th><th>Action</th><th>Qty</th><th>User</th><th>WO/Target</th>';
-            b.innerHTML = currentData.map(r => `<tr><td>${new Date(r[0]).toLocaleDateString()}</td><td>${r[1]}</td><td>${r[3]}</td><td><b>${r[4]}</b></td><td>${r[5]}</td><td>${r[6]}</td><td>${r[7]}</td></tr>`).join('');
-        } else {
-            h.innerHTML = '<th>Date</th><th>Operator</th><th>Action</th><th>Material</th><th>Qty</th><th>Batch</th>';
-            b.innerHTML = currentData.map(r => `<tr><td>${new Date(r[0]).toLocaleDateString()}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`).join('');
+    // ดึงข้อมูลมาโชว์ในตาราง
+    async function loadLogs() {
+        try {
+            const res = await fetch(`${API}?action=gethistory`).then(r => r.json());
+            logData = res.data;
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('tbl').style.display = 'table';
+            
+            const tbody = document.getElementById('tbd');
+            tbody.innerHTML = logData.map(r => `
+                <tr>
+                    <td>${new Date(r[0]).toLocaleString()}</td>
+                    <td>${r[1]}</td>
+                    <td>${r[3]}</td>
+                    <td><b>${r[4]}</b></td>
+                    <td>${r[5]}</td>
+                    <td>${r[6]}</td>
+                    <td>${r[8] || '-'}</td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            document.getElementById('loader').innerText = "❌ Error loading data. Please try again.";
         }
-    }
-
-    function switchTab(m) {
-        currentMode = m;
-        document.getElementById('t1').className = m === 'trans' ? 'tab active' : 'tab';
-        document.getElementById('t2').className = m === 'admin' ? 'tab active' : 'tab';
-        loadData();
     }
 
     function exportPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        // --- QIAGEN Header (Address as per Bhiraj Tower) ---
-        doc.setTextColor(0, 51, 102); doc.setFontSize(22); doc.text("QIAGEN", 165, 20);
+        // --- 1. หัวกระดาษ QIAGEN (ข้อมูลจาก form.pdf) ---
+        doc.setTextColor(0, 51, 102); 
+        doc.setFontSize(22); doc.text("QIAGEN", 165, 20); // มุมขวาบน
+        
         doc.setFontSize(10); doc.text("Product Support", 15, 20);
         doc.text("QIAGEN (Thailand) Ltd.", 15, 26);
+        
         doc.setFontSize(7.5); doc.setTextColor(100);
         doc.text("No. 689 Bhiraj Tower at Emquartier | 41 Floor Unit No. 4105-4107 | Sukhumvit Road", 15, 31);
         doc.text("North Klongton Sub-District, Vadhana District, Bangkok 10110 | Thailand Tel. 020268262", 15, 35);
-        doc.setDrawColor(0, 51, 102); doc.line(15, 40, 195, 40);
+        
+        doc.setDrawColor(0, 51, 102); doc.line(15, 40, 195, 40); // เส้นคั่นเท่ๆ
 
+        // --- 2. ชื่อรายงาน ---
         doc.setTextColor(0); doc.setFontSize(14);
-        doc.text(`INVENTORY LOG: ${currentMode.toUpperCase()}`, 15, 50);
+        doc.text("INVENTORY TRANSACTION REPORT", 15, 50);
+        doc.setFontSize(9); doc.text(`Generated on: ${new Date().toLocaleString()}`, 15, 56);
 
-        const head = currentMode === 'trans' ? [['Date', 'Material', 'Action', 'Qty', 'User', 'Ref']] : [['Date', 'Admin', 'Action', 'Material', 'Qty', 'Batch']];
-        const body = currentData.map(r => [new Date(r[0]).toLocaleDateString(), r[1], (currentMode === 'trans' ? r[4] : r[2]), r[5], r[6], (currentMode === 'trans' ? r[7] : r[6])]);
+        // --- 3. สร้างตารางข้อมูล ---
+        const tableBody = logData.map(r => [
+            new Date(r[0]).toLocaleDateString(),
+            r[1],
+            r[3].substring(0, 40), // ตัดชื่อยาวๆ
+            r[4],
+            r[5],
+            r[6],
+            r[8] || '-'
+        ]);
 
-        doc.autoTable({ startY: 55, head: head, body: body, headStyles: {fillColor:[0, 51, 102]}, styles: {fontSize: 8} });
-        doc.save(`QIAGEN_LOG_${new Date().getTime()}.pdf`);
+        doc.autoTable({
+            startY: 65,
+            head: [['Date', 'Material', 'Product Name', 'Action', 'Qty', 'User', 'Ref']],
+            body: tableBody,
+            headStyles: { fillColor: [0, 51, 102], fontSize: 9 },
+            styles: { fontSize: 8, cellPadding: 2 },
+            columnStyles: { 2: { cellWidth: 50 } } // ปรับช่องชื่อสินค้าให้กว้างหน่อย
+        });
+
+        doc.save(`QIAGEN_Report_${new Date().getTime()}.pdf`);
     }
 
-    loadData();
+    loadLogs();
 </script>
 </body>
 </html>
