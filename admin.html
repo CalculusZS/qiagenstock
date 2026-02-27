@@ -157,13 +157,22 @@
         const API = "https://script.google.com/macros/s/AKfycbzYv4bor1Y4OQLTQmt86IAwbsZfUpViuVX7ugp4AK39uc2fiFWPFa9xwwFMMIF02aSc/exec";
         const PASS = "Service";
 
+        // --- แก้ไข: เช็คสิทธิ์แบบไม่ให้เด้งตอนเปิด Log ---
         function checkAuth() {
-            if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html');
+            const urlParams = new URLSearchParams(window.location.search);
+            const isLogPage = urlParams.get('page') === 'logs';
+            const hasUser = sessionStorage.getItem('selectedUser');
+            
+            // ถ้าไม่ใช่หน้า log และไม่มี user ให้เด้งกลับ index
+            if (!isLogPage && !hasUser) {
+                window.location.replace('index.html');
+            }
         }
 
-        // --- แก้ไขเฉพาะจุดนี้เพื่อเชื่อมไปหน้า Log Viewer ---
+        // --- แก้ไข: เปิดหน้า Log ในแท็บใหม่ ---
         function downloadData() {
             showStatus("⌛ Opening Log Management...", "#eff6ff", "#1e40af");
+            // เปิดลิงก์โดยส่ง parameter page=logs ไปที่ Code.gs
             window.open(`${API}?page=logs`, '_blank');
         }
 
@@ -200,16 +209,21 @@
 
         async function submitExcel() {
             const raw = document.getElementById('excel-input').value.trim();
-            const operator = sessionStorage.getItem('selectedUser');
+            const operator = sessionStorage.getItem('selectedUser') || "Admin";
             if (!raw) return alert("Please paste data from Excel.");
+            
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
+                // Batch=c[2], Mat=c[3], Qty=c[5], Date=c[6]
                 return c.length >= 7 ? { batch: c[2], mat: c[3], qty: c[5], date: c[6] } : null;
             }).filter(i => i);
+
             if (items.length === 0) return alert("Invalid data format.");
+            
             const btn = document.getElementById('btn-up');
             btn.disabled = true;
             showStatus("⌛ Synchronizing with database...", "#eff6ff", "#1e40af");
+
             try {
                 const url = `${API}?action=addstock_excel&pass=${PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`;
                 const res = await fetch(url).then(r => r.json());
