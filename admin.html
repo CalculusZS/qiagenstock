@@ -147,14 +147,19 @@
 
         <div class="main-card">
             <h3>📥 Add Stock to Central (0243)</h3>
-            <textarea id="excel-input" placeholder="Paste Excel data here... (Material, Qty, Batch, Date)"></textarea>
+            <p style="font-size:12px; color: #64748b; margin-bottom:10px;">ดึงข้อมูล: Mat(ช่อง4), Qty(ช่อง6), Date(ช่อง7), <b>Batch(ช่อง8)</b></p>
+            <textarea id="excel-input" placeholder="Paste Excel data here... (ระบบรองรับข้อมูล 8 คอลัมน์)"></textarea>
             <div id="status-box" class="status-msg"></div>
             <button class="btn-submit" id="btn-up" onclick="submitExcel()">🚀 CONFIRM UPLOAD & SYNC</button>
         </div>
     </div>
 
     <script>
-        const API = "https://script.google.com/macros/s/AKfycbzu8V8NlB0-mq4N6Mk_IkjaSEBlPskrwGM8cUGlNRHAsT9e6CQeNq7CVeerfbOyhiqX/exec";
+        // ==========================================
+        // บรรทัดที่ 131: วางลิงก์ API (Web App URL) ที่นี่
+        // ==========================================
+        const API = "https://script.google.com/macros/s/AKfycby6cwgl32qZWoCof8iAMzaDhMjzNn38wJPWrYv31Ns_AG7mMHwrxN_S1m6pJ03YF41k/exec"; 
+        
         const PASS = "Service";
 
         function checkAuth() {
@@ -165,10 +170,8 @@
             }
         }
 
-        // --- แก้ไข: ให้อยู่หน้าเดิม ไม่เปิดหน้าใหม่ ---
         function downloadData() {
             showStatus("⌛ Opening Log Management...", "#eff6ff", "#1e40af");
-            // ใช้ location.href เพื่อเปลี่ยนหน้าในหน้าเดิม
             window.location.href = `${API}?page=logs`;
         }
 
@@ -210,10 +213,11 @@
             
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
-                return c.length >= 7 ? { batch: c[2], mat: c[3], qty: c[5], date: c[6] } : null;
+                // แก้ไข: ดึง Material (ช่อง4/Index3), Qty (ช่อง6/Index5), Date (ช่อง7/Index6), Batch (ช่อง8/Index7)
+                return c.length >= 8 ? { mat: c[3], qty: c[5], date: c[6], batch: c[7] } : null;
             }).filter(i => i);
 
-            if (items.length === 0) return alert("Invalid data format.");
+            if (items.length === 0) return alert("รูปแบบข้อมูลไม่ถูกต้อง กรุณาก๊อปปี้มาให้ครบอย่างน้อย 8 คอลัมน์");
             
             const btn = document.getElementById('btn-up');
             btn.disabled = true;
