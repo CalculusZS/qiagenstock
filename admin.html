@@ -110,7 +110,6 @@
 
         .status-msg { padding: 18px; border-radius: 15px; margin-top: 20px; display: none; text-align: center; font-weight: bold; animation: fadeIn 0.3s; }
 
-        /* Valuation Window Style */
         #valuation-window {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
             background: #f1f5f9; z-index: 1000; overflow-y:auto; padding: 30px;
@@ -154,17 +153,17 @@
                     <h3 id="total-val">฿ 0.00</h3>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--success);">
-                    <small>AGING <= 1Y</small>
+                    <small>AGING &lt;= 1Y</small>
                     <div class="badge-pct" id="pct-126">0%</div>
                     <h3 id="aging-126-val" style="color:var(--success);">฿ 0.00</h3>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--warning);">
-                    <small>AGING >= 1Y</small>
+                    <small>AGING &gt;= 1Y</small>
                     <div class="badge-pct" id="pct-1y">0%</div>
                     <h3 id="aging-1y-val" style="color:var(--warning);">฿ 0.00</h3>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--danger);">
-                    <small>AGING >= 3Y</small>
+                    <small>AGING &gt;= 3Y</small>
                     <div class="badge-pct" id="pct-3y">0%</div>
                     <h3 id="aging-3y-val" style="color:var(--danger);">฿ 0.00</h3>
                 </div>
@@ -222,7 +221,6 @@
 
         function checkAuth() { if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html'); }
 
-        /* --- ระบบคำนวณ Valuation (รวมโชว์ %) --- */
         async function calculateValuation() {
             showStatus("⌛ Fetching Data...", "#eff6ff", "#1e40af");
             try {
@@ -289,13 +287,16 @@
             });
         }
 
-        /* --- ฟังก์ชันมาตรฐาน (Layout เดิม) --- */
         function openValuation() { document.getElementById('valuation-window').style.display = 'block'; calculateValuation(); }
         function closeValuation() { document.getElementById('valuation-window').style.display = 'none'; }
         function openUserModal() { document.getElementById('userModal').style.display = 'block'; renderUserList(); }
         function closeModal() { document.getElementById('userModal').style.display = 'none'; }
         function logout() { sessionStorage.clear(); window.location.replace('index.html'); }
-        function downloadData() { window.location.href = `${API}?page=logs`; }
+        
+        // แก้ไขฟังก์ชันนี้เพื่อให้เปิดหน้า log_admin.html
+        function downloadData() { 
+            window.location.href = 'log_admin.html'; 
+        }
 
         function renderUserList() {
             const container = document.getElementById('user-list-container');
