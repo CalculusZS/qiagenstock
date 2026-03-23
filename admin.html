@@ -144,26 +144,26 @@
         <div style="max-width:1100px; margin:auto;">
             <div class="val-card-grid">
                 <div class="val-card" style="border-left: 6px solid var(--qiagen-blue);">
-                    <small>ALL STOCK VALUE (Col X)</small>
+                    <small>TOTAL VALUE (Col X)</small>
                     <h3 id="total-val" style="color:var(--qiagen-blue);">฿ 0.00</h3>
                 </div>
                 <div class="val-card" style="border-left: 6px solid var(--warning);">
-                    <small>AGING > 1 YEAR (Col U=126)</small>
+                    <small>AGING 1 YEAR (U=126)</small>
                     <h3 id="aging-1y-val" style="color:var(--warning);">฿ 0.00</h3>
                 </div>
                 <div class="val-card" style="border-left: 6px solid var(--danger);">
-                    <small>AGING > 3 YEARS (Col U>=3)</small>
+                    <small>AGING >= 3 YEARS</small>
                     <h3 id="aging-3y-val" style="color:var(--danger);">฿ 0.00</h3>
                 </div>
             </div>
 
             <div class="chart-container">
                 <div class="val-card">
-                    <h4 style="margin-top:0;">Value Comparison (THB)</h4>
+                    <h4 style="margin-top:0;">Value Analysis (THB)</h4>
                     <canvas id="valBarChart"></canvas>
                 </div>
                 <div class="val-card">
-                    <h4 style="margin-top:0;">Stock Composition</h4>
+                    <h4 style="margin-top:0;">Aging Composition</h4>
                     <canvas id="valPieChart"></canvas>
                 </div>
             </div>
@@ -209,11 +209,7 @@
         let barChart, pieChart;
 
         function checkAuth() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const isLogPage = urlParams.get('page') === 'logs';
-            if (!isLogPage && !sessionStorage.getItem('selectedUser')) {
-                window.location.replace('index.html');
-            }
+            if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html');
         }
 
         /* --- Valuation Logic --- */
@@ -227,33 +223,38 @@
         }
 
         async function calculateValuation() {
-            showStatus("⌛ Calculating values...", "#eff6ff", "#1e40af");
+            showStatus("⌛ Fetching Live Data...", "#eff6ff", "#1e40af");
             try {
                 const res = await fetch(`${API}?action=read&pass=${PASS}`).then(r => r.json());
-                if (!res.success) throw new Error("Fetch failed");
+                if (!res.success) throw new Error("API Fetch failed");
 
                 let allStock = 0, aging1 = 0, aging3 = 0;
 
                 res.data.forEach(row => {
-                    // ดึงค่าตามชื่อ Header ใน Google Sheets 
-                    // สำคัญ: แก้ไขชื่อ 'Aging' และ 'Price' ให้ตรงกับ Header จริงของพี่
-                    const aging = parseFloat(row['Aging']) || 0; // คอลัมน์ U
-                    const value = parseFloat(row['Value']) || 0; // คอลัมน์ X
+                    // ดึงข้อมูลจากหัวข้อ "All Value" และ "Aging (Years)"
+                    const val = parseFloat(row["All Value"]) || 0;
+                    const age = parseFloat(row["Aging (Years)"]) || 0;
 
-                    allStock += value;
-                    if (aging === 126) aging1 += value;
-                    if (aging >= 3) aging3 += value;
+                    allStock += val;
+                    if (age === 126) aging1 += val;
+                    if (age >= 3) aging3 += val;
                 });
 
                 // Update UI Numbers
-                const fmt = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' });
+                const fmt = new Intl.NumberFormat('th-TH', { 
+                    style: 'currency', currency: 'THB', minimumFractionDigits: 2 
+                });
+                
                 document.getElementById('total-val').innerText = fmt.format(allStock);
                 document.getElementById('aging-1y-val').innerText = fmt.format(aging1);
                 document.getElementById('aging-3y-val').innerText = fmt.format(aging3);
 
                 renderValCharts(allStock, aging1, aging3);
+                showStatus("✅ Dashboard Updated", "#dcfce7", "#166534");
+
             } catch (e) {
-                alert("Error calculating valuation: Make sure Header names match (Aging/Value)");
+                console.error(e);
+                alert("Error: กรุณาตรวจสอบว่าใน Google Sheets คอลัมน์ X มีหัวชื่อ 'All Value' และ คอลัมน์ U มีหัวชื่อ 'Aging (Years)' หรือไม่?");
             }
         }
 
@@ -261,13 +262,12 @@
             if (barChart) barChart.destroy();
             if (pieChart) pieChart.destroy();
 
-            // Bar Chart
             barChart = new Chart(document.getElementById('valBarChart'), {
                 type: 'bar',
                 data: {
-                    labels: ['Total Value', 'Aging > 1Y', 'Aging > 3Y'],
+                    labels: ['All Value', 'Aging 1Y', 'Aging 3Y'],
                     datasets: [{
-                        label: 'THB',
+                        label: 'Value (THB)',
                         data: [total, a1, a3],
                         backgroundColor: ['#003366', '#f59e0b', '#ef4444'],
                         borderRadius: 10
@@ -276,11 +276,10 @@
                 options: { responsive: true, plugins: { legend: { display: false } } }
             });
 
-            // Pie Chart
             pieChart = new Chart(document.getElementById('valPieChart'), {
                 type: 'doughnut',
                 data: {
-                    labels: ['Normal Stock', 'Aging 1-3Y', 'Aging > 3Y'],
+                    labels: ['Normal Stock', 'Aging 1Y', 'Aging 3Y'],
                     datasets: [{
                         data: [total - a1 - a3, a1, a3],
                         backgroundColor: ['#e2e8f0', '#f59e0b', '#ef4444']
@@ -290,63 +289,57 @@
             });
         }
 
-        /* --- Original Logic (Keep All) --- */
-        function downloadData() {
-            showStatus("⌛ Opening Log Management...", "#eff6ff", "#1e40af");
-            window.location.href = `${API}?page=logs`;
-        }
-
-        function openUserModal() {
-            document.getElementById('userModal').style.display = 'block';
-            renderUserList();
-        }
+        /* --- Original Logic --- */
+        function downloadData() { window.location.href = `${API}?page=logs`; }
+        function openUserModal() { document.getElementById('userModal').style.display = 'block'; renderUserList(); }
         function closeModal() { document.getElementById('userModal').style.display = 'none'; }
 
         function renderUserList() {
             const container = document.getElementById('user-list-container');
             const users = ['KM', 'TK', 'PSO', 'PK', 'PST', 'PA'];
-            let html = '';
-            users.forEach(u => {
-                html += `<div class="user-item"><span><strong>${u}</strong></span><button class="btn-mini-reset" onclick="quickReset('${u}')">CLICK TO RESET</button></div>`;
-            });
-            container.innerHTML = html;
+            container.innerHTML = users.map(u => `
+                <div class="user-item">
+                    <span><strong>${u}</strong></span>
+                    <button class="btn-mini-reset" onclick="quickReset('${u}')">CLICK TO RESET</button>
+                </div>
+            `).join('');
         }
 
         async function quickReset(username) {
             if (!confirm(`Are you sure you want to reset ${username}?`)) return;
-            closeModal();
             showStatus(`⌛ Resetting ${username}...`, "#fffbeb", "#92400e");
             try {
-                const url = `${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(username)}&newPass=1234`;
-                const res = await fetch(url).then(r => r.json());
-                if (res.success) showStatus(`✅ Successfully reset ${username} (Pass: 1234)`, "#dcfce7", "#166534");
-            } catch (e) { showStatus("❌ Error connecting to server", "#fee2e2", "#991b1b"); }
+                const res = await fetch(`${API}?action=setpassword&pass=${PASS}&user=${encodeURIComponent(username)}&newPass=1234`).then(r => r.json());
+                if (res.success) {
+                    showStatus(`✅ Successfully reset ${username}`, "#dcfce7", "#166534");
+                    closeModal();
+                }
+            } catch (e) { showStatus("❌ Error", "#fee2e2", "#991b1b"); }
         }
 
         async function submitExcel() {
             const raw = document.getElementById('excel-input').value.trim();
-            const operator = sessionStorage.getItem('selectedUser') || "Admin";
-            if (!raw) return alert("Please paste data from Excel.");
+            if (!raw) return alert("Please paste data.");
             
             const items = raw.split('\n').map(row => {
                 const c = row.split('\t');
                 return c.length >= 8 ? { mat: c[3], qty: c[5], date: c[6], batch: c[7] } : null;
             }).filter(i => i);
 
-            if (items.length === 0) return alert("รูปแบบข้อมูลไม่ถูกต้อง กรุณาก๊อปปี้มาให้ครบอย่างน้อย 8 คอลัมน์");
+            if (items.length === 0) return alert("รูปแบบข้อมูลไม่ถูกต้อง");
             
             const btn = document.getElementById('btn-up');
             btn.disabled = true;
-            showStatus("⌛ Synchronizing with database...", "#eff6ff", "#1e40af");
+            showStatus("⌛ Synchronizing...", "#eff6ff", "#1e40af");
 
             try {
-                const url = `${API}?action=addstock_excel&pass=${PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`;
-                const res = await fetch(url).then(r => r.json());
+                const operator = sessionStorage.getItem('selectedUser') || "Admin";
+                const res = await fetch(`${API}?action=addstock_excel&pass=${PASS}&operator=${encodeURIComponent(operator)}&items=${encodeURIComponent(JSON.stringify(items))}`).then(r => r.json());
                 if (res.success) {
-                    showStatus("✅ Stock successfully updated!", "#dcfce7", "#166534");
+                    showStatus("✅ Success!", "#dcfce7", "#166534");
                     document.getElementById('excel-input').value = "";
                 }
-            } catch (e) { showStatus("❌ Sync Error: " + e.message, "#fee2e2", "#991b1b"); }
+            } catch (e) { showStatus("❌ Error", "#fee2e2", "#991b1b"); }
             finally { btn.disabled = false; }
         }
 
