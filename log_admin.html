@@ -71,6 +71,7 @@
                     <option value="RETURN">Return</option>
                     <option value="DEDUCT">Deduct</option>
                     <option value="TRANSFER">Transfer</option>
+                    <option value="ACC">Use ACC (9026466 Only)</option>
                 </select>
             </div>
 
@@ -121,14 +122,12 @@
         overlay.style.display = 'flex';
 
         try {
-            // Action names must match Code.gs (lowercase handleget...)
             const action = (mode === 'transaction') ? 'handlegethistory' : 'handlegetadminlog';
             const response = await fetch(`${API_URL}?action=${action}&pass=${PASS_KEY}`);
             const result = await response.json();
 
             if (!result.success) throw new Error(result.msg || "Unable to fetch data");
 
-            // --- CRITICAL: Slice(1) to remove Header Row before filtering ---
             const rawData = result.data.slice(1);
             
             const startVal = document.getElementById(`${mode === 'transaction' ? 't' : 'a'}-start`).value;
@@ -148,8 +147,14 @@
                 
                 let catMatch = true;
                 if (mode === 'transaction' && category !== 'ALL') {
-                    // Check column index 4 for Action type
-                    catMatch = row[4] && row[4].toString().toUpperCase().includes(category);
+                    if (category === 'ACC') {
+                        // ดึงเฉพาะรหัส 9026466 (Column index 1) และ Action DEDUCT (Column index 4)
+                        const isAccMaterial = row[1] && row[1].toString().includes("9026466");
+                        const isDeductAction = row[4] && row[4].toString().toUpperCase().includes("DEDUCT");
+                        catMatch = isAccMaterial && isDeductAction;
+                    } else {
+                        catMatch = row[4] && row[4].toString().toUpperCase().includes(category);
+                    }
                 }
                 return afterStart && beforeEnd && catMatch;
             });
@@ -170,11 +175,16 @@
 
     function generatePDFFile(mode, data, catName) {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape A4
+        const doc = new jsPDF('l', 'mm', 'a4'); 
         
         doc.setFontSize(18);
         doc.setTextColor(0, 51, 102);
-        doc.text(mode === 'transaction' ? `QIAGEN TRANSACTION LOG (${catName})` : "QIAGEN ADMIN STOCK LOG", 14, 15);
+        
+        // ปรับหัวข้อ PDF ตามโหมดที่เลือก
+        let title = mode === 'transaction' ? `QIAGEN TRANSACTION LOG (${catName})` : "QIAGEN ADMIN STOCK LOG";
+        if (catName === 'ACC') title = "QIAGEN TRANSACTION LOG (Use ACC - 9026466)";
+        
+        doc.text(title, 14, 15);
         
         doc.setFontSize(10);
         doc.setTextColor(100);
@@ -188,7 +198,6 @@
             startY: 28,
             head: tableHeader,
             body: data.map(r => r.map((val, idx) => {
-                // Formatting Date Column (index 0)
                 if (idx === 0) {
                     try { 
                         return new Date(val).toLocaleString('en-GB', { 
@@ -205,10 +214,9 @@
             columnStyles: { 0: { cellWidth: 35 } }
         });
 
-        doc.save(`QIAGEN_LOG_${mode.toUpperCase()}_${Date.now()}.pdf`);
+        doc.save(`QIAGEN_LOG_${mode.toUpperCase()}_${catName}_${Date.now()}.pdf`);
     }
 
-    // Set Default Dates to Today
     window.onload = () => {
         const today = new Date().toISOString().split('T')[0];
         document.querySelectorAll('input[type="date"]').forEach(i => i.value = today);
