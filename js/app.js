@@ -55,7 +55,7 @@ window.processReset = async function(u) {
     } catch (e) { alert("❌ Error"); }
 };
 
-/* --- 2. CART (แก้ไข: เช็คสต็อกจริง + บวกรวมจำนวนเดิม) --- */
+/* --- 2. CART --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
     const addQty = parseInt(document.getElementById(qID).value) || 0;
@@ -140,53 +140,68 @@ window.showReviewModal = function() {
 window.removeFromCart = function(idx) {
     window.cart.splice(idx, 1);
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
-    document.getElementById('review-modal').remove();
+    const modal = document.getElementById('review-modal');
+    if(modal) modal.remove();
     if (window.cart.length > 0) window.showReviewModal();
     window.updateCartUI();
 };
 
-/* --- 3. SYNC (FORCED OUTLOOK & GROUPED EMAIL BODY) --- */
+/* --- 3. SYNC (NEW LOGIC: SILENT SYNC FOR 9026466) --- */
 window.confirmSendAndSync = async function() {
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
     const now = new Date();
     const today = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
     
+    // เช็คว่าในตะกร้ามีแต่รหัส 9026466 หรือไม่
+    const onlySilentItems = window.cart.every(item => String(item.mat) === "9026466");
+
     btn.innerText = "Syncing..."; btn.disabled = true;
 
     let subjectText = `Spare parts transfer ${user} ${today}`;
     let bodyText = `Hi BO,\n\nPlease transfer the following spare parts.\n\n`;
+    let hasEmailContent = false;
 
     try {
         for (const item of window.cart) {
-            // ยิง API อัปเดต Google Sheet ทุกรายการตามปกติ
+            // 1. อัปเดต Google Sheet ทุกรายการ
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
             
-            // เช็คเงื่อนไข: ถ้าไม่ใช่รหัส 9026466 ถึงจะเพิ่มเข้าไปในเนื้อหาอีเมล
+            // 2. สร้างเนื้อหาอีเมล (ข้าม 9026466)
             if (String(item.mat) !== "9026466") {
                 bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
+                hasEmailContent = true;
             }
         }
 
-        const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
-        const ccTo = "gthfss@qiagen.com";
-        
-        const outlookUrl = `ms-outlook://compose?to=${encodeURIComponent(mailTo)}&cc=${encodeURIComponent(ccTo)}&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
-        const fallbackUrl = `mailto:${mailTo}?cc=${ccTo}&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
-
-        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-            window.location.href = outlookUrl;
-            setTimeout(() => { if (document.hasFocus()) window.location.href = fallbackUrl; }, 1500);
-        } else {
-            window.location.href = fallbackUrl;
-        }
-
+        // ล้างตะกร้าทันทีที่ส่ง Data สำเร็จ
         window.cart = []; 
         localStorage.removeItem('qiagen_cart');
-        setTimeout(() => window.location.reload(), 3000);
+
+        // 3. ตัดสินใจว่าจะเปิด Outlook หรือไม่
+        if (onlySilentItems || !hasEmailContent) {
+            // กรณีมีแต่ของไม่ต้องแจ้งทางเมล์ ให้แจ้งเตือนแล้วรีโหลดเลย
+            alert("✅ Sync Successfully (No email required)");
+            window.location.reload();
+        } else {
+            // กรณีมีของอื่นๆ ให้เปิด Outlook
+            const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
+            const ccTo = "gthfss@qiagen.com";
+            const outlookUrl = `ms-outlook://compose?to=${encodeURIComponent(mailTo)}&cc=${encodeURIComponent(ccTo)}&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
+            const fallbackUrl = `mailto:${mailTo}?cc=${ccTo}&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
+
+            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                window.location.href = outlookUrl;
+                setTimeout(() => { if (document.hasFocus()) window.location.href = fallbackUrl; }, 1500);
+            } else {
+                window.location.href = fallbackUrl;
+            }
+            setTimeout(() => window.location.reload(), 3000);
+        }
     } catch (e) { 
         alert("Sync Error"); 
         btn.disabled = false; 
+        btn.innerText = "Confirm & Open Outlook";
     }
 };
 
