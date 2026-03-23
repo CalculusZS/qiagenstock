@@ -62,11 +62,9 @@ window.addToCart = function(type, mat, idx, from, target) {
     
     if (addQty <= 0) { alert("Please enter quantity"); return; }
 
-    // ค้นหาข้อมูลสินค้าเพื่อเช็คสต็อกที่มีอยู่จริงในเครื่อง
     const itm = window.allRows.find(i => String(i.Material) === String(mat));
     const availableStock = Number(itm ? itm[from] : 0);
 
-    // เช็คว่าในตะกร้ามีของชิ้นนี้อยู่แล้วหรือยัง
     const existingIndex = window.cart.findIndex(i => 
         String(i.mat) === String(mat) && 
         i.from === from && 
@@ -79,17 +77,14 @@ window.addToCart = function(type, mat, idx, from, target) {
         totalInCart = parseInt(window.cart[existingIndex].qty) + addQty;
     }
 
-    // ตรวจสอบว่าจำนวนรวม เกินสต็อกที่มีไหม
     if (totalInCart > availableStock) {
         alert(`❌ Stock Insufficient!\nItem: ${mat}\nAvailable: ${availableStock}\nAlready in cart: ${existingIndex > -1 ? window.cart[existingIndex].qty : 0}\nNew total would be: ${totalInCart}`);
         return;
     }
 
     if (existingIndex > -1) {
-        // ถ้ามีอยู่แล้ว ให้บวกจำนวนเพิ่มเข้าไป
         window.cart[existingIndex].qty = totalInCart;
     } else {
-        // ถ้ายังไม่มี ให้เพิ่มเข้าไปใหม่
         window.cart.push({ 
             type, 
             mat, 
@@ -103,7 +98,6 @@ window.addToCart = function(type, mat, idx, from, target) {
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
     
-    // แจ้งเตือนเล็กน้อยว่าเพิ่มแล้ว
     const btn = document.activeElement;
     if(btn && btn.tagName === 'BUTTON') {
         const originalText = btn.innerText;
@@ -165,8 +159,13 @@ window.confirmSendAndSync = async function() {
 
     try {
         for (const item of window.cart) {
+            // ยิง API อัปเดต Google Sheet ทุกรายการตามปกติ
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
-            bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
+            
+            // เช็คเงื่อนไข: ถ้าไม่ใช่รหัส 9026466 ถึงจะเพิ่มเข้าไปในเนื้อหาอีเมล
+            if (String(item.mat) !== "9026466") {
+                bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
+            }
         }
 
         const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
