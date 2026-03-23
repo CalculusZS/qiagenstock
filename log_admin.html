@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +16,7 @@
         
         /* Card Layout */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; min-height: 400px; display: flex; flex-direction: column; }
         
         h3 { margin-top: 0; color: var(--blue); border-bottom: 2px solid var(--qiagen); padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
         p.subtitle { font-size: 12px; color: #64748b; margin-bottom: 20px; }
@@ -27,12 +27,12 @@
         select, input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 14px; }
         
         /* Buttons */
-        .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; }
+        .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; margin-top: auto; }
         .btn-export-trans { background: var(--success); color: white; }
         .btn-export-admin { background: var(--blue); color: white; }
         .btn:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         
-        .btn-back { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); width: auto; padding: 8px 18px; font-size: 13px; }
+        .btn-back { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); width: auto; padding: 8px 18px; font-size: 13px; margin-top: 0; }
         .btn-back:hover { background: var(--qiagen); border-color: transparent; }
 
         #loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 1000; justify-content: center; align-items: center; flex-direction: column; }
@@ -46,7 +46,7 @@
 
 <div id="loading-overlay">
     <div class="spinner"></div>
-    <p style="margin-top:15px; font-weight:bold; color:var(--blue);">กำลังประมวลผลไฟล์ PDF...</p>
+    <p style="margin-top:15px; font-weight:bold; color:var(--blue);">Processing PDF File...</p>
 </div>
 
 <div class="container">
@@ -61,26 +61,26 @@
     <div class="grid">
         <div class="card">
             <h3>🔄 Transaction Log</h3>
-            <p class="subtitle">ประวัติการเคลื่อนไหวสต็อก (เบิก, คืน, โอน, ตัดสต็อก)</p>
+            <p class="subtitle">History of stock movements (Withdraw, Return, Transfer, Deduct)</p>
             
             <div class="form-group">
-                <label>เลือกหมวดหมู่รายการ</label>
+                <label>Select Category</label>
                 <select id="t-cat">
-                    <option value="ALL">แสดงทั้งหมด (All Categories)</option>
-                    <option value="WITHDRAW">เบิกออก (Withdraw)</option>
-                    <option value="RETURN">คืนของ (Return)</option>
-                    <option value="DEDUCT">ตัดสต็อก (Deduct)</option>
-                    <option value="TRANSFER">โอนย้าย (Transfer)</option>
+                    <option value="ALL">All Categories</option>
+                    <option value="WITHDRAW">Withdraw</option>
+                    <option value="RETURN">Return</option>
+                    <option value="DEDUCT">Deduct</option>
+                    <option value="TRANSFER">Transfer</option>
                 </select>
             </div>
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <div class="form-group">
-                    <label>เริ่มวันที่</label>
+                    <label>Start Date</label>
                     <input type="date" id="t-start">
                 </div>
                 <div class="form-group">
-                    <label>ถึงวันที่</label>
+                    <label>End Date</label>
                     <input type="date" id="t-end">
                 </div>
             </div>
@@ -92,14 +92,15 @@
 
         <div class="card">
             <h3>📦 Admin Stock Log</h3>
-            <p class="subtitle">ประวัติการเพิ่มสต็อกและจัดการระบบโดย Admin</p>
+            <p class="subtitle">History of stock additions and admin system actions</p>
             
-            <div style="margin-top: 78px;"> <div class="form-group">
-                    <label>เริ่มวันที่</label>
+            <div style="margin-top: 10px;">
+                <div class="form-group">
+                    <label>Start Date</label>
                     <input type="date" id="a-start">
                 </div>
                 <div class="form-group">
-                    <label>ถึงวันที่</label>
+                    <label>End Date</label>
                     <input type="date" id="a-end">
                 </div>
             </div>
@@ -120,38 +121,48 @@
         overlay.style.display = 'flex';
 
         try {
-            const action = (mode === 'transaction') ? 'handleGetHistory' : 'handleGetAdminLog';
+            // Action names must match Code.gs (lowercase handleget...)
+            const action = (mode === 'transaction') ? 'handlegethistory' : 'handlegetadminlog';
             const response = await fetch(`${API_URL}?action=${action}&pass=${PASS_KEY}`);
             const result = await response.json();
 
-            if (!result.success) throw new Error("ไม่สามารถดึงข้อมูลได้");
+            if (!result.success) throw new Error(result.msg || "Unable to fetch data");
 
-            // ดึงค่า Filter
+            // --- CRITICAL: Slice(1) to remove Header Row before filtering ---
+            const rawData = result.data.slice(1);
+            
             const startVal = document.getElementById(`${mode === 'transaction' ? 't' : 'a'}-start`).value;
             const endVal = document.getElementById(`${mode === 'transaction' ? 't' : 'a'}-end`).value;
             const category = (mode === 'transaction') ? document.getElementById('t-cat').value : 'ALL';
 
-            // กรองข้อมูล (Filtering Logic)
-            const filtered = result.data.filter(row => {
-                const dateOfRow = new Date(row[0]).setHours(0,0,0,0);
+            // Filtering Logic
+            const filtered = rawData.filter(row => {
+                if (!row[0]) return false;
+                const dateOfRow = new Date(row[0]);
+                dateOfRow.setHours(0,0,0,0);
+                
+                if (isNaN(dateOfRow.getTime())) return false;
+
                 const afterStart = startVal ? dateOfRow >= new Date(startVal).setHours(0,0,0,0) : true;
                 const beforeEnd = endVal ? dateOfRow <= new Date(endVal).setHours(0,0,0,0) : true;
                 
                 let catMatch = true;
                 if (mode === 'transaction' && category !== 'ALL') {
-                    catMatch = row[4].toString().toUpperCase().includes(category);
+                    // Check column index 4 for Action type
+                    catMatch = row[4] && row[4].toString().toUpperCase().includes(category);
                 }
                 return afterStart && beforeEnd && catMatch;
             });
 
             if (filtered.length === 0) {
-                alert("ไม่พบข้อมูลตามเงื่อนไขที่ระบุ");
+                alert("No records found for the selected criteria.");
             } else {
                 generatePDFFile(mode, filtered, category);
             }
 
         } catch (err) {
-            alert("เกิดข้อผิดพลาด: " + err.message);
+            console.error("Export Error:", err);
+            alert("Error: " + err.message);
         } finally {
             overlay.style.display = 'none';
         }
@@ -159,18 +170,16 @@
 
     function generatePDFFile(mode, data, catName) {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'mm', 'a4');
+        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape A4
         
-        // Header PDF
         doc.setFontSize(18);
         doc.setTextColor(0, 51, 102);
         doc.text(mode === 'transaction' ? `QIAGEN TRANSACTION LOG (${catName})` : "QIAGEN ADMIN STOCK LOG", 14, 15);
         
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text(`Report Period: ${new Date().toLocaleDateString('th-TH')} | Generated by Admin System`, 14, 22);
+        doc.text(`Generated on: ${new Date().toLocaleString()} | QIAGEN Inventory System`, 14, 22);
 
-        // Header Table
         const tableHeader = (mode === 'transaction') 
             ? [['Date/Time', 'Material', 'Instrument', 'Product', 'Action', 'Qty', 'From', 'To', 'Ref/WO']]
             : [['Timestamp', 'Operator', 'Action', 'Material', 'Product', 'Qty', 'Batch', 'Note']];
@@ -178,14 +187,25 @@
         doc.autoTable({
             startY: 28,
             head: tableHeader,
-            body: data.map(r => r.map((val, idx) => (idx === 0) ? new Date(val).toLocaleString('th-TH') : val)),
+            body: data.map(r => r.map((val, idx) => {
+                // Formatting Date Column (index 0)
+                if (idx === 0) {
+                    try { 
+                        return new Date(val).toLocaleString('en-GB', { 
+                            year: 'numeric', month: '2-digit', day: '2-digit',
+                            hour: '2-digit', minute: '2-digit'
+                        }); 
+                    } catch(e) { return val; }
+                }
+                return val;
+            })),
             theme: 'striped',
-            headStyles: { fillColor: [0, 51, 102], fontSize: 8 },
-            styles: { fontSize: 7, cellPadding: 2 },
+            headStyles: { fillColor: [0, 51, 102], fontSize: 8, halign: 'center' },
+            styles: { fontSize: 7, cellPadding: 2, font: 'helvetica' },
             columnStyles: { 0: { cellWidth: 35 } }
         });
 
-        doc.save(`log_admin_${mode}_${Date.now()}.pdf`);
+        doc.save(`QIAGEN_LOG_${mode.toUpperCase()}_${Date.now()}.pdf`);
     }
 
     // Set Default Dates to Today
