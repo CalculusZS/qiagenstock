@@ -15,26 +15,26 @@
     td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
     .btn-back { background: rgba(255,255,255,0.2); border: 1px solid #fff; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
     
-    /* การจัดวาง WO, Qty, ปุ่ม ให้ลงตัวในบรรทัดเดียว */
     .action-row { display: flex; gap: 5px; justify-content: flex-end; align-items: center; }
     .wo-input { width: 80px; height: 36px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; }
     .qty-input-sm { width: 40px; height: 36px; text-align:center; border: 1px solid #cbd5e1; border-radius: 6px; }
-    .btn-deduct { background: #ef4444; color: white; border: none; height: 36px; padding: 0 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; }
+    .btn-deduct { background: #ef4444; color: white; border: none; height: 36px; padding: 0 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 13px; transition: 0.2s; }
+    .btn-deduct:disabled { background: #94a3b8; cursor: not-allowed; opacity: 0.8; }
   </style>
 </head>
-<body onload="initDeduct()">
+<body onload="initPage()">
   <div class="header">
-    <div style="font-weight: bold; font-size: 18px;">📉 DEDUCT PART (USED)</div>
+    <div style="font-weight: bold; font-size: 18px;">📉 DEDUCT PART (USAGE)</div>
     <button class="btn-back" onclick="location.href='main.html'">BACK</button>
   </div>
   <div class="container">
     <div style="margin-bottom:10px; color:#64748b;">👤 Logged in as: <strong id="display-user"></strong></div>
-    <input type="text" class="search-box" placeholder="🔍 Search Material or Product Name..." oninput="searchStock(this.value, 'deduct')">
+    <input type="text" id="search-input" class="search-box" placeholder="🔍 Search Material or Product Name..." oninput="window.searchData(this.value)">
     <table>
       <thead>
         <tr>
           <th>DETAILS</th>
-          <th style="text-align:center;">STOCK</th>
+          <th style="text-align:center;">ON HAND</th>
           <th style="text-align:right;">WO / QTY / ACTION</th>
         </tr>
       </thead>
@@ -42,24 +42,74 @@
         </tbody>
     </table>
   </div>
+
   <script src="js/app.js"></script>
+
   <script>
-    function initDeduct() {
-      if(!checkAuth()) return;
-      document.getElementById('display-user').innerText = sessionStorage.getItem('selectedUser');
-      loadStockData('deduct'); 
+    function initPage() {
+      const user = sessionStorage.getItem('selectedUser');
+      if (!user) { window.location.replace('index.html'); return; }
+      document.getElementById('display-user').innerText = user;
+      if (window.loadStockData) window.loadStockData();
     }
 
-    // ฟังก์ชันยิงคำสั่งตัดสต็อก
-    async function handleDeductClick(mat) {
-      const wo = document.getElementById('wo_' + mat).value.trim();
-      const qty = document.getElementById('qty_' + mat).value;
-      if(!wo) { alert("❌ กรุณาใส่เลข Work Order"); return; }
-      if(confirm(`ยืนยันการใช้ ${mat} จำนวน ${qty} สำหรับ WO: ${wo}?`)) {
-        const res = await executeDeduct(mat, qty, wo);
-        if(res.success) loadStockData('deduct');
+    // Handle Deduct Click with Loading State (English UI)
+    async function handleDeductClick(mat, index) {
+      const btn = document.getElementById('btn_deduct_' + index);
+      const woInput = document.getElementById('wo_' + index);
+      const qtyInput = document.getElementById('qty_' + index);
+      
+      const wo = woInput.value.trim();
+      const qty = qtyInput.value;
+
+      if(!wo) { 
+        alert("❌ Please enter Work Order Number (WO#)"); 
+        woInput.focus();
+        return; 
+      }
+
+      if(confirm(`Confirm usage of ${mat} (Qty: ${qty}) for WO: ${wo}?`)) {
+        try {
+          // --- Start Loading State ---
+          btn.disabled = true;
+          btn.innerText = "Deducting...";
+          
+          // Call window.doDeduct from app.js
+          await window.doDeduct(mat, index);
+
+        } catch (e) {
+          alert("❌ Error: " + e.message);
+          btn.disabled = false;
+          btn.innerText = "Deduct";
+        }
       }
     }
+
+    // Override renderTable for English UI & ID matching
+    window.renderTable = function(data) {
+        const tbody = document.getElementById('data');
+        if (!tbody) return;
+        
+        const user = sessionStorage.getItem('selectedUser');
+        
+        let rowsHtml = data.map((item, index) => {
+            let qtyOnHand = Number(item[user] || 0);
+            if (qtyOnHand <= 0) return ''; 
+            
+            return `<tr>
+                <td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']||''}</small></td>
+                <td align="center"><b>${qtyOnHand}</b></td>
+                <td align="right">
+                    <div class="action-row">
+                        <input type="text" id="wo_${index}" class="wo-input" placeholder="WO#">
+                        <input type="number" id="qty_${index}" class="qty-input-sm" value="1">
+                        <button id="btn_deduct_${index}" onclick="handleDeductClick('${item.Material}', ${index})" class="btn-deduct">Deduct</button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+        tbody.innerHTML = rowsHtml || '<tr><td colspan="3" align="center" style="padding:40px; color:gray;">❌ No items found on hand.</td></tr>';
+    };
   </script>
 </body>
 </html>
