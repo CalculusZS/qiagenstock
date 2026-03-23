@@ -1,7 +1,7 @@
 /* ========================================================================== 
    QIAGEN INVENTORY - FULL VERSION (GROUPED ITEMS & OUTLOOK FORCED)
    ========================================================================== */
-const API = "https://script.google.com/macros/s/AKfycbw_RZkZTnP3bseKFjbmLVByPEwEpmrDd2zhM537crfz3p1jhU_tHeIXzFUHVD38gD2h/exec";
+const API = "https://script.google.com/macros/s/AKfycbxv0oce-n7YrWVExNk-RAiwQ3tIUyjcBLfg6obFeytSBt6ET05tOFbzMV5LP6zaHjSh/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
 
@@ -55,12 +55,18 @@ window.processReset = async function(u) {
     } catch (e) { alert("❌ Error"); }
 };
 
-/* --- 2. CART (แก้ไขให้บวกรวมจำนวนถ้าเป็นชิ้นเดิม) --- */
+/* --- 2. CART (แก้ไข: เช็คสต็อกจริง + บวกรวมจำนวนเดิม) --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
     const addQty = parseInt(document.getElementById(qID).value) || 0;
     
-    // หาว่าในตะกร้ามีของชิ้นนี้อยู่แล้วหรือยัง (เช็ค Material, From, Target และ Type)
+    if (addQty <= 0) { alert("Please enter quantity"); return; }
+
+    // ค้นหาข้อมูลสินค้าเพื่อเช็คสต็อกที่มีอยู่จริงในเครื่อง
+    const itm = window.allRows.find(i => String(i.Material) === String(mat));
+    const availableStock = Number(itm ? itm[from] : 0);
+
+    // เช็คว่าในตะกร้ามีของชิ้นนี้อยู่แล้วหรือยัง
     const existingIndex = window.cart.findIndex(i => 
         String(i.mat) === String(mat) && 
         i.from === from && 
@@ -68,12 +74,22 @@ window.addToCart = function(type, mat, idx, from, target) {
         i.type === type
     );
 
+    let totalInCart = addQty;
+    if (existingIndex > -1) {
+        totalInCart = parseInt(window.cart[existingIndex].qty) + addQty;
+    }
+
+    // ตรวจสอบว่าจำนวนรวม เกินสต็อกที่มีไหม
+    if (totalInCart > availableStock) {
+        alert(`❌ Stock Insufficient!\nItem: ${mat}\nAvailable: ${availableStock}\nAlready in cart: ${existingIndex > -1 ? window.cart[existingIndex].qty : 0}\nNew total would be: ${totalInCart}`);
+        return;
+    }
+
     if (existingIndex > -1) {
         // ถ้ามีอยู่แล้ว ให้บวกจำนวนเพิ่มเข้าไป
-        window.cart[existingIndex].qty = parseInt(window.cart[existingIndex].qty) + addQty;
+        window.cart[existingIndex].qty = totalInCart;
     } else {
         // ถ้ายังไม่มี ให้เพิ่มเข้าไปใหม่
-        const itm = window.allRows.find(i => String(i.Material) === String(mat));
         window.cart.push({ 
             type, 
             mat, 
@@ -148,8 +164,6 @@ window.confirmSendAndSync = async function() {
     let bodyText = `Hi BO,\n\nPlease transfer the following spare parts.\n\n`;
 
     try {
-        // เนื่องจากในตะกร้าเรารวมยอดไว้แล้ว (ในขั้นตอน addToCart)
-        // เมื่อวน Loop ส่ง API และสร้างเนื้อหา Email มันจะออกมาเป็นบรรทัดเดียวโดยปริยาย
         for (const item of window.cart) {
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
             bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
