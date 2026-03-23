@@ -149,22 +149,22 @@
         <div style="max-width:1100px; margin:auto;">
             <div class="val-card-grid">
                 <div class="val-card" style="border-left: 5px solid var(--qiagen-blue);">
-                    <small>ALL STOCK VALUE (Col X)</small>
+                    <small>ALL STOCK VALUE</small>
                     <div class="badge-pct" style="background:var(--qiagen-blue); color:white;">100%</div>
                     <h3 id="total-val">฿ 0.00</h3>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--success);">
-                    <small>AGING = 126 (Col U)</small>
+                    <small>AGING >= 1Y</small>
                     <div class="badge-pct" id="pct-126">0%</div>
                     <h3 id="aging-126-val" style="color:var(--success);">฿ 0.00</h3>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--warning);">
-                    <small>AGING >= 1Y (Excl. 126)</small>
+                    <small>AGING >= 1Y</small>
                     <div class="badge-pct" id="pct-1y">0%</div>
                     <h3 id="aging-1y-val" style="color:var(--warning);">฿ 0.00</h3>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--danger);">
-                    <small>AGING >= 3Y (Excl. 126)</small>
+                    <small>AGING >= 3Y</small>
                     <div class="badge-pct" id="pct-3y">0%</div>
                     <h3 id="aging-3y-val" style="color:var(--danger);">฿ 0.00</h3>
                 </div>
@@ -267,7 +267,7 @@
             barChart = new Chart(document.getElementById('valBarChart'), {
                 type: 'bar',
                 data: {
-                    labels: ['All Stock', 'Aging=126', 'Aging>=1', 'Aging>=3'],
+                    labels: ['All Stock', 'Aging<=1', 'Aging>=1', 'Aging>=3'],
                     datasets: [{
                         data: [total, a126, a1, a3],
                         backgroundColor: ['#003366', '#10b981', '#f59e0b', '#ef4444'],
@@ -280,7 +280,7 @@
             pieChart = new Chart(document.getElementById('valPieChart'), {
                 type: 'doughnut',
                 data: {
-                    labels: ['Age=126', 'Age 1-3Y', 'Age > 3Y', 'Other'],
+                    labels: ['Aging<=1', 'Age 1-3Y', 'Age > 3Y', 'Other'],
                     datasets: [{
                         data: [a126, a1-a3, a3, Math.max(0, total-a126-a1)],
                         backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#e2e8f0']
