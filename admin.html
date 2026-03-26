@@ -244,16 +244,13 @@
             } catch (e) { return []; }
         }
 
-        // --- แก้ไขฟังก์ชันคำนวณ: E - F และ ไม่เอาค่า 0 ---
         async function exportNeedOrder() {
             const data = await getFreshData();
             const filtered = data
                 .map(row => {
-                    // 1. คำนวณ Qty: E (MinimumQty) - F (ALL Stock Qty)
                     const min = parseFloat(row["MinimumQty"]) || 0;
                     const stock = parseFloat(row["ALL Stock Qty"]) || 0;
                     const resultQty = min - stock;
-
                     return {
                         "Material": row["Material"],
                         "Product Name": row["Product Name"],
@@ -261,10 +258,7 @@
                         "NeedStatus": String(row["Need to order"] || "").trim().toUpperCase()
                     };
                 })
-                .filter(item => {
-                    // 2. เงื่อนไข: ต้องเป็น YES และ Qty ต้องมากกว่า 0 (ไม่ดึงค่า 0 หรือติดลบมา)
-                    return item.NeedStatus === 'YES' && item.Qty > 0;
-                })
+                .filter(item => item.NeedStatus === 'YES' && item.Qty > 0)
                 .map(item => ({
                     "Material": item.Material,
                     "Product Name": item["Product Name"],
@@ -289,22 +283,37 @@
             saveExcel(filtered, "My_VAN_Stock_0243");
         }
 
+        // --- แก้ไขจุดนี้: ปรับ Team Stock ให้เป็น List รายคน (FSS) ตามรูป ---
         async function exportTeamStock() {
             const data = await getFreshData();
+            // รายชื่อ STAFF ทั้งหมด
             const team = ['Kitti', 'Tatchai', 'Parinyac', 'Phurilap', 'Penporr', 'Phuriwa'];
-            const filtered = data.map(row => {
-                let item = { "Material": row["Material"], "Product Name": row["Product Name"] };
-                team.forEach(m => item[m] = row[m] || 0);
-                return item;
-            }).filter(row => team.some(m => (parseFloat(row[m]) || 0) > 0));
-            if(filtered.length === 0) return alert("ไม่พบ Team Stock");
-            saveExcel(filtered, "Team_Stock_Report");
+            
+            let exportData = [];
+
+            data.forEach(row => {
+                team.forEach(staff => {
+                    const qty = parseFloat(row[staff]) || 0;
+                    // ถ้าพนักงานคนนี้มีของ ให้บันทึกเป็น 1 แถวใน Excel
+                    if (qty > 0) {
+                        exportData.push({
+                            "Material": row["Material"],
+                            "Product Name": row["Product Name"],
+                            "Qty": qty,
+                            "FSS": staff // ระบุชื่อคนในคอลัมน์ FSS
+                        });
+                    }
+                });
+            });
+
+            if(exportData.length === 0) return alert("ไม่พบ Team Stock ที่มีรายการคงเหลือ");
+            saveExcel(exportData, "Team_Stock_by_Staff");
         }
 
         function saveExcel(json, name) {
             const ws = XLSX.utils.json_to_sheet(json);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Data");
+            XLSUtils.book_append_sheet(wb, ws, "Data");
             XLSX.writeFile(wb, `${name}.xlsx`);
             showStatus("✅ Export Success", "#dcfce7", "#166534");
         }
