@@ -236,47 +236,62 @@
 
         function checkAuth() { if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html'); }
 
-        // --- Export Functions ---
+        // --- Core Fetch Function ---
         async function getFreshData() {
             showStatus("⌛ Fetching data for export...", "#eff6ff", "#1e40af");
-            const res = await fetch(`${API}?action=read&pass=${PASS}`).then(r => r.json());
-            return res.success ? res.data : [];
+            try {
+                const res = await fetch(`${API}?action=read&pass=${PASS}`).then(r => r.json());
+                return res.success ? res.data : [];
+            } catch (e) {
+                alert("เชื่อมต่อ API ล้มเหลว");
+                return [];
+            }
         }
 
+        // --- 1. แก้ไข Need Order: เช็ค G="YES", Qty = E-F ---
         async function exportNeedOrder() {
             const data = await getFreshData();
             const filtered = data
-                .filter(row => String(row["Need Order"]).toUpperCase() === 'YES')
+                .filter(row => {
+                    const status = String(row["Need to order"] || "").trim().toUpperCase();
+                    return status === 'YES';
+                })
+                .map(row => {
+                    const minQty = parseFloat(row["MinimumQty"]) || 0;
+                    const totalStock = parseFloat(row["Total Stock"]) || 0;
+                    const calcQty = minQty - totalStock;
+
+                    return {
+                        "Material": row["Material"],
+                        "Product Name": row["Product Name"],
+                        "Qty": calcQty > 0 ? calcQty : 0
+                    };
+                });
+            
+            if(filtered.length === 0) return alert("ไม่พบรายการที่ต้องสั่ง (Need to order = YES)");
+            saveExcel(filtered, "Need_Order_Minimum_Stock");
+        }
+
+        // --- 2. My VAN Stock: ดึงจากคอลัมน์ H (0243) ---
+        async function exportMyVan() {
+            const data = await getFreshData();
+            const colName = "0243"; 
+            
+            const filtered = data
+                .filter(row => (parseFloat(row[colName]) || 0) > 0)
                 .map(row => ({
                     "Material": row["Material"],
                     "Product Name": row["Product Name"],
-                    "Qty": (parseFloat(row["Min Stock"]) || 0) - (parseFloat(row["0243"]) || 0)
-                }));
-            if(filtered.length === 0) return alert("No Need Order found.");
-            saveExcel(filtered, "Need_Order_Min_Stock");
-        }
-
-        // --- แก้ไข My VAN Stock ตามคำขอ: คอลัมน์ H (0243) และ Qty > 0 ---
-        async function exportMyVan() {
-            const data = await getFreshData();
-            const colName = "0243"; // ดึงจากคอลัมน์ H ตามที่พี่ต้องการ
-            
-            const filtered = data
-                .filter(row => (parseFloat(row[colName]) || 0) > 0) // ไม่ดึงแถวที่เป็น 0
-                .map(row => ({
-                    "Material": row["Material"],        // คอลัมน์ B
-                    "Product Name": row["Product Name"], // คอลัมน์ C
-                    "Qty": row[colName]                  // คอลัมน์ H
+                    "Qty": row[colName]
                 }));
             
-            if(filtered.length === 0) return alert("ไม่พบสต็อก (Qty > 0) ในคอลัมน์ 0243");
+            if(filtered.length === 0) return alert("ไม่พบสต็อกในคอลัมน์ 0243");
             saveExcel(filtered, "My_VAN_Stock_0243");
         }
 
-        // --- แก้ไข Team Stock: ปรับตัวสะกดชื่อให้ตรงตามหัวตาราง Excel ---
+        // --- 3. Team Stock: ปรับชื่อคอลัมน์ให้ตรงตาม Excel ---
         async function exportTeamStock() {
             const data = await getFreshData();
-            // ปรับชื่อตามหัวตาราง: Parinyac (ไม่มี hat), Penporr (r สองตัว), Phuriwa (ไม่มี t)
             const team = ['Kitti', 'Tatchai', 'Parinyac', 'Phurilap', 'Penporr', 'Phuriwa'];
             
             const filtered = data.map(row => {
@@ -285,10 +300,11 @@
                 return item;
             }).filter(row => team.some(m => (parseFloat(row[m]) || 0) > 0));
             
-            if(filtered.length === 0) return alert("No Team Stock found.");
+            if(filtered.length === 0) return alert("ไม่พบ Team Stock");
             saveExcel(filtered, "Team_Stock_Report");
         }
 
+        // --- Excel Saving Engine ---
         function saveExcel(json, name) {
             const ws = XLSX.utils.json_to_sheet(json);
             const wb = XLSX.utils.book_new();
@@ -297,9 +313,9 @@
             showStatus("✅ Export Success", "#dcfce7", "#166534");
         }
 
-        // --- Original Functions (คงเดิมทั้งหมด) ---
+        // --- Dashboard & Valuation Logic ---
         async function calculateValuation() {
-            showStatus("⌛ Fetching Data...", "#eff6ff", "#1e40af");
+            showStatus("⌛ Calculating...", "#eff6ff", "#1e40af");
             try {
                 const res = await fetch(`${API}?action=read&pass=${PASS}`).then(r => r.json());
                 if (!res.success) throw new Error("API Error");
@@ -353,6 +369,7 @@
             });
         }
 
+        // --- UI Control Functions ---
         function openValuation() { document.getElementById('valuation-window').style.display = 'block'; calculateValuation(); }
         function closeValuation() { document.getElementById('valuation-window').style.display = 'none'; }
         function openUserModal() { document.getElementById('userModal').style.display = 'block'; renderUserList(); }
