@@ -205,7 +205,7 @@ window.confirmSendAndSync = async function() {
     }
 };
 
-/* --- 4. RENDERING & DATA --- */
+/* --- 4. RENDERING & DATA (FIXED: SHOW OWN STOCK BUT DISABLE TRANSFER) --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
@@ -213,20 +213,28 @@ window.renderTeamTable = function(data) {
     const currentUser = sessionStorage.getItem('selectedUser');
     const members = Object.values(USER_MAP);
     let html = '';
+    
     data.forEach((item, idx) => {
         members.forEach(m => {
             const q = Number(item[m] || 0);
-            if (m !== currentUser && q > 0) {
-                html += `<tr>
+            // แสดงข้อมูลถ้า Stock > 0 (รวมตัวเองด้วย)
+            if (q > 0) {
+                const isMe = (m === currentUser);
+                html += `<tr class="card">
                     <td style="padding:12px;">
-                        <div style="font-size: 15px; font-weight: bold; color: black; margin-bottom: 4px;">Owner: ${m}</div>
+                        <div style="font-size: 15px; font-weight: bold; color: ${isMe ? '#64748b' : 'black'}; margin-bottom: 4px;">
+                            Owner: ${isMe ? m + ' (Me)' : m}
+                        </div>
                         <b>${item.Material}</b> - <small>${item['Product Name']||''}</small>
                     </td>
                     <td align="right" style="padding-right:10px;">
                         <div style="display:flex; gap:8px; justify-content:flex-end; align-items:center;">
                             <b style="font-size: 16px;">Stock: ${q}</b>
-                            <input type="number" id="t_qty_${idx}_${m}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
-                            <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:#f97316; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">Transfer</button>
+                            ${isMe ? 
+                                `<button disabled style="background:#cbd5e1; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:not-allowed;">Transfer</button>` :
+                                `<input type="number" id="t_qty_${idx}_${m}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
+                                 <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:#f97316; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">Transfer</button>`
+                            }
                         </div>
                     </td>
                 </tr>`;
