@@ -244,30 +244,35 @@
             } catch (e) { return []; }
         }
 
-        // --- แก้ไขจุดคำนวณตามรูปที่พี่ส่งมา ---
+        // --- แก้ไขฟังก์ชันคำนวณ: E - F และ ไม่เอาค่า 0 ---
         async function exportNeedOrder() {
             const data = await getFreshData();
             const filtered = data
-                .filter(row => {
-                    // ตรวจสอบคอลัมน์ G: "Need to order"
-                    const status = String(row["Need to order"] || "").trim().toUpperCase();
-                    return status === 'YES';
-                })
                 .map(row => {
-                    // คำนวณ Qty: E (MinimumQty) - F (ALL Stock Qty)
+                    // 1. คำนวณ Qty: E (MinimumQty) - F (ALL Stock Qty)
                     const min = parseFloat(row["MinimumQty"]) || 0;
                     const stock = parseFloat(row["ALL Stock Qty"]) || 0;
-                    const diff = min - stock;
+                    const resultQty = min - stock;
 
                     return {
                         "Material": row["Material"],
                         "Product Name": row["Product Name"],
-                        "Qty": diff > 0 ? diff : 0
+                        "Qty": resultQty,
+                        "NeedStatus": String(row["Need to order"] || "").trim().toUpperCase()
                     };
-                });
+                })
+                .filter(item => {
+                    // 2. เงื่อนไข: ต้องเป็น YES และ Qty ต้องมากกว่า 0 (ไม่ดึงค่า 0 หรือติดลบมา)
+                    return item.NeedStatus === 'YES' && item.Qty > 0;
+                })
+                .map(item => ({
+                    "Material": item.Material,
+                    "Product Name": item["Product Name"],
+                    "Qty": item.Qty
+                }));
             
-            if(filtered.length === 0) return alert("ไม่พบรายการที่ต้องสั่ง (Need to order = YES)");
-            saveExcel(filtered, "Need_Order_Report");
+            if(filtered.length === 0) return alert("ไม่พบรายการที่ต้องสั่งเพิ่ม (สต็อกยังเพียงพอ)");
+            saveExcel(filtered, "Need_Order_Minimum_Stock");
         }
 
         async function exportMyVan() {
@@ -286,7 +291,6 @@
 
         async function exportTeamStock() {
             const data = await getFreshData();
-            // ปรับชื่อทีมให้ตรงเป๊ะตามหัวตารางในรูป: Parinyac, Penporr, Phuriwa
             const team = ['Kitti', 'Tatchai', 'Parinyac', 'Phurilap', 'Penporr', 'Phuriwa'];
             const filtered = data.map(row => {
                 let item = { "Material": row["Material"], "Product Name": row["Product Name"] };
