@@ -236,47 +236,43 @@
 
         function checkAuth() { if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html'); }
 
-        // --- Core Fetch Function ---
         async function getFreshData() {
             showStatus("⌛ Fetching data for export...", "#eff6ff", "#1e40af");
             try {
                 const res = await fetch(`${API}?action=read&pass=${PASS}`).then(r => r.json());
                 return res.success ? res.data : [];
-            } catch (e) {
-                alert("เชื่อมต่อ API ล้มเหลว");
-                return [];
-            }
+            } catch (e) { return []; }
         }
 
-        // --- 1. แก้ไข Need Order: เช็ค G="YES", Qty = E-F ---
+        // --- แก้ไขจุดคำนวณตามรูปที่พี่ส่งมา ---
         async function exportNeedOrder() {
             const data = await getFreshData();
             const filtered = data
                 .filter(row => {
+                    // ตรวจสอบคอลัมน์ G: "Need to order"
                     const status = String(row["Need to order"] || "").trim().toUpperCase();
                     return status === 'YES';
                 })
                 .map(row => {
-                    const minQty = parseFloat(row["MinimumQty"]) || 0;
-                    const totalStock = parseFloat(row["Total Stock"]) || 0;
-                    const calcQty = minQty - totalStock;
+                    // คำนวณ Qty: E (MinimumQty) - F (ALL Stock Qty)
+                    const min = parseFloat(row["MinimumQty"]) || 0;
+                    const stock = parseFloat(row["ALL Stock Qty"]) || 0;
+                    const diff = min - stock;
 
                     return {
                         "Material": row["Material"],
                         "Product Name": row["Product Name"],
-                        "Qty": calcQty > 0 ? calcQty : 0
+                        "Qty": diff > 0 ? diff : 0
                     };
                 });
             
             if(filtered.length === 0) return alert("ไม่พบรายการที่ต้องสั่ง (Need to order = YES)");
-            saveExcel(filtered, "Need_Order_Minimum_Stock");
+            saveExcel(filtered, "Need_Order_Report");
         }
 
-        // --- 2. My VAN Stock: ดึงจากคอลัมน์ H (0243) ---
         async function exportMyVan() {
             const data = await getFreshData();
             const colName = "0243"; 
-            
             const filtered = data
                 .filter(row => (parseFloat(row[colName]) || 0) > 0)
                 .map(row => ({
@@ -284,27 +280,23 @@
                     "Product Name": row["Product Name"],
                     "Qty": row[colName]
                 }));
-            
             if(filtered.length === 0) return alert("ไม่พบสต็อกในคอลัมน์ 0243");
             saveExcel(filtered, "My_VAN_Stock_0243");
         }
 
-        // --- 3. Team Stock: ปรับชื่อคอลัมน์ให้ตรงตาม Excel ---
         async function exportTeamStock() {
             const data = await getFreshData();
+            // ปรับชื่อทีมให้ตรงเป๊ะตามหัวตารางในรูป: Parinyac, Penporr, Phuriwa
             const team = ['Kitti', 'Tatchai', 'Parinyac', 'Phurilap', 'Penporr', 'Phuriwa'];
-            
             const filtered = data.map(row => {
                 let item = { "Material": row["Material"], "Product Name": row["Product Name"] };
                 team.forEach(m => item[m] = row[m] || 0);
                 return item;
             }).filter(row => team.some(m => (parseFloat(row[m]) || 0) > 0));
-            
             if(filtered.length === 0) return alert("ไม่พบ Team Stock");
             saveExcel(filtered, "Team_Stock_Report");
         }
 
-        // --- Excel Saving Engine ---
         function saveExcel(json, name) {
             const ws = XLSX.utils.json_to_sheet(json);
             const wb = XLSX.utils.book_new();
@@ -313,13 +305,11 @@
             showStatus("✅ Export Success", "#dcfce7", "#166534");
         }
 
-        // --- Dashboard & Valuation Logic ---
         async function calculateValuation() {
             showStatus("⌛ Calculating...", "#eff6ff", "#1e40af");
             try {
                 const res = await fetch(`${API}?action=read&pass=${PASS}`).then(r => r.json());
                 if (!res.success) throw new Error("API Error");
-
                 let allStock = 0, a126 = 0, a1 = 0, a3 = 0;
                 res.data.forEach(row => {
                     const val = parseFloat(row["All Value"]) || 0;
@@ -331,11 +321,9 @@
                         if (age >= 3) a3 += val;
                     }
                 });
-
                 const total = allStock;
                 const getPct = (part) => total === 0 ? "0%" : ((part / total) * 100).toFixed(1) + "%";
                 const fmt = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' });
-                
                 document.getElementById('total-val').innerText = fmt.format(allStock);
                 document.getElementById('aging-126-val').innerText = fmt.format(a126);
                 document.getElementById('aging-1y-val').innerText = fmt.format(a1);
@@ -343,7 +331,6 @@
                 document.getElementById('pct-126').innerText = getPct(a126);
                 document.getElementById('pct-1y').innerText = getPct(a1);
                 document.getElementById('pct-3y').innerText = getPct(a3);
-
                 renderCharts(allStock, a126, a1, a3);
                 showStatus("✅ Calculation Complete", "#dcfce7", "#166534");
             } catch (e) { alert("Error: ตรวจสอบหัวตาราง All Value และ Aging (Years)"); }
@@ -369,7 +356,6 @@
             });
         }
 
-        // --- UI Control Functions ---
         function openValuation() { document.getElementById('valuation-window').style.display = 'block'; calculateValuation(); }
         function closeValuation() { document.getElementById('valuation-window').style.display = 'none'; }
         function openUserModal() { document.getElementById('userModal').style.display = 'block'; renderUserList(); }
