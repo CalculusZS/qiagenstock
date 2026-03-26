@@ -256,27 +256,36 @@
             saveExcel(filtered, "Need_Order_Min_Stock");
         }
 
+        // --- แก้ไข My VAN Stock ตามคำขอ: คอลัมน์ H (0243) และ Qty > 0 ---
         async function exportMyVan() {
             const data = await getFreshData();
-            const user = sessionStorage.getItem('selectedUser');
+            const colName = "0243"; // ดึงจากคอลัมน์ H ตามที่พี่ต้องการ
+            
             const filtered = data
-                .filter(row => (parseFloat(row[user]) || 0) > 0)
+                .filter(row => (parseFloat(row[colName]) || 0) > 0) // ไม่ดึงแถวที่เป็น 0
                 .map(row => ({
-                    "Material": row["Material"],
-                    "Product Name": row["Product Name"],
-                    "Qty": row[user]
+                    "Material": row["Material"],        // คอลัมน์ B
+                    "Product Name": row["Product Name"], // คอลัมน์ C
+                    "Qty": row[colName]                  // คอลัมน์ H
                 }));
-            saveExcel(filtered, `Stock_VAN_${user}`);
+            
+            if(filtered.length === 0) return alert("ไม่พบสต็อก (Qty > 0) ในคอลัมน์ 0243");
+            saveExcel(filtered, "My_VAN_Stock_0243");
         }
 
+        // --- แก้ไข Team Stock: ปรับตัวสะกดชื่อให้ตรงตามหัวตาราง Excel ---
         async function exportTeamStock() {
             const data = await getFreshData();
-            const team = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+            // ปรับชื่อตามหัวตาราง: Parinyac (ไม่มี hat), Penporr (r สองตัว), Phuriwa (ไม่มี t)
+            const team = ['Kitti', 'Tatchai', 'Parinyac', 'Phurilap', 'Penporr', 'Phuriwa'];
+            
             const filtered = data.map(row => {
                 let item = { "Material": row["Material"], "Product Name": row["Product Name"] };
                 team.forEach(m => item[m] = row[m] || 0);
                 return item;
-            }).filter(row => team.some(m => row[m] > 0));
+            }).filter(row => team.some(m => (parseFloat(row[m]) || 0) > 0));
+            
+            if(filtered.length === 0) return alert("No Team Stock found.");
             saveExcel(filtered, "Team_Stock_Report");
         }
 
@@ -288,7 +297,7 @@
             showStatus("✅ Export Success", "#dcfce7", "#166534");
         }
 
-        // --- Original Functions ---
+        // --- Original Functions (คงเดิมทั้งหมด) ---
         async function calculateValuation() {
             showStatus("⌛ Fetching Data...", "#eff6ff", "#1e40af");
             try {
