@@ -285,7 +285,8 @@
 
         async function exportTeamStock() {
             const data = await getFreshData();
-            const team = ['Kitti', 'Tatchai', 'Parinyac', 'Phurilap', 'Penporr', 'Phuriwa'];
+            // แก้ไขรายชื่อพนักงานให้ตรงตามหัวตารางใน Sheets ของพี่เป๊ะๆ (6 ท่าน)
+            const team = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
             let exportData = [];
 
             data.forEach(row => {
@@ -293,8 +294,8 @@
                     const qty = parseFloat(row[staff]) || 0;
                     if (qty > 0) {
                         exportData.push({
-                            "Material": row["Material"],
-                            "Product Name": row["Product Name"],
+                            "Material": row["Material"] || "N/A",
+                            "Product Name": row["Product Name"] || "N/A",
                             "Qty": qty,
                             "FSS": staff 
                         });
@@ -309,7 +310,8 @@
         function saveExcel(json, name) {
             const ws = XLSX.utils.json_to_sheet(json);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Data"); // แก้ไขจาก XLSUtils เป็น XLSX
+            // แก้ไขเป็น XLSX.utils...
+            XLSX.utils.book_append_sheet(wb, ws, "Data"); 
             XLSX.writeFile(wb, `${name}.xlsx`);
             showStatus("✅ Export Success", "#dcfce7", "#166534");
         }
