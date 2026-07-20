@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QIAGEN - PM Part Stock</title>
-    <!-- SheetJS สำหรับ Export Excel -->
+    <!-- SheetJS for Exporting Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -14,6 +14,7 @@
             --bg-slate: #f8fafc;
             --card-border: #e2e8f0;
             --text-dark: #1e293b;
+            --text-muted: #64748b;
         }
 
         * {
@@ -150,45 +151,37 @@
             box-shadow: 0 6px 18px rgba(16, 185, 129, 0.3);
         }
 
-        /* Stats Summary */
-        .stats-summary {
-            background: white;
-            border-left: 5px solid var(--pm-cyan);
-            border-radius: 14px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-            border: 1px solid var(--card-border);
-            border-left-width: 5px;
-        }
-
         /* Items Container */
         .item-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
 
-        /* Modern Card View */
+        /* Structured Card View */
         .item-card {
             background: white;
             border-radius: 16px;
-            padding: 18px 20px;
+            padding: 20px;
             border: 1px solid var(--card-border);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
+            flex-direction: column;
+            gap: 12px;
             transition: all 0.2s ease;
+        }
+
+        @media (min-width: 640px) {
+            .item-card {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
         }
 
         .item-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+            box-shadow: 0 8px 18px rgba(0,0,0,0.06);
             border-color: #cbd5e1;
         }
 
@@ -196,59 +189,98 @@
             flex: 1;
         }
 
-        .item-mat-badge {
-            display: inline-flex;
+        /* Tags Area */
+        .tag-group {
+            display: flex;
+            flex-wrap: wrap;
             align-items: center;
             gap: 8px;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .mat-code {
             font-weight: 800;
             color: var(--qiagen-blue);
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             letter-spacing: 0.5px;
         }
 
-        .item-tag {
+        .tag-instrument {
+            background: #f0fdf4;
+            color: #166534;
+            font-size: 0.78rem;
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-weight: 700;
+            border: 1px solid #bbf7d0;
+        }
+
+        .tag-pm {
             background: #ecfeff;
             color: #0891b2;
-            font-size: 0.72rem;
-            padding: 2px 8px;
-            border-radius: 6px;
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 8px;
             font-weight: 700;
             border: 1px solid #cff4fc;
         }
 
         .item-name {
             color: #334155;
-            font-size: 0.95rem;
-            line-height: 1.4;
-            font-weight: 500;
+            font-size: 1rem;
+            line-height: 1.45;
+            font-weight: 600;
         }
 
-        .item-qty-badge {
-            background: #f1f5f9;
-            padding: 10px 18px;
+        /* Stock Info Badges Side-by-Side */
+        .stock-info-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .badge-box {
+            padding: 10px 16px;
             border-radius: 12px;
             text-align: center;
-            min-width: 85px;
+            min-width: 90px;
+        }
+
+        .badge-min {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .badge-qty {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Warning Highlight if Stock <= Min */
+        .badge-qty.low-stock {
+            background: #fef2f2;
+            border-color: #fca5a5;
+        }
+        .badge-qty.low-stock .qty-num {
+            color: #dc2626;
+        }
+
+        .badge-label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 3px;
         }
 
         .qty-num {
-            font-size: 1.35rem;
+            font-size: 1.25rem;
             font-weight: 800;
             color: var(--text-dark);
             display: block;
             line-height: 1;
-        }
-
-        .qty-unit {
-            font-size: 0.75rem;
-            color: #64748b;
-            font-weight: 600;
-            margin-top: 4px;
-            display: block;
         }
 
         /* Loading & Empty State */
@@ -258,7 +290,7 @@
             background: white;
             border-radius: 18px;
             border: 1px solid var(--card-border);
-            color: #64748b;
+            color: var(--text-muted);
         }
 
         .spinner {
@@ -285,27 +317,15 @@
 
     <div class="container">
         
-        <!-- Control Panel -->
+        <!-- Search & Export Bar -->
         <div class="control-panel">
             <div class="search-box">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="search-input" placeholder="Search Material Code or Product Name..." oninput="filterPmData()">
+                <input type="text" id="search-input" placeholder="Search Material, Product, or Instrument..." oninput="filterPmData()">
             </div>
             <button class="btn-export" onclick="exportExcel()">
                 📊 Export Excel
             </button>
-        </div>
-
-        <!-- Summary Bar -->
-        <div class="stats-summary">
-            <div>
-                <small style="color: #64748b; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;">Total Items</small>
-                <div style="font-size: 1.2rem; font-weight: bold; color: var(--qiagen-blue);" id="total-count">0 Items</div>
-            </div>
-            <div>
-                <small style="color: #64748b; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;">Total Stock Qty</small>
-                <div style="font-size: 1.2rem; font-weight: bold; color: #0891b2; text-align: right;" id="total-qty">0</div>
-            </div>
         </div>
 
         <!-- Material Item List -->
@@ -318,7 +338,6 @@
 
     </div>
 
-    <!-- ดึงไฟล์ app.js หลัก เพื่อใช้ API และ Cache -->
     <script src="js/app.js"></script>
     <script>
         let pmDataList = [];
@@ -331,7 +350,6 @@
             const container = document.getElementById('pm-list-container');
             
             try {
-                // เช็คข้อมูลที่มีอยู่ใน Memory หรือ Local Storage Cache ก่อน
                 if (window.allRows && window.allRows.length > 0) {
                     processPmData(window.allRows);
                 } else {
@@ -343,7 +361,6 @@
                         processPmData(window.allRows);
                     }
                     
-                    // Fetch ข้อมูลล่าสุดจาก Google Apps Script Backend
                     const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
                     if (res.success) {
                         window.allRows = res.data;
@@ -360,19 +377,21 @@
         }
 
         function processPmData(rawRows) {
-            // กรองเอาเฉพาะรายการที่เป็น "PM Part"
             pmDataList = rawRows.filter(row => {
                 const itemType = String(row["Type"] || "").trim().toLowerCase();
                 return itemType === "pm part";
             }).map(row => {
-                // ดึงข้อมูล Material Number, Product Name (Col D) และ Quantity (Col F / 0243 Stock)
                 const matCode = row["Material"] || row["Material Number"] || "-";
                 const productName = row["Product Name"] || row["D"] || "N/A";
+                const instrument = row["Instrument"] || row["Model"] || "-";
+                const minQty = parseFloat(row["Min Qty"] || row["Minimum Qty"] || row["Min"] || 0);
                 const qtyVal = parseFloat(row["0243"] || row["F"] || row["ALL Stock Qty"] || 0);
 
                 return {
                     material: matCode,
                     productName: productName,
+                    instrument: instrument,
+                    minQty: minQty,
                     qty: qtyVal
                 };
             });
@@ -382,64 +401,66 @@
 
         function renderPmList(list) {
             const container = document.getElementById('pm-list-container');
-            const totalCountEl = document.getElementById('total-count');
-            const totalQtyEl = document.getElementById('total-qty');
 
             if (!list || list.length === 0) {
                 container.innerHTML = `
                     <div class="state-box">
                         📦 No PM Part items found.
                     </div>`;
-                totalCountEl.innerText = "0 Items";
-                totalQtyEl.innerText = "0";
                 return;
             }
 
-            let sumQty = 0;
             let html = list.map(item => {
-                sumQty += item.qty;
+                const isLow = item.qty <= item.minQty && item.minQty > 0;
                 return `
                     <div class="item-card">
                         <div class="item-details">
-                            <div class="item-mat-badge">
+                            <div class="tag-group">
                                 <span class="mat-code">${item.material}</span>
-                                <span class="item-tag">PM PART</span>
+                                <span class="tag-pm">PM PART</span>
+                                ${item.instrument !== '-' ? `<span class="tag-instrument">🔬 ${item.instrument}</span>` : ''}
                             </div>
                             <div class="item-name">${item.productName}</div>
                         </div>
-                        <div class="item-qty-badge">
-                            <span class="qty-num">${item.qty}</span>
-                            <span class="qty-unit">In Stock</span>
+                        <div class="stock-info-group">
+                            <div class="badge-box badge-min">
+                                <span class="badge-label">Min Qty</span>
+                                <span class="qty-num">${item.minQty}</span>
+                            </div>
+                            <div class="badge-box badge-qty ${isLow ? 'low-stock' : ''}">
+                                <span class="badge-label">In Stock</span>
+                                <span class="qty-num">${item.qty}</span>
+                            </div>
                         </div>
                     </div>
                 `;
             }).join('');
 
             container.innerHTML = html;
-            totalCountEl.innerText = `${list.length} Items`;
-            totalQtyEl.innerText = sumQty.toLocaleString();
         }
 
         function filterPmData() {
             const query = document.getElementById('search-input').value.toLowerCase().trim();
             const filtered = pmDataList.filter(item => 
                 String(item.material).toLowerCase().includes(query) ||
-                String(item.productName).toLowerCase().includes(query)
+                String(item.productName).toLowerCase().includes(query) ||
+                String(item.instrument).toLowerCase().includes(query)
             );
             renderPmList(filtered);
         }
 
         function exportExcel() {
             if (!pmDataList || pmDataList.length === 0) {
-                alert("ไม่มีข้อมูลสำหรับส่งออก Excel");
+                alert("No data available for Excel export.");
                 return;
             }
 
-            // จัดฟอร์แมตข้อมูลสำหรับไฟล์ Excel ให้มีทั้ง Material, Product Name และ Quantity
             const exportData = pmDataList.map(item => ({
                 "Material": item.material,
-                "Product Name (Col D)": item.productName,
-                "Quantity (Col F)": item.qty
+                "Product Name": item.productName,
+                "Instrument": item.instrument,
+                "Min Qty": item.minQty,
+                "In Stock Qty": item.qty
             }));
 
             const ws = XLSX.utils.json_to_sheet(exportData);
