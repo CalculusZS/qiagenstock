@@ -217,24 +217,19 @@
             <div class="control-bar">
                 <div class="filter-group">
                     <div class="select-group">
-                        <span>📅 Audit Period:</span>
+                        <span>📅 Audit Snapshot Period:</span>
                         <select id="quarter-select" onchange="applyFilters()">
-                            <option value="ALL">All Periods (Current Stock Valuation)</option>
-                            <option value="Q1">Q1 Usage (Jan - Mar)</option>
-                            <option value="Q2">Q2 Usage (Apr - Jun)</option>
-                            <option value="Q3">Q3 Usage (Jul - Sep)</option>
-                            <option value="Q4">Q4 Usage (Oct - Dec)</option>
+                            <option value="ALL">Current Stock (Present)</option>
+                            <option value="Q1">End of Q1 Snapshot (As of Mar 31)</option>
+                            <option value="Q2">End of Q2 Snapshot (As of Jun 30)</option>
+                            <option value="Q3">End of Q3 Snapshot (As of Sep 30)</option>
+                            <option value="Q4">End of Q4 Snapshot (As of Dec 31)</option>
                         </select>
                     </div>
 
                     <div class="select-group">
-                        <span>🗓️ From Date:</span>
+                        <span>🗓️ Custom Cut-off Date:</span>
                         <input type="date" id="start-date" onchange="applyFilters()">
-                    </div>
-
-                    <div class="select-group">
-                        <span>To Date:</span>
-                        <input type="date" id="end-date" onchange="applyFilters()">
                     </div>
 
                     <button style="background: #e2e8f0; border: none; padding: 9px 15px; border-radius: 10px; font-weight: 600; cursor: pointer;" onclick="resetFilters()">Reset Filter</button>
@@ -248,32 +243,32 @@
             <!-- 6 Cards Summary Grid -->
             <div class="val-card-grid-6">
                 <div class="val-card-style card-navy">
-                    <small id="lbl-card-1">TOTAL INVENTORY VALUE</small>
+                    <small>TOTAL INVENTORY VALUE</small>
                     <h2 id="total-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-total">100.00%</span> of Total</div>
                 </div>
                 <div class="val-card-style card-purple">
-                    <small id="lbl-card-2">EXCLUDING PM PART</small>
+                    <small>EXCLUDING PM PART</small>
                     <h2 id="ex-pm-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-ex-pm">0.00%</span> Share</div>
                 </div>
                 <div class="val-card-style card-cyan">
-                    <small id="lbl-card-3">PM PART VALUE</small>
+                    <small>PM PART VALUE</small>
                     <h2 id="pm-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-pm">0.00%</span> Share</div>
                 </div>
                 <div class="val-card-style card-green">
-                    <small id="lbl-card-4">AGING &lt;= 1 YEAR</small>
+                    <small>AGING &lt;= 1 YEAR</small>
                     <h2 id="aging-126-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-126">0.00%</span> Share</div>
                 </div>
                 <div class="val-card-style card-orange">
-                    <small id="lbl-card-5">AGING &gt; 1 - &lt; 3 YEARS</small>
+                    <small>AGING &gt; 1 - &lt; 3 YEARS</small>
                     <h2 id="aging-1y-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-1y">0.00%</span> Share</div>
                 </div>
                 <div class="val-card-style card-red">
-                    <small id="lbl-card-6">AGING &gt;= 3 YEARS</small>
+                    <small>AGING &gt;= 3 YEARS</small>
                     <h2 id="aging-3y-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-3y">0.00%</span> Share</div>
                 </div>
@@ -441,103 +436,124 @@
             }
         }
 
-        // Apply Filters: แยกโหมดภาพรวมสต็อก vs ยอดการใช้งานรายไตรมาส
+        // Apply Filters: ย้อนกลับหาปริมาณสต็อกคงเหลือ ณ วันสิ้นไตรมาส (Cut-off Point Reconstruction)
         function applyFilters() {
             if (!rawApiData || rawApiData.length === 0) return;
 
             const qVal = document.getElementById('quarter-select').value;
-            const startDateVal = document.getElementById('start-date').value;
-            const endDateVal = document.getElementById('end-date').value;
-
-            const startDate = startDateVal ? new Date(startDateVal) : null;
-            const endDate = endDateVal ? new Date(endDateVal) : null;
+            const customCutoff = document.getElementById('start-date').value;
 
             const subTitle = document.getElementById('dashboard-mode-subtitle');
             const mainTitle = document.getElementById('chart-main-title');
-            const lbl1 = document.getElementById('lbl-card-1');
 
-            // โหมด 1: All Periods (ดูสต็อกคงเหลือรวมทั้งหมดในปัจจุบัน)
-            if (qVal === "ALL" && !startDate && !endDate) {
-                filteredValuationData = [...rawApiData];
+            let cutoffDate = null;
+            const currentYear = new Date().getFullYear();
+
+            // 1. กำหนดวัน Cut-off ตามไตรมาสที่เลือก
+            if (customCutoff) {
+                cutoffDate = new Date(customCutoff + "T23:59:59");
+                subTitle.innerText = `Historical Stock Snapshot as of ${customCutoff}`;
+                mainTitle.innerText = `Reconstructed Stock Valuation (${customCutoff}) (THB)`;
+            } else if (qVal === "Q1") {
+                cutoffDate = new Date(`${currentYear}-03-31T23:59:59`);
+                subTitle.innerText = `Historical Stock Snapshot as of March 31, ${currentYear} (End of Q1)`;
+                mainTitle.innerText = `End of Q1 Stock Valuation Breakdown (THB)`;
+            } else if (qVal === "Q2") {
+                cutoffDate = new Date(`${currentYear}-06-30T23:59:59`);
+                subTitle.innerText = `Historical Stock Snapshot as of June 30, ${currentYear} (End of Q2)`;
+                mainTitle.innerText = `End of Q2 Stock Valuation Breakdown (THB)`;
+            } else if (qVal === "Q3") {
+                cutoffDate = new Date(`${currentYear}-09-30T23:59:59`);
+                subTitle.innerText = `Historical Stock Snapshot as of September 30, ${currentYear} (End of Q3)`;
+                mainTitle.innerText = `End of Q3 Stock Valuation Breakdown (THB)`;
+            } else if (qVal === "Q4") {
+                cutoffDate = new Date(`${currentYear - 1}-12-31T23:59:59`);
+                subTitle.innerText = `Historical Stock Snapshot as of December 31, ${currentYear - 1} (End of Q4)`;
+                mainTitle.innerText = `End of Q4 Stock Valuation Breakdown (THB)`;
+            } else {
                 subTitle.innerText = "Real-Time Total Inventory Valuation Breakdown";
-                mainTitle.innerText = "Total Stock Valuation Breakdown (THB)";
-                lbl1.innerText = "TOTAL INVENTORY VALUE";
-            } 
-            // โหมด 2: เลือก Audit ไตรมาส หรือ ช่วงวัน (ดูยอดมูลค่าอะไหล่ที่มีการหมุนเวียน/เบิกใช้ออกไปจริง)
-            else {
-                subTitle.innerText = `Filtered Usage Volume Analysis (${qVal !== 'ALL' ? qVal : 'Custom Range'})`;
-                mainTitle.innerText = `Total Usage Value in Period (${qVal !== 'ALL' ? qVal : 'Custom Range'}) (THB)`;
-                lbl1.innerText = "TOTAL USAGE VALUE";
-
-                // Map ราคาเฉลี่ยต่อชิ้น และรายละเอียดสินค้าจากแท็บ Stock
-                const priceMap = new Map();
-                rawApiData.forEach(row => {
-                    const mat = String(row["Material"] || "").trim();
-                    const totalQty = parseFloat(row["ALL Stock Qty"]) || 0;
-                    const totalVal = parseFloat(row["All Value"]) || 0;
-                    const price = totalQty > 0 ? (totalVal / totalQty) : (parseFloat(row["Price"]) || 0);
-                    
-                    priceMap.set(mat, {
-                        price: price,
-                        type: String(row["Type"] || "").trim(),
-                        aging: parseFloat(row["Aging (Years)"]) || 0,
-                        prodName: row["Product Name"] || ""
-                    });
-                });
-
-                let filteredLogs = [];
-
-                rawApiLogs.forEach(log => {
-                    const transType = String(log["Transaction Type"] || "").trim().toUpperCase();
-                    const userTo = String(log["User/To"] || "").trim().toUpperCase();
-                    
-                    // กรองเฉพาะการใช้งานจริง (DEDUCT)
-                    if (transType === "DEDUCT" || userTo === "DEDUCT") {
-                        const dateStr = log["Date and Time"];
-                        if (dateStr) {
-                            const logDate = new Date(dateStr);
-                            if (!isNaN(logDate.getTime())) {
-                                let isMatch = true;
-
-                                if (startDate && logDate < startDate) isMatch = false;
-                                if (endDate && logDate > endDate) isMatch = false;
-
-                                if (qVal !== "ALL") {
-                                    const month = logDate.getMonth() + 1;
-                                    if (qVal === "Q1" && !(month >= 1 && month <= 3)) isMatch = false;
-                                    if (qVal === "Q2" && !(month >= 4 && month <= 6)) isMatch = false;
-                                    if (qVal === "Q3" && !(month >= 7 && month <= 9)) isMatch = false;
-                                    if (qVal === "Q4" && !(month >= 10 && month <= 12)) isMatch = false;
-                                }
-
-                                if (isMatch) {
-                                    const mat = String(log["Material"] || "").trim();
-                                    const qty = parseFloat(log["Qty"]) || 0;
-                                    const info = priceMap.get(mat) || { price: 0, type: "", aging: 0, prodName: "" };
-                                    
-                                    filteredLogs.push({
-                                        "Material": mat,
-                                        "Product Name": log["Product Name"] || info.prodName,
-                                        "All Value": qty * info.price, // คำนวณเป็นมูลค่าคงที่เต็มจำนวนของรายการที่ใช้งาน
-                                        "Type": info.type,
-                                        "Aging (Years)": info.aging
-                                    });
-                                }
-                            }
-                        }
-                    }
-                });
-
-                filteredValuationData = filteredLogs;
+                mainTitle.innerText = "Current Stock Valuation Breakdown (THB)";
             }
 
+            // 2. หากไม่เลือกไตรมาส/ไม่ตั้ง Cut-off ให้โชว์ข้อมูลปัจจุบันทันที
+            if (!cutoffDate) {
+                filteredValuationData = rawApiData.map(row => ({
+                    ...row,
+                    "CalculatedQty": parseFloat(row["ALL Stock Qty"]) || 0,
+                    "CalculatedVal": parseFloat(row["All Value"]) || 0
+                }));
+                calculateAndRender(filteredValuationData);
+                return;
+            }
+
+            // 3. ตรรกะคำนวณย้อนกลับ (Reconstruction Logic)
+            // สร้าง Map สต็อกปัจจุบัน
+            const stockMap = new Map();
+            rawApiData.forEach(row => {
+                const mat = String(row["Material"] || "").trim();
+                const currentQty = parseFloat(row["ALL Stock Qty"]) || 0;
+                const totalVal = parseFloat(row["All Value"]) || 0;
+                const price = currentQty > 0 ? (totalVal / currentQty) : (parseFloat(row["Price"]) || 0);
+
+                stockMap.set(mat, {
+                    material: mat,
+                    productName: row["Product Name"] || "",
+                    type: String(row["Type"] || "").trim(),
+                    aging: parseFloat(row["Aging (Years)"]) || 0,
+                    price: price,
+                    qty: currentQty
+                });
+            });
+
+            // ปรับยอด Qty ย้อนกลับ โดยดู Transaction Log ที่เกิดขึ้น *หลังจาก* วัน Cut-off จนถึงปัจจุบัน
+            rawApiLogs.forEach(log => {
+                const logDate = new Date(log["Date and Time"]);
+                if (!isNaN(logDate.getTime()) && logDate > cutoffDate) {
+                    const mat = String(log["Material"] || "").trim();
+                    const qty = parseFloat(log["Qty"]) || 0;
+                    const transType = String(log["Transaction Type"] || "").trim().toUpperCase();
+                    const userTo = String(log["User/To"] || "").trim().toUpperCase();
+
+                    if (stockMap.has(mat)) {
+                        const item = stockMap.get(mat);
+                        // ถ้าเกิดการ DEDUCT หลังวันที่ Cut-off แปลว่า ณ วันนั้นยังมีของอยู่ -> ให้บวกกลับ (+)
+                        if (transType === "DEDUCT" || userTo === "DEDUCT") {
+                            item.qty += qty;
+                        } 
+                        // ถ้าเกิดการ ADD/RECEIVE หลังวันที่ Cut-off แปลว่า ณ วันนั้นยังไม่มีของ -> ให้ลบออก (-)
+                        else if (transType === "ADD" || transType === "IN" || transType === "RECEIVE") {
+                            item.qty -= qty;
+                        }
+                    }
+                }
+            });
+
+            // แปลงกลับเป็น Array รายการสต็อก ณ วัน Cut-off
+            let reconstructedData = [];
+            stockMap.forEach(item => {
+                const validQty = Math.max(0, item.qty); // ป้องกันค่าติดลบ
+                const totalVal = validQty * item.price;
+
+                if (validQty > 0 || totalVal > 0) {
+                    reconstructedData.push({
+                        "Material": item.material,
+                        "Product Name": item.productName,
+                        "Type": item.type,
+                        "Aging (Years)": item.aging,
+                        "CalculatedQty": validQty,
+                        "CalculatedVal": totalVal,
+                        "All Value": totalVal
+                    });
+                }
+            });
+
+            filteredValuationData = reconstructedData;
             calculateAndRender(filteredValuationData);
         }
 
         function resetFilters() {
             document.getElementById('quarter-select').value = "ALL";
             document.getElementById('start-date').value = "";
-            document.getElementById('end-date').value = "";
             applyFilters();
         }
 
@@ -545,7 +561,7 @@
             let grandTotal = 0, totalExPM = 0, totalPM = 0, aLess1 = 0, a1to3 = 0, a3plus = 0;
 
             data.forEach(row => {
-                const val = parseFloat(row["All Value"]) || 0;
+                const val = parseFloat(row["CalculatedVal"] !== undefined ? row["CalculatedVal"] : row["All Value"]) || 0;
                 const age = parseFloat(row["Aging (Years)"]) || 0;
                 const itemType = String(row["Type"] || "").trim().toLowerCase();
 
@@ -583,7 +599,7 @@
             document.getElementById('pct-1y').innerText = getPct(a1to3);
             document.getElementById('pct-3y').innerText = getPct(a3plus);
 
-            document.getElementById('filtered-count-label').innerText = `Showing ${data.length} records`;
+            document.getElementById('filtered-count-label').innerText = `Snapshot Material Count: ${data.length} items`;
 
             renderCharts(grandTotal, totalExPM, totalPM, aLess1, a1to3, a3plus);
         }
@@ -604,7 +620,7 @@
                 type: 'bar',
                 data: {
                     labels: [
-                        'Total Value', 
+                        'Total Inventory', 
                         'Excluding PM Part', 
                         'PM Part Value',
                         'Aging <= 1 Year', 
