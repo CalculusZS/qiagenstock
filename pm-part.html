@@ -390,18 +390,20 @@
 
         function processPmData(rawRows) {
             pmDataList = rawRows.filter(row => {
-                const itemType = String(row["Type"] || "").trim().toLowerCase();
+                const itemType = String(row["Type"] || row[3] || "").trim().toLowerCase();
                 return itemType === "pm part";
             }).map(row => {
-                const matCode = row["Material"] || row["Material Number"] || "-";
-                const productName = row["Product Name"] || row["D"] || "N/A";
-                const instrument = row["Instrument"] || row["Model"] || "-";
+                const instrument  = row["Instrument"] || row[0] || "-";
+                const matCode     = row["Material"] || row[1] || "-";
+                const productName = row["Product Name"] || row[2] || "N/A";
                 
-                // Fetch MinimumQty strictly from Column E (fallback to "Min Qty" / "E")
-                const minQty = parseFloat(row["E"] || row["Min Qty"] || row["Minimum Qty"] || row["Min"] || 0);
+                // Fetch MinimumQty strictly from Column E (Index 4)
+                const minVal = row["MinimumQty"] !== undefined ? row["MinimumQty"] : (row["E"] !== undefined ? row["E"] : row[4]);
+                const minQty = parseFloat(minVal) || 0;
                 
-                // Fetch Quantity strictly from Column F / 0243
-                const qtyVal = parseFloat(row["0243"] || row["F"] || row["ALL Stock Qty"] || 0);
+                // Fetch ALL Stock Qty strictly from Column F (Index 5)
+                const stockVal = row["ALL Stock Qty"] !== undefined ? row["ALL Stock Qty"] : (row["F"] !== undefined ? row["F"] : row[5]);
+                const qtyVal   = parseFloat(stockVal) || 0;
 
                 return {
                     material: matCode,
@@ -441,15 +443,15 @@
                             <div class="item-name">${item.productName}</div>
                         </div>
                         <div class="stock-info-group">
-                            <!-- Show In Stock FIRST (Left) -->
-                            <div class="badge-box badge-qty ${isBelowMin ? 'low-stock' : ''}">
-                                <span class="badge-label">In Stock</span>
-                                <span class="qty-num">${item.qty}</span>
-                            </div>
-                            <!-- Show Min Qty SECOND (Right) -->
+                            <!-- Min Qty อยู่ซ้าย -->
                             <div class="badge-box badge-min">
                                 <span class="badge-label">Min Qty</span>
                                 <span class="qty-num">${item.minQty}</span>
+                            </div>
+                            <!-- In Stock อยู่ขวาสุด -->
+                            <div class="badge-box badge-qty ${isBelowMin ? 'low-stock' : ''}">
+                                <span class="badge-label">In Stock</span>
+                                <span class="qty-num">${item.qty}</span>
                             </div>
                         </div>
                     </div>
@@ -477,10 +479,10 @@
 
             const exportData = pmDataList.map(item => ({
                 "Material": item.material,
-                "Product Name (Col D)": item.productName,
+                "Product Name": item.productName,
                 "Instrument": item.instrument,
-                "In Stock Qty (Col F)": item.qty,
-                "Min Qty (Col E)": item.minQty
+                "Min Qty": item.minQty,
+                "In Stock Qty": item.qty
             }));
 
             const ws = XLSX.utils.json_to_sheet(exportData);
