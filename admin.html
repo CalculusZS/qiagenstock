@@ -436,7 +436,7 @@
             }
         }
 
-        // Apply Filters: ย้อนกลับหาปริมาณสต็อกคงเหลือ ณ วันสิ้นไตรมาส (Cut-off Point Reconstruction)
+        // Apply Filters: แสดงมูลค่าตามสต็อกปัจจุบันจริง (ไม่คำนวณบวกย้อนหลังจาก Log)
         function applyFilters() {
             if (!rawApiData || rawApiData.length === 0) return;
 
@@ -446,108 +446,25 @@
             const subTitle = document.getElementById('dashboard-mode-subtitle');
             const mainTitle = document.getElementById('chart-main-title');
 
-            let cutoffDate = null;
-            const currentYear = new Date().getFullYear();
-
-            // 1. กำหนดวัน Cut-off ตามไตรมาสที่เลือก
+            // อัปเดตข้อความหัวข้อตามตัวกรองที่เลือก
             if (customCutoff) {
-                cutoffDate = new Date(customCutoff + "T23:59:59");
-                subTitle.innerText = `Historical Stock Snapshot as of ${customCutoff}`;
-                mainTitle.innerText = `Reconstructed Stock Valuation (${customCutoff}) (THB)`;
-            } else if (qVal === "Q1") {
-                cutoffDate = new Date(`${currentYear}-03-31T23:59:59`);
-                subTitle.innerText = `Historical Stock Snapshot as of March 31, ${currentYear} (End of Q1)`;
-                mainTitle.innerText = `End of Q1 Stock Valuation Breakdown (THB)`;
-            } else if (qVal === "Q2") {
-                cutoffDate = new Date(`${currentYear}-06-30T23:59:59`);
-                subTitle.innerText = `Historical Stock Snapshot as of June 30, ${currentYear} (End of Q2)`;
-                mainTitle.innerText = `End of Q2 Stock Valuation Breakdown (THB)`;
-            } else if (qVal === "Q3") {
-                cutoffDate = new Date(`${currentYear}-09-30T23:59:59`);
-                subTitle.innerText = `Historical Stock Snapshot as of September 30, ${currentYear} (End of Q3)`;
-                mainTitle.innerText = `End of Q3 Stock Valuation Breakdown (THB)`;
-            } else if (qVal === "Q4") {
-                cutoffDate = new Date(`${currentYear - 1}-12-31T23:59:59`);
-                subTitle.innerText = `Historical Stock Snapshot as of December 31, ${currentYear - 1} (End of Q4)`;
-                mainTitle.innerText = `End of Q4 Stock Valuation Breakdown (THB)`;
+                subTitle.innerText = `Current Stock Snapshot (Cut-off Filter: ${customCutoff})`;
+                mainTitle.innerText = `Stock Valuation Breakdown (${customCutoff}) (THB)`;
+            } else if (qVal !== "ALL") {
+                subTitle.innerText = `Current Real-Time Inventory Status (${qVal})`;
+                mainTitle.innerText = `${qVal} Stock Valuation Breakdown (THB)`;
             } else {
                 subTitle.innerText = "Real-Time Total Inventory Valuation Breakdown";
                 mainTitle.innerText = "Current Stock Valuation Breakdown (THB)";
             }
 
-            // 2. หากไม่เลือกไตรมาส/ไม่ตั้ง Cut-off ให้โชว์ข้อมูลปัจจุบันทันที
-            if (!cutoffDate) {
-                filteredValuationData = rawApiData.map(row => ({
-                    ...row,
-                    "CalculatedQty": parseFloat(row["ALL Stock Qty"]) || 0,
-                    "CalculatedVal": parseFloat(row["All Value"]) || 0
-                }));
-                calculateAndRender(filteredValuationData);
-                return;
-            }
+            // ดึงค่าสต็อกปัจจุบันจริงมาแสดงโดยตรง (ไม่บวกยอดย้อนหลัง)
+            filteredValuationData = rawApiData.map(row => ({
+                ...row,
+                "CalculatedQty": parseFloat(row["ALL Stock Qty"]) || 0,
+                "CalculatedVal": parseFloat(row["All Value"]) || 0
+            }));
 
-            // 3. ตรรกะคำนวณย้อนกลับ (Reconstruction Logic)
-            // สร้าง Map สต็อกปัจจุบัน
-            const stockMap = new Map();
-            rawApiData.forEach(row => {
-                const mat = String(row["Material"] || "").trim();
-                const currentQty = parseFloat(row["ALL Stock Qty"]) || 0;
-                const totalVal = parseFloat(row["All Value"]) || 0;
-                const price = currentQty > 0 ? (totalVal / currentQty) : (parseFloat(row["Price"]) || 0);
-
-                stockMap.set(mat, {
-                    material: mat,
-                    productName: row["Product Name"] || "",
-                    type: String(row["Type"] || "").trim(),
-                    aging: parseFloat(row["Aging (Years)"]) || 0,
-                    price: price,
-                    qty: currentQty
-                });
-            });
-
-            // ปรับยอด Qty ย้อนกลับ โดยดู Transaction Log ที่เกิดขึ้น *หลังจาก* วัน Cut-off จนถึงปัจจุบัน
-            rawApiLogs.forEach(log => {
-                const logDate = new Date(log["Date and Time"]);
-                if (!isNaN(logDate.getTime()) && logDate > cutoffDate) {
-                    const mat = String(log["Material"] || "").trim();
-                    const qty = parseFloat(log["Qty"]) || 0;
-                    const transType = String(log["Transaction Type"] || "").trim().toUpperCase();
-                    const userTo = String(log["User/To"] || "").trim().toUpperCase();
-
-                    if (stockMap.has(mat)) {
-                        const item = stockMap.get(mat);
-                        // ถ้าเกิดการ DEDUCT หลังวันที่ Cut-off แปลว่า ณ วันนั้นยังมีของอยู่ -> ให้บวกกลับ (+)
-                        if (transType === "DEDUCT" || userTo === "DEDUCT") {
-                            item.qty += qty;
-                        } 
-                        // ถ้าเกิดการ ADD/RECEIVE หลังวันที่ Cut-off แปลว่า ณ วันนั้นยังไม่มีของ -> ให้ลบออก (-)
-                        else if (transType === "ADD" || transType === "IN" || transType === "RECEIVE") {
-                            item.qty -= qty;
-                        }
-                    }
-                }
-            });
-
-            // แปลงกลับเป็น Array รายการสต็อก ณ วัน Cut-off
-            let reconstructedData = [];
-            stockMap.forEach(item => {
-                const validQty = Math.max(0, item.qty); // ป้องกันค่าติดลบ
-                const totalVal = validQty * item.price;
-
-                if (validQty > 0 || totalVal > 0) {
-                    reconstructedData.push({
-                        "Material": item.material,
-                        "Product Name": item.productName,
-                        "Type": item.type,
-                        "Aging (Years)": item.aging,
-                        "CalculatedQty": validQty,
-                        "CalculatedVal": totalVal,
-                        "All Value": totalVal
-                    });
-                }
-            });
-
-            filteredValuationData = reconstructedData;
             calculateAndRender(filteredValuationData);
         }
 
