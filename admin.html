@@ -333,7 +333,7 @@
     </div>
 
     <script>
-        const API = "https://script.google.com/macros/s/AKfycbw198xwlOQCFQ93o1MqaR6M5ujQZeUPlULjLHUmVcQhY97nGb0uVS8xS0Zfm2JRDsY/exec"; 
+        const API = "https://script.google.com/macros/s/AKfycbxjjYT3Uw8WmKXYJgM-fKMEc0UdaIdU66zyRlvpEEfsweptxnf1Qflixpotx0uB1nZA/exec"; 
         const PASS = "Service";
         let barChart;
         let rawApiData = [];    // ข้อมูลจาก STOCK
@@ -436,7 +436,6 @@
             }
         }
 
-        // Apply Filters: แสดงมูลค่าตามสต็อกปัจจุบันจริง (ไม่คำนวณบวกย้อนหลังจาก Log)
         function applyFilters() {
             if (!rawApiData || rawApiData.length === 0) return;
 
@@ -446,7 +445,6 @@
             const subTitle = document.getElementById('dashboard-mode-subtitle');
             const mainTitle = document.getElementById('chart-main-title');
 
-            // อัปเดตข้อความหัวข้อตามตัวกรองที่เลือก
             if (customCutoff) {
                 subTitle.innerText = `Current Stock Snapshot (Cut-off Filter: ${customCutoff})`;
                 mainTitle.innerText = `Stock Valuation Breakdown (${customCutoff}) (THB)`;
@@ -458,7 +456,6 @@
                 mainTitle.innerText = "Current Stock Valuation Breakdown (THB)";
             }
 
-            // ดึงค่าสต็อกปัจจุบันจริงมาแสดงโดยตรง (ไม่บวกยอดย้อนหลัง)
             filteredValuationData = rawApiData.map(row => ({
                 ...row,
                 "CalculatedQty": parseFloat(row["ALL Stock Qty"]) || 0,
