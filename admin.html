@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">      
 <head>
@@ -341,6 +340,12 @@
         let rawApiLogs = [];    // ข้อมูลจาก TRANSACTION_LOG
         let filteredValuationData = [];
 
+        // Helper Function ลบจุลภาคและแปลงเป็นตัวเลข
+        function parseNum(val) {
+            if (val === null || val === undefined) return 0;
+            return parseFloat(String(val).replace(/,/g, '').trim()) || 0;
+        }
+
         function checkAuth() { if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html'); }
 
         async function getFreshData() {
@@ -355,8 +360,8 @@
             const data = await getFreshData();
             const filtered = data
                 .map(row => {
-                    const min = parseFloat(row["MinimumQty"]) || 0;
-                    const stock = parseFloat(row["ALL Stock Qty"]) || 0;
+                    const min = parseNum(row["MinimumQty"]);
+                    const stock = parseNum(row["ALL Stock Qty"]);
                     const resultQty = min - stock;
                     return {
                         "Material": row["Material"],
@@ -380,11 +385,11 @@
             const data = await getFreshData();
             const colName = "0243"; 
             const filtered = data
-                .filter(row => (parseFloat(row[colName]) || 0) > 0)
+                .filter(row => parseNum(row[colName]) > 0)
                 .map(row => ({
                     "Material": row["Material"],
                     "Product Name": row["Product Name"],
-                    "Qty": row[colName]
+                    "Qty": parseNum(row[colName])
                 }));
             if(filtered.length === 0) return alert("ไม่พบสต็อกในคอลัมน์ 0243");
             saveExcel(filtered, "My_VAN_Stock_0243");
@@ -397,7 +402,7 @@
 
             data.forEach(row => {
                 team.forEach(staff => {
-                    const qty = parseFloat(row[staff]) || 0;
+                    const qty = parseNum(row[staff]);
                     if (qty > 0) {
                         exportData.push({
                             "Material": row["Material"] || "N/A",
@@ -457,11 +462,22 @@
                 mainTitle.innerText = "Current Stock Valuation Breakdown (THB)";
             }
 
-            filteredValuationData = rawApiData.map(row => ({
-                ...row,
-                "CalculatedQty": parseFloat(row["ALL Stock Qty"]) || 0,
-                "CalculatedVal": parseFloat(row["All Value"]) || 0
-            }));
+            // คํานวณค่าน้ำหนักโดยถอดจุลภาคออกทั้งหมด
+            filteredValuationData = rawApiData.map(row => {
+                const qty = parseNum(row["ALL Stock Qty"]);
+                let val = parseNum(row["All Value"]);
+
+                // หากชีตเก็บเฉพาะ Unit Price แต่ไม่ได้คิดราคารวม ให้คูณ Qty โดยอัตโนมัติ
+                if (val === 0 && parseNum(row["Unit Price"]) > 0) {
+                    val = parseNum(row["Unit Price"]) * qty;
+                }
+
+                return {
+                    ...row,
+                    "CalculatedQty": qty,
+                    "CalculatedVal": val
+                };
+            });
 
             calculateAndRender(filteredValuationData);
         }
@@ -476,8 +492,8 @@
             let grandTotal = 0, totalExPM = 0, totalPM = 0, aLess1 = 0, a1to3 = 0, a3plus = 0;
 
             data.forEach(row => {
-                const val = parseFloat(row["CalculatedVal"] !== undefined ? row["CalculatedVal"] : row["All Value"]) || 0;
-                const age = parseFloat(row["Aging (Years)"]) || 0;
+                const val = parseNum(row["CalculatedVal"]);
+                const age = parseNum(row["Aging (Years)"]);
                 const itemType = String(row["Type"] || "").trim().toLowerCase();
 
                 grandTotal += val;
