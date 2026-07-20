@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QIAGEN - PM Part Stock</title>
+    <!-- SheetJS สำหรับ Export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --qiagen-blue: #003366;
+            --qiagen-light: #00a3e0;
+            --pm-cyan: #06b6d4;
+            --bg-slate: #f8fafc;
+            --card-border: #e2e8f0;
+            --text-dark: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-slate);
+            margin: 0;
+            padding: 0;
+            color: var(--text-dark);
+            min-height: 100vh;
+        }
+
+        /* Header Bar */
+        .header {
+            background: linear-gradient(135deg, var(--qiagen-blue) 0%, #001f3f 100%);
+            color: white;
+            padding: 18px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            backdrop-filter: blur(5px);
+            transition: all 0.2s;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 15px 40px 15px;
+        }
+
+        /* Control Panel (Search & Export) */
+        .control-panel {
+            background: white;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            border: 1px solid var(--card-border);
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        @media (min-width: 640px) {
+            .control-panel {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px 12px 42px;
+            border: 1.5px solid var(--card-border);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: 0.2s;
+            background: #f8fafc;
+        }
+
+        .search-box input:focus {
+            border-color: var(--pm-cyan);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Stats Summary */
+        .stats-summary {
+            background: white;
+            border-left: 5px solid var(--pm-cyan);
+            border-radius: 14px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            border: 1px solid var(--card-border);
+            border-left-width: 5px;
+        }
+
+        /* Items Container */
+        .item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Modern Card View */
+        .item-card {
+            background: white;
+            border-radius: 16px;
+            padding: 18px 20px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.2s ease;
+        }
+
+        .item-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+            border-color: #cbd5e1;
+        }
+
+        .item-details {
+            flex: 1;
+        }
+
+        .item-mat-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .mat-code {
+            font-weight: 800;
+            color: var(--qiagen-blue);
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+
+        .item-tag {
+            background: #ecfeff;
+            color: #0891b2;
+            font-size: 0.72rem;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            border: 1px solid #cff4fc;
+        }
+
+        .item-name {
+            color: #334155;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+
+        .item-qty-badge {
+            background: #f1f5f9;
+            padding: 10px 18px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 85px;
+        }
+
+        .qty-num {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            display: block;
+            line-height: 1;
+        }
+
+        .qty-unit {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            margin-top: 4px;
+            display: block;
+        }
+
+        /* Loading & Empty State */
+        .state-box {
+            text-align: center;
+            padding: 50px 20px;
+            background: white;
+            border-radius: 18px;
+            border: 1px solid var(--card-border);
+            color: #64748b;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3.5px solid #e2e8f0;
+            border-top: 3.5px solid var(--pm-cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-title">
+            <span>⚙️</span> PM Part Stock
+        </div>
+        <a href="main.html" class="btn-back">❮ Back</a>
+    </div>
+
+    <div class="container">
+        
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="search-input" placeholder="Search Material Code or Product Name..." oninput="filterPmData()">
+            </div>
+            <button class="btn-export" onclick="exportExcel()">
+                📊 Export Excel
+            </button>
+        </div>
+
+        <!-- Summary Bar -->
+        <div class="stats-summary">
+            <div>
+                <small style="color: #64748b; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;">Total Items</small>
+                <div style="font-size: 1.2rem; font-weight: bold; color: var(--qiagen-blue);" id="total-count">0 Items</div>
+            </div>
+            <div>
+                <small style="color: #64748b; font-weight: bold; text-transform: uppercase; font-size: 0.75rem;">Total Stock Qty</small>
+                <div style="font-size: 1.2rem; font-weight: bold; color: #0891b2; text-align: right;" id="total-qty">0</div>
+            </div>
+        </div>
+
+        <!-- Material Item List -->
+        <div id="pm-list-container" class="item-list">
+            <div class="state-box">
+                <div class="spinner"></div>
+                <div>Loading PM Part Data...</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ดึงไฟล์ app.js หลัก เพื่อใช้ API และ Cache -->
+    <script src="js/app.js"></script>
+    <script>
+        let pmDataList = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPmPartData();
+        });
+
+        async function loadPmPartData() {
+            const container = document.getElementById('pm-list-container');
+            
+            try {
+                // เช็คข้อมูลที่มีอยู่ใน Memory หรือ Local Storage Cache ก่อน
+                if (window.allRows && window.allRows.length > 0) {
+                    processPmData(window.allRows);
+                } else {
+                    const cacheKey = 'qiagen_cache';
+                    const cached = localStorage.getItem(cacheKey);
+                    
+                    if (cached) {
+                        window.allRows = JSON.parse(cached);
+                        processPmData(window.allRows);
+                    }
+                    
+                    // Fetch ข้อมูลล่าสุดจาก Google Apps Script Backend
+                    const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
+                    if (res.success) {
+                        window.allRows = res.data;
+                        localStorage.setItem(cacheKey, JSON.stringify(res.data));
+                        processPmData(res.data);
+                    }
+                }
+            } catch (e) {
+                container.innerHTML = `
+                    <div class="state-box" style="color: #ef4444;">
+                        ❌ Unable to load PM Part data.
+                    </div>`;
+            }
+        }
+
+        function processPmData(rawRows) {
+            // กรองเอาเฉพาะรายการที่เป็น "PM Part"
+            pmDataList = rawRows.filter(row => {
+                const itemType = String(row["Type"] || "").trim().toLowerCase();
+                return itemType === "pm part";
+            }).map(row => {
+                // ดึงข้อมูล Material Number, Product Name (Col D) และ Quantity (Col F / 0243 Stock)
+                const matCode = row["Material"] || row["Material Number"] || "-";
+                const productName = row["Product Name"] || row["D"] || "N/A";
+                const qtyVal = parseFloat(row["0243"] || row["F"] || row["ALL Stock Qty"] || 0);
+
+                return {
+                    material: matCode,
+                    productName: productName,
+                    qty: qtyVal
+                };
+            });
+
+            renderPmList(pmDataList);
+        }
+
+        function renderPmList(list) {
+            const container = document.getElementById('pm-list-container');
+            const totalCountEl = document.getElementById('total-count');
+            const totalQtyEl = document.getElementById('total-qty');
+
+            if (!list || list.length === 0) {
+                container.innerHTML = `
+                    <div class="state-box">
+                        📦 No PM Part items found.
+                    </div>`;
+                totalCountEl.innerText = "0 Items";
+                totalQtyEl.innerText = "0";
+                return;
+            }
+
+            let sumQty = 0;
+            let html = list.map(item => {
+                sumQty += item.qty;
+                return `
+                    <div class="item-card">
+                        <div class="item-details">
+                            <div class="item-mat-badge">
+                                <span class="mat-code">${item.material}</span>
+                                <span class="item-tag">PM PART</span>
+                            </div>
+                            <div class="item-name">${item.productName}</div>
+                        </div>
+                        <div class="item-qty-badge">
+                            <span class="qty-num">${item.qty}</span>
+                            <span class="qty-unit">In Stock</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+            totalCountEl.innerText = `${list.length} Items`;
+            totalQtyEl.innerText = sumQty.toLocaleString();
+        }
+
+        function filterPmData() {
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            const filtered = pmDataList.filter(item => 
+                String(item.material).toLowerCase().includes(query) ||
+                String(item.productName).toLowerCase().includes(query)
+            );
+            renderPmList(filtered);
+        }
+
+        function exportExcel() {
+            if (!pmDataList || pmDataList.length === 0) {
+                alert("ไม่มีข้อมูลสำหรับส่งออก Excel");
+                return;
+            }
+
+            // จัดฟอร์แมตข้อมูลสำหรับไฟล์ Excel ให้มีทั้ง Material, Product Name และ Quantity
+            const exportData = pmDataList.map(item => ({
+                "Material": item.material,
+                "Product Name (Col D)": item.productName,
+                "Quantity (Col F)": item.qty
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "PM_Parts");
+
+            const today = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `PM_Part_Stock_${today}.xlsx`);
+        }
+    </script>
+</body>
+</html>
