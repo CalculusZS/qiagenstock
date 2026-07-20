@@ -131,7 +131,7 @@
         }
         .btn-close-dash:hover { background: #dc2626; transform: scale(1.02); }
 
-        /* Filter Bar Control Styling */
+        /* Control Bar */
         .control-bar {
             background: white; padding: 18px 24px; border-radius: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.03); margin-bottom: 25px; border: 1px solid #e2e8f0;
@@ -213,11 +213,11 @@
                 <button class="btn-close-dash" onclick="closeValuation()">CLOSE ✕</button>
             </div>
 
-            <!-- Enhanced Control Bar with Period & Date Filter -->
+            <!-- Control Bar with Period & Date Filter -->
             <div class="control-bar">
                 <div class="filter-group">
                     <div class="select-group">
-                        <span>📅 Quarter:</span>
+                        <span>📅 Audit Quarter:</span>
                         <select id="quarter-select" onchange="applyFilters()">
                             <option value="ALL">All Periods</option>
                             <option value="Q1">Q1 (Jan - Mar)</option>
@@ -341,7 +341,8 @@
         const API = "https://script.google.com/macros/s/AKfycbyvkhS_Zk9dR_MzJq4UCALV_41VFx4JH01y_xAma9Wou-yP9LJL8VydAkw7tNZYuVms/exec"; 
         const PASS = "Service";
         let barChart;
-        let rawApiData = [];
+        let rawApiData = [];    // ข้อมูลจาก STOCK
+        let rawApiLogs = [];    // ข้อมูลจาก TRANSACTION_LOG
         let filteredValuationData = [];
 
         function checkAuth() { if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html'); }
@@ -424,21 +425,24 @@
             showStatus("✅ Export Success", "#dcfce7", "#166534");
         }
 
-        // Fetch Valuation Data from API
+        // Fetch Data (อ่านทั้ง STOCK และ TRANSACTION_LOG)
         async function fetchValuationData() {
-            showStatus("⌛ Fetching Valuation Data...", "#eff6ff", "#1e40af");
+            showStatus("⌛ Fetching Valuation & Log Data...", "#eff6ff", "#1e40af");
             try {
                 const res = await fetch(`${API}?action=read&pass=${PASS}`).then(r => r.json());
                 if (!res.success) throw new Error("API Error");
-                rawApiData = res.data;
+                
+                rawApiData = res.data || [];
+                rawApiLogs = res.logs || [];
+                
                 applyFilters();
                 showStatus("✅ Data Synced Successfully", "#dcfce7", "#166534");
             } catch (e) { 
-                alert("Error: ตรวจสอบข้อมูล All Value, Type และ Aging (Years)"); 
+                alert("Error: ไม่สามารถเชื่อมต่อข้อมูลจาก API ได้"); 
             }
         }
 
-        // Apply Filters (Quarter & Date Range)
+        // Apply Filters (อ้างอิงข้อมูลตัดสต็อก DEDUCT จากแท็บ TRANSACTION_LOG)
         function applyFilters() {
             if (!rawApiData || rawApiData.length === 0) return;
 
@@ -449,29 +453,49 @@
             const startDate = startDateVal ? new Date(startDateVal) : null;
             const endDate = endDateVal ? new Date(endDateVal) : null;
 
-            filteredValuationData = rawApiData.filter(row => {
-                let match = true;
+            if (qVal === "ALL" && !startDate && !endDate) {
+                filteredValuationData = [...rawApiData];
+            } else {
+                const matchedMaterials = new Set();
 
-                // Check Date / Quarter Filter if Date field exists
-                if (row["Date"] || row["date"]) {
-                    const itemDate = new Date(row["Date"] || row["date"]);
-                    if (!isNaN(itemDate)) {
-                        // Date Range Filter
-                        if (startDate && itemDate < startDate) match = false;
-                        if (endDate && itemDate > endDate) match = false;
+                rawApiLogs.forEach(log => {
+                    const transType = String(log["Transaction Type"] || "").trim().toUpperCase();
+                    const userTo = String(log["User/To"] || "").trim().toUpperCase();
+                    
+                    // เช็คว่ารายการนั้นมีการ DEDUCT หรือไม่
+                    if (transType === "DEDUCT" || userTo === "DEDUCT") {
+                        const dateStr = log["Date and Time"];
+                        if (dateStr) {
+                            const logDate = new Date(dateStr);
+                            if (!isNaN(logDate.getTime())) {
+                                let isMatch = true;
 
-                        // Quarter Filter
-                        if (qVal !== "ALL") {
-                            const month = itemDate.getMonth() + 1; // 1 - 12
-                            if (qVal === "Q1" && !(month >= 1 && month <= 3)) match = false;
-                            if (qVal === "Q2" && !(month >= 4 && month <= 6)) match = false;
-                            if (qVal === "Q3" && !(month >= 7 && month <= 9)) match = false;
-                            if (qVal === "Q4" && !(month >= 10 && month <= 12)) match = false;
+                                // Filter Date Range
+                                if (startDate && logDate < startDate) isMatch = false;
+                                if (endDate && logDate > endDate) isMatch = false;
+
+                                // Filter Quarter
+                                if (qVal !== "ALL") {
+                                    const month = logDate.getMonth() + 1;
+                                    if (qVal === "Q1" && !(month >= 1 && month <= 3)) isMatch = false;
+                                    if (qVal === "Q2" && !(month >= 4 && month <= 6)) isMatch = false;
+                                    if (qVal === "Q3" && !(month >= 7 && month <= 9)) isMatch = false;
+                                    if (qVal === "Q4" && !(month >= 10 && month <= 12)) isMatch = false;
+                                }
+
+                                if (isMatch && log["Material"]) {
+                                    matchedMaterials.add(String(log["Material"]).trim());
+                                }
+                            }
                         }
                     }
-                }
-                return match;
-            });
+                });
+
+                // กรองเอาเฉพาะ Material ที่มีการ DEDUCT ตรงตามไตรมาสที่เลือก
+                filteredValuationData = rawApiData.filter(row => 
+                    matchedMaterials.has(String(row["Material"]).trim())
+                );
+            }
 
             calculateAndRender(filteredValuationData);
         }
@@ -483,7 +507,7 @@
             applyFilters();
         }
 
-        // Calculate Totals & Render Charts
+        // Calculate Totals & Render Cards
         function calculateAndRender(data) {
             let grandTotal = 0, totalExPM = 0, totalPM = 0, aLess1 = 0, a1to3 = 0, a3plus = 0;
 
@@ -492,17 +516,14 @@
                 const age = parseFloat(row["Aging (Years)"]) || 0;
                 const itemType = String(row["Type"] || "").trim().toLowerCase();
 
-                // 1. Total Inventory Value
                 grandTotal += val;
 
-                // 2. Separate PM Part vs Non-PM Part
                 if (itemType === "pm part") {
                     totalPM += val;
                 } else {
                     totalExPM += val;
                 }
 
-                // 3. Aging Categories (รวมทุกประเภท ไม่กรอง PM Part ออก)
                 if (age === 126 || age <= 1) {
                     aLess1 += val;
                 } else if (age > 1 && age < 3) {
@@ -534,13 +555,12 @@
             renderCharts(grandTotal, totalExPM, totalPM, aLess1, a1to3, a3plus);
         }
 
-        // Beautiful Render Chart
+        // Render Bar Chart
         function renderCharts(grandTotal, totalExPM, totalPM, aLess1, a1to3, a3plus) {
             if (barChart) barChart.destroy();
             
             const ctx = document.getElementById('valBarChart').getContext('2d');
             
-            // Gradient Fill for Bars
             const createGradient = (color1, color2) => {
                 const grad = ctx.createLinearGradient(0, 0, 0, 400);
                 grad.addColorStop(0, color1);
