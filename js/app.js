@@ -2,7 +2,7 @@
 /* ========================================================================== 
    QIAGEN INVENTORY - FULL VERSION (GROUPED ITEMS & OUTLOOK FORCED)
    ========================================================================== */
-const API = "https://script.google.com/macros/s/AKfycbxjjYT3Uw8WmKXYJgM-fKMEc0UdaIdU66zyRlvpEEfsweptxnf1Qflixpotx0uB1nZA/exec";
+const API = "https://script.google.com/macros/s/AKfycbycSJJCTRbf7IwHrkGP5tdPE23YzDV60XlYR9OKBD35ZNxhtcTamxX2TPAiVKPiCYTg/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
 
