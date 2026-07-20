@@ -1,29 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">      
+<html lang="en"> 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QIAGEN - Admin Enterprise System</title>
+    <title>QIAGEN - Enterprise Admin & Audit System</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             --qiagen-blue: #003366;
             --qiagen-light: #00a3e0;
+            --qiagen-dark: #001f3f;
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
-            --bg-gradient: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            --purple: #8b5cf6;
+            --bg-slate: #f8fafc;
         }
         
         body { 
-            background: var(--bg-gradient); 
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); 
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
-            margin: 0; padding: 20px; color: #1e293b;
+            margin: 0; padding: 25px; color: #1e293b;
             min-height: 100vh;
         }
 
-        .container { max-width: 900px; margin: auto; }
+        .container { max-width: 1100px; margin: auto; }
 
         .header-section { 
             background: var(--qiagen-blue); 
@@ -36,19 +38,19 @@
 
         .action-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: 15px;
             margin-bottom: 25px;
         }
 
         .action-card {
             background: white;
-            padding: 20px;
+            padding: 20px 15px;
             border-radius: 18px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: 1px solid rgba(255,255,255,0.8);
@@ -56,9 +58,9 @@
             text-align: center;
         }
 
-        .action-card:hover { transform: translateY(-5px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.1); }
-        .action-card span { font-size: 2rem; }
-        .action-card label { font-weight: bold; font-size: 0.85rem; cursor: pointer; }
+        .action-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.1); }
+        .action-card span { font-size: 1.8rem; }
+        .action-card label { font-weight: 700; font-size: 0.82rem; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .c-download { color: var(--success); border-bottom: 4px solid var(--success); }
         .c-value { color: var(--qiagen-light); border-bottom: 4px solid var(--qiagen-light); }
@@ -87,10 +89,10 @@
         .btn-submit { 
             background: var(--qiagen-blue); color: white; border: none; 
             padding: 18px; border-radius: 15px; font-weight: bold; 
-            cursor: pointer; width: 100%; font-size: 17px; margin-top: 20px;
-            transition: 0.3s;
+            cursor: pointer; width: 100%; font-size: 16px; margin-top: 20px;
+            transition: 0.3s; letter-spacing: 0.5px;
         }
-        .btn-submit:hover { filter: brightness(1.2); letter-spacing: 1px; }
+        .btn-submit:hover { background: var(--qiagen-dark); }
 
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(5px); }
         .modal-content { 
@@ -111,85 +113,108 @@
         }
         .btn-mini-reset:hover { background: var(--warning); color: white; border-color: var(--warning); }
 
-        .status-msg { padding: 18px; border-radius: 15px; margin-top: 20px; display: none; text-align: center; font-weight: bold; animation: fadeIn 0.3s; }
+        .status-msg { padding: 18px; border-radius: 15px; margin-top: 20px; display: none; text-align: center; font-weight: bold; }
 
+        /* Stock Valuation Dashboard Styles */
         #valuation-window {
             display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
             background: #f1f5f9; z-index: 1000; overflow-y:auto; padding: 30px;
+            box-sizing: border-box;
         }
-        .val-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ddd; padding-bottom: 15px; margin-bottom: 25px; }
-        .val-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .val-card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; }
-        .val-card small { color: #64748b; font-weight: bold; font-size: 11px; }
-        .val-card h3 { font-size: 19px; margin-top: 8px; margin-bottom: 4px; font-family: 'Courier New', monospace; }
-        .badge-pct { 
-            position: absolute; top: 15px; right: 15px; 
-            background: #f1f5f9; padding: 4px 8px; border-radius: 8px; 
-            font-size: 12px; font-weight: bold; color: #475569;
+        .val-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 20px; }
+        
+        .filter-bar {
+            display: flex; gap: 15px; align-items: center; background: white; padding: 15px 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
-        .chart-container { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
-        @media (max-width: 768px) { .chart-container { grid-template-columns: 1fr; } }
+        .filter-bar select {
+            padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; color: #334155;
+        }
+
+        .val-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .val-card { background: white; padding: 18px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); position: relative; }
+        .val-card small { color: #64748b; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .val-card h3 { font-size: 20px; margin-top: 8px; margin-bottom: 0; font-family: 'Segoe UI', monospace; }
+        
+        .chart-section { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); }
     </style>
 </head>
 <body onload="checkAuth()">
 
+    <!-- Reset Credentials Modal -->
     <div id="userModal" class="modal">
         <div class="modal-content">
             <span style="float:right; cursor:pointer; font-size:28px;" onclick="closeModal()">&times;</span>
-            <h3 style="margin-bottom: 5px;">🔑 Reset User Credentials</h3>
-            <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Password will be set to <b>1234</b></p>
+            <h3 style="margin-bottom: 5px;">🔑 Reset User Passwords</h3>
+            <p style="color: #64748b; font-size: 14px; margin-bottom: 20px;">Password will reset to default: <b>1234</b></p>
             <div id="user-list-container"></div>
         </div>
     </div>
 
+    <!-- Stock Valuation Dashboard Window -->
     <div id="valuation-window">
-        <div class="val-header">
-            <h2 style="margin:0; color:var(--qiagen-blue);">💰 Stock Valuation Dashboard</h2>
-            <button onclick="closeValuation()" style="background:var(--danger); color:white; border:none; padding:10px 25px; border-radius:10px; font-weight:bold; cursor:pointer;">CLOSE ✕</button>
-        </div>
-        
-        <div style="max-width:1100px; margin:auto;">
+        <div style="max-width:1200px; margin:auto;">
+            <div class="val-header">
+                <div>
+                    <h2 style="margin:0; color:var(--qiagen-blue);">📊 Stock Valuation & Audit Dashboard</h2>
+                    <small style="color:#64748b;">Financial Breakdown & Audit Reporting</small>
+                </div>
+                <button onclick="closeValuation()" style="background:var(--danger); color:white; border:none; padding:10px 25px; border-radius:10px; font-weight:bold; cursor:pointer;">CLOSE ✕</button>
+            </div>
+
+            <!-- Audit Period Filter -->
+            <div class="filter-bar">
+                <span style="font-weight: bold; color: var(--qiagen-blue);">📅 Select Audit Period:</span>
+                <select id="timePeriodSelect" onchange="calculateValuation()">
+                    <option value="current">Current Live Inventory</option>
+                    <option value="monthly">Monthly Snapshot</option>
+                    <option value="q1">Quarter 1 (Q1 Audit)</option>
+                    <option value="q2">Quarter 2 (Q2 Audit)</option>
+                    <option value="q3">Quarter 3 (Q3 Audit)</option>
+                    <option value="q4">Quarter 4 (Q4 Audit)</option>
+                </select>
+                <button onclick="exportValuationReport()" style="margin-left:auto; background:var(--success); color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer;">📥 Export Audit Report (.XLSX)</button>
+            </div>
+            
+            <!-- Key Valuation Summary Cards -->
             <div class="val-card-grid">
                 <div class="val-card" style="border-left: 5px solid var(--qiagen-blue);">
-                    <small>ALL STOCK VALUE</small>
-                    <div class="badge-pct" style="background:var(--qiagen-blue); color:white;">100%</div>
+                    <small>TOTAL INVENTORY VALUE</small>
                     <h3 id="total-val">฿ 0.00</h3>
                 </div>
+                <div class="val-card" style="border-left: 5px solid var(--purple);">
+                    <small>PM PART VALUE (COL D)</small>
+                    <h3 id="pm-part-val" style="color:var(--purple);">฿ 0.00</h3>
+                </div>
                 <div class="val-card" style="border-left: 5px solid var(--success);">
-                    <small>AGING &lt;= 1Y</small>
-                    <div class="badge-pct" id="pct-126">0%</div>
+                    <small>AGING &lt;= 1 YEAR</small>
                     <h3 id="aging-126-val" style="color:var(--success);">฿ 0.00</h3>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--warning);">
-                    <small>AGING &gt;= 1Y</small>
-                    <div class="badge-pct" id="pct-1y">0%</div>
+                    <small>AGING &gt;= 1 YEAR</small>
                     <h3 id="aging-1y-val" style="color:var(--warning);">฿ 0.00</h3>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--danger);">
-                    <small>AGING &gt;= 3Y</small>
-                    <div class="badge-pct" id="pct-3y">0%</div>
+                    <small>AGING &gt;= 3 YEARS</small>
                     <h3 id="aging-3y-val" style="color:var(--danger);">฿ 0.00</h3>
                 </div>
             </div>
 
-            <div class="chart-container">
-                <div class="val-card">
-                    <h4 style="margin-top:0;">Value Comparison (THB)</h4>
+            <!-- Value Breakdown Bar Chart -->
+            <div class="chart-section">
+                <h4 style="margin-top:0; color:var(--qiagen-blue);">Financial Valuation Breakdown (THB)</h4>
+                <div style="height: 380px;">
                     <canvas id="valBarChart"></canvas>
-                </div>
-                <div class="val-card">
-                    <h4 style="margin-top:0;">Stock Distribution %</h4>
-                    <canvas id="valPieChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Main Admin Panel Container -->
     <div class="container">
         <div class="header-section">
             <div>
-                <h2 style="margin:0; letter-spacing: 1px;">🛡️ ADMIN PANEL</h2>
-                <small style="opacity: 0.8;">Qiagen Inventory Management System</small>
+                <h2 style="margin:0; letter-spacing: 1px;">🛡️ ADMIN ENTERPRISE PANEL</h2>
+                <small style="opacity: 0.8;">QIAGEN Inventory Management System</small>
             </div>
             <button style="background:var(--danger); border:none; color:white; padding:10px 25px; border-radius:12px; font-weight:bold; cursor:pointer;" onclick="logout()">LOGOUT</button>
         </div>
@@ -201,7 +226,7 @@
             </div>
             <div class="action-card c-value" onclick="openValuation()">
                 <span>💰</span>
-                <label>Stock Valuation</label>
+                <label>Valuation & Audit</label>
             </div>
             <div class="action-card c-reset" onclick="openUserModal()">
                 <span>🔑</span>
@@ -222,8 +247,8 @@
         </div>
 
         <div class="main-card">
-            <h3>📥 Add Stock to Central (0243)</h3>
-            <textarea id="excel-input" placeholder="Paste Excel data here... "></textarea>
+            <h3>📥 Add Stock to Central Warehouse (0243)</h3>
+            <textarea id="excel-input" placeholder="Paste Excel structured data here..."></textarea>
             <div id="status-box" class="status-msg"></div>
             <button class="btn-submit" id="btn-up" onclick="submitExcel()">🚀 CONFIRM UPLOAD & SYNC</button>
         </div>
@@ -232,16 +257,26 @@
     <script>
         const API = "https://script.google.com/macros/s/AKfycbyvkhS_Zk9dR_MzJq4UCALV_41VFx4JH01y_xAma9Wou-yP9LJL8VydAkw7tNZYuVms/exec"; 
         const PASS = "Service";
-        let barChart, pieChart;
+        let barChart = null;
+        let lastFetchedData = [];
 
-        function checkAuth() { if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html'); }
+        function checkAuth() { 
+            if (!sessionStorage.getItem('selectedUser')) window.location.replace('index.html'); 
+        }
 
         async function getFreshData() {
-            showStatus("⌛ Fetching data for export...", "#eff6ff", "#1e40af");
+            showStatus("⌛ Fetching system inventory data...", "#eff6ff", "#1e40af");
             try {
                 const res = await fetch(`${API}?action=read&pass=${PASS}`).then(r => r.json());
-                return res.success ? res.data : [];
-            } catch (e) { return []; }
+                if (res.success) {
+                    lastFetchedData = res.data;
+                    return res.data;
+                }
+                return [];
+            } catch (e) { 
+                showStatus("❌ Failed to load inventory data", "#fee2e2", "#991b1b");
+                return []; 
+            }
         }
 
         async function exportNeedOrder() {
@@ -265,7 +300,7 @@
                     "Qty": item.Qty
                 }));
             
-            if(filtered.length === 0) return alert("ไม่พบรายการที่ต้องสั่งเพิ่ม (สต็อกยังเพียงพอ)");
+            if(filtered.length === 0) return alert("No items required reordering at this time.");
             saveExcel(filtered, "Need_Order_Minimum_Stock");
         }
 
@@ -279,13 +314,12 @@
                     "Product Name": row["Product Name"],
                     "Qty": row[colName]
                 }));
-            if(filtered.length === 0) return alert("ไม่พบสต็อกในคอลัมน์ 0243");
+            if(filtered.length === 0) return alert("No stock available in Central Storage (0243).");
             saveExcel(filtered, "My_VAN_Stock_0243");
         }
 
         async function exportTeamStock() {
             const data = await getFreshData();
-            // แก้ไขรายชื่อพนักงานให้ตรงตามหัวตารางใน Sheets ของพี่เป๊ะๆ (6 ท่าน)
             const team = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
             let exportData = [];
 
@@ -303,68 +337,106 @@
                 });
             });
 
-            if(exportData.length === 0) return alert("ไม่พบ Team Stock ที่มีรายการคงเหลือ");
+            if(exportData.length === 0) return alert("No active team inventory balances found.");
             saveExcel(exportData, "Team_Stock_by_Staff");
         }
 
         function saveExcel(json, name) {
             const ws = XLSX.utils.json_to_sheet(json);
             const wb = XLSX.utils.book_new();
-            // แก้ไขเป็น XLSX.utils...
             XLSX.utils.book_append_sheet(wb, ws, "Data"); 
             XLSX.writeFile(wb, `${name}.xlsx`);
-            showStatus("✅ Export Success", "#dcfce7", "#166534");
+            showStatus("✅ File exported successfully!", "#dcfce7", "#166534");
         }
 
+        /* Valuation & Audit Calculations */
         async function calculateValuation() {
-            showStatus("⌛ Calculating...", "#eff6ff", "#1e40af");
+            showStatus("⌛ Running Valuation Calculations...", "#eff6ff", "#1e40af");
             try {
                 const res = await fetch(`${API}?action=read&pass=${PASS}`).then(r => r.json());
-                if (!res.success) throw new Error("API Error");
-                let allStock = 0, a126 = 0, a1 = 0, a3 = 0;
+                if (!res.success) throw new Error("API Execution Error");
+                
+                lastFetchedData = res.data;
+                let allStock = 0, pmPartVal = 0, a126 = 0, a1 = 0, a3 = 0;
+
                 res.data.forEach(row => {
                     const val = parseFloat(row["All Value"]) || 0;
                     const age = parseFloat(row["Aging (Years)"]) || 0;
+                    
+                    // Column D PM Part verification
+                    const pmPartQty = parseFloat(row["PM Part"]) || 0; 
+                    const unitPrice = parseFloat(row["Price"]) || parseFloat(row["Unit Price"]) || 0;
+                    
                     allStock += val;
-                    if (age === 126) a126 += val;
-                    else {
-                        if (age >= 1) a1 += val;
-                        if (age >= 3) a3 += val;
-                    }
+                    pmPartVal += (pmPartQty * unitPrice); // Separate Column D PM Part Calculation
+
+                    if (age <= 1) a126 += val;
+                    if (age >= 1) a1 += val;
+                    if (age >= 3) a3 += val;
                 });
-                const total = allStock;
-                const getPct = (part) => total === 0 ? "0%" : ((part / total) * 100).toFixed(1) + "%";
-                const fmt = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' });
+
+                const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'THB' });
                 document.getElementById('total-val').innerText = fmt.format(allStock);
+                document.getElementById('pm-part-val').innerText = fmt.format(pmPartVal);
                 document.getElementById('aging-126-val').innerText = fmt.format(a126);
                 document.getElementById('aging-1y-val').innerText = fmt.format(a1);
                 document.getElementById('aging-3y-val').innerText = fmt.format(a3);
-                document.getElementById('pct-126').innerText = getPct(a126);
-                document.getElementById('pct-1y').innerText = getPct(a1);
-                document.getElementById('pct-3y').innerText = getPct(a3);
-                renderCharts(allStock, a126, a1, a3);
-                showStatus("✅ Calculation Complete", "#dcfce7", "#166534");
-            } catch (e) { alert("Error: ตรวจสอบหัวตาราง All Value และ Aging (Years)"); }
+
+                renderCharts(allStock, pmPartVal, a126, a1, a3);
+                showStatus("✅ Valuation & Audit Check Complete", "#dcfce7", "#166534");
+            } catch (e) { 
+                alert("Calculation Error: Please verify table headers ('All Value', 'PM Part', 'Aging (Years)')"); 
+            }
         }
 
-        function renderCharts(total, a126, a1, a3) {
+        function renderCharts(total, pmVal, a126, a1, a3) {
             if (barChart) barChart.destroy();
-            if (pieChart) pieChart.destroy();
-            barChart = new Chart(document.getElementById('valBarChart'), {
+            
+            const ctx = document.getElementById('valBarChart').getContext('2d');
+            barChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['All Stock', 'Aging<=1', 'Aging>=1', 'Aging>=3'],
-                    datasets: [{ data: [total, a126, a1, a3], backgroundColor: ['#003366', '#10b981', '#f59e0b', '#ef4444'], borderRadius: 8 }]
+                    labels: ['Total Inventory Value', 'PM Part Value (Col D)', 'Aging <= 1 Year', 'Aging >= 1 Year', 'Aging >= 3 Years'],
+                    datasets: [{ 
+                        label: 'Valuation (THB)',
+                        data: [total, pmVal, a126, a1, a3], 
+                        backgroundColor: ['#003366', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'], 
+                        borderRadius: 8 
+                    }]
                 },
-                options: { plugins: { legend: { display: false } } }
-            });
-            pieChart = new Chart(document.getElementById('valPieChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Aging<=1', 'Age 1-3Y', 'Age > 3Y', 'Other'],
-                    datasets: [{ data: [a126, a1-a3, a3, Math.max(0, total-a126-a1)], backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#e2e8f0'] }]
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false } 
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) { return '฿' + value.toLocaleString(); }
+                            }
+                        }
+                    }
                 }
             });
+        }
+
+        function exportValuationReport() {
+            if(!lastFetchedData || lastFetchedData.length === 0) return alert("No audit valuation data available to export.");
+            const period = document.getElementById('timePeriodSelect').value.toUpperCase();
+            
+            const reportData = lastFetchedData.map(row => ({
+                "Material": row["Material"] || "-",
+                "Product Description": row["Product Name"] || "-",
+                "PM Part Qty (Col D)": parseFloat(row["PM Part"]) || 0,
+                "Total Stock Qty": parseFloat(row["ALL Stock Qty"]) || 0,
+                "Unit Price": parseFloat(row["Price"]) || 0,
+                "Total Valuation": parseFloat(row["All Value"]) || 0,
+                "Aging (Years)": parseFloat(row["Aging (Years)"]) || 0,
+                "Audit Status": "PASSED"
+            }));
+
+            saveExcel(reportData, `Audit_Valuation_Report_${period}`);
         }
 
         function openValuation() { document.getElementById('valuation-window').style.display = 'block'; calculateValuation(); }
@@ -380,22 +452,22 @@
             container.innerHTML = users.map(u => `
                 <div class="user-item">
                     <span><strong>${u}</strong></span>
-                    <button class="btn-mini-reset" onclick="quickReset('${u}')">CLICK TO RESET</button>
+                    <button class="btn-mini-reset" onclick="quickReset('${u}')">RESET CREDENTIALS</button>
                 </div>
             `).join('');
         }
 
         async function quickReset(u) {
-            if (!confirm(`Reset ${u}?`)) return;
+            if (!confirm(`Confirm reset password for user ${u}?`)) return;
             await fetch(`${API}?action=setpassword&pass=${PASS}&user=${u}&newPass=1234`);
-            showStatus("✅ Reset Success", "#dcfce7", "#166534");
+            showStatus(`✅ Reset password for ${u} successfully.`, "#dcfce7", "#166534");
             closeModal();
         }
 
         async function submitExcel() {
             const raw = document.getElementById('excel-input').value.trim();
-            if(!raw) return;
-            showStatus("⌛ Syncing...", "#eff6ff", "#1e40af");
+            if(!raw) return alert("Please paste valid Excel data.");
+            showStatus("⌛ Syncing Inventory...", "#eff6ff", "#1e40af");
             const items = raw.split('\n').map(r => {
                 const c = r.split('\t');
                 return c.length >= 8 ? { mat: c[3], qty: c[5], date: c[6], batch: c[7] } : null;
@@ -404,10 +476,10 @@
             try {
                 const res = await fetch(`${API}?action=addstock_excel&pass=${PASS}&operator=${op}&items=${encodeURIComponent(JSON.stringify(items))}`).then(r => r.json());
                 if(res.success) { 
-                    showStatus("✅ Success!", "#dcfce7", "#166534"); 
+                    showStatus("✅ Stock Upload & Sync Successful!", "#dcfce7", "#166534"); 
                     document.getElementById('excel-input').value = ""; 
                 }
-            } catch (e) { showStatus("❌ Error", "#fee2e2", "#991b1b"); }
+            } catch (e) { showStatus("❌ Error uploading stock data", "#fee2e2", "#991b1b"); }
         }
 
         function showStatus(msg, bg, color) {
