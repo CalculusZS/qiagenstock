@@ -208,7 +208,7 @@
             <div class="val-header-bar">
                 <div>
                     <h2 class="val-title">📊 Stock Valuation & Audit Dashboard</h2>
-                    <div class="val-subtitle">Real-Time Financial Breakdown & Filtered Audit Reporting</div>
+                    <div class="val-subtitle" id="dashboard-mode-subtitle">Real-Time Total Inventory Valuation Breakdown</div>
                 </div>
                 <button class="btn-close-dash" onclick="closeValuation()">CLOSE ✕</button>
             </div>
@@ -217,13 +217,13 @@
             <div class="control-bar">
                 <div class="filter-group">
                     <div class="select-group">
-                        <span>📅 Audit Quarter:</span>
+                        <span>📅 Audit Period:</span>
                         <select id="quarter-select" onchange="applyFilters()">
-                            <option value="ALL">All Periods</option>
-                            <option value="Q1">Q1 (Jan - Mar)</option>
-                            <option value="Q2">Q2 (Apr - Jun)</option>
-                            <option value="Q3">Q3 (Jul - Sep)</option>
-                            <option value="Q4">Q4 (Oct - Dec)</option>
+                            <option value="ALL">All Periods (Current Stock Valuation)</option>
+                            <option value="Q1">Q1 Usage (Jan - Mar)</option>
+                            <option value="Q2">Q2 Usage (Apr - Jun)</option>
+                            <option value="Q3">Q3 Usage (Jul - Sep)</option>
+                            <option value="Q4">Q4 Usage (Oct - Dec)</option>
                         </select>
                     </div>
 
@@ -248,32 +248,32 @@
             <!-- 6 Cards Summary Grid -->
             <div class="val-card-grid-6">
                 <div class="val-card-style card-navy">
-                    <small>TOTAL INVENTORY VALUE</small>
+                    <small id="lbl-card-1">TOTAL INVENTORY VALUE</small>
                     <h2 id="total-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-total">100.00%</span> of Total</div>
                 </div>
                 <div class="val-card-style card-purple">
-                    <small>TOTAL EXCLUDING PM PART</small>
+                    <small id="lbl-card-2">EXCLUDING PM PART</small>
                     <h2 id="ex-pm-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-ex-pm">0.00%</span> Share</div>
                 </div>
                 <div class="val-card-style card-cyan">
-                    <small>TOTAL PM PART VALUE</small>
+                    <small id="lbl-card-3">PM PART VALUE</small>
                     <h2 id="pm-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-pm">0.00%</span> Share</div>
                 </div>
                 <div class="val-card-style card-green">
-                    <small>AGING &lt;= 1 YEAR</small>
+                    <small id="lbl-card-4">AGING &lt;= 1 YEAR</small>
                     <h2 id="aging-126-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-126">0.00%</span> Share</div>
                 </div>
                 <div class="val-card-style card-orange">
-                    <small>AGING &gt; 1 - &lt; 3 YEARS</small>
+                    <small id="lbl-card-5">AGING &gt; 1 - &lt; 3 YEARS</small>
                     <h2 id="aging-1y-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-1y">0.00%</span> Share</div>
                 </div>
                 <div class="val-card-style card-red">
-                    <small>AGING &gt;= 3 YEARS</small>
+                    <small id="lbl-card-6">AGING &gt;= 3 YEARS</small>
                     <h2 id="aging-3y-val">THB 0.00</h2>
                     <div class="sub-pct"><span id="pct-3y">0.00%</span> Share</div>
                 </div>
@@ -282,7 +282,7 @@
             <!-- Single Large Modern Bar Chart -->
             <div class="chart-box">
                 <h4>
-                    <span>Financial Valuation Breakdown (THB)</span>
+                    <span id="chart-main-title">Financial Valuation Breakdown (THB)</span>
                     <small id="filtered-count-label" style="font-size: 13px; color: #64748b; font-weight: normal;"></small>
                 </h4>
                 <div style="height: 420px; position: relative;">
@@ -425,7 +425,6 @@
             showStatus("✅ Export Success", "#dcfce7", "#166534");
         }
 
-        // Fetch Data (อ่านทั้ง STOCK และ TRANSACTION_LOG)
         async function fetchValuationData() {
             showStatus("⌛ Fetching Valuation & Log Data...", "#eff6ff", "#1e40af");
             try {
@@ -442,7 +441,7 @@
             }
         }
 
-        // Apply Filters (ปรับปรุงตรรกะคำนวณมูลค่าการตัดเบิกจริงในไตรมาสนั้นๆ)
+        // Apply Filters: แยกโหมดภาพรวมสต็อก vs ยอดการใช้งานรายไตรมาส
         function applyFilters() {
             if (!rawApiData || rawApiData.length === 0) return;
 
@@ -453,13 +452,24 @@
             const startDate = startDateVal ? new Date(startDateVal) : null;
             const endDate = endDateVal ? new Date(endDateVal) : null;
 
-            // 1. กรณี All Periods (ดูภาพรวมสต็อกคงเหลือปัจจุบันทั้งหมด)
+            const subTitle = document.getElementById('dashboard-mode-subtitle');
+            const mainTitle = document.getElementById('chart-main-title');
+            const lbl1 = document.getElementById('lbl-card-1');
+
+            // โหมด 1: All Periods (ดูสต็อกคงเหลือรวมทั้งหมดในปัจจุบัน)
             if (qVal === "ALL" && !startDate && !endDate) {
                 filteredValuationData = [...rawApiData];
+                subTitle.innerText = "Real-Time Total Inventory Valuation Breakdown";
+                mainTitle.innerText = "Total Stock Valuation Breakdown (THB)";
+                lbl1.innerText = "TOTAL INVENTORY VALUE";
             } 
-            // 2. กรณีเลือกไตรมาส หรือ ช่วงเวลา (คำนวณมูลค่าจริงเฉพาะรายการที่มีการ DEDUCT ในช่วงนั้น)
+            // โหมด 2: เลือก Audit ไตรมาส หรือ ช่วงวัน (ดูยอดมูลค่าอะไหล่ที่มีการหมุนเวียน/เบิกใช้ออกไปจริง)
             else {
-                // สร้างแผนที่ราคาต่อหน่วยและประเภทอุปกรณ์ของแต่ละ Material
+                subTitle.innerText = `Filtered Usage Volume Analysis (${qVal !== 'ALL' ? qVal : 'Custom Range'})`;
+                mainTitle.innerText = `Total Usage Value in Period (${qVal !== 'ALL' ? qVal : 'Custom Range'}) (THB)`;
+                lbl1.innerText = "TOTAL USAGE VALUE";
+
+                // Map ราคาเฉลี่ยต่อชิ้น และรายละเอียดสินค้าจากแท็บ Stock
                 const priceMap = new Map();
                 rawApiData.forEach(row => {
                     const mat = String(row["Material"] || "").trim();
@@ -481,7 +491,7 @@
                     const transType = String(log["Transaction Type"] || "").trim().toUpperCase();
                     const userTo = String(log["User/To"] || "").trim().toUpperCase();
                     
-                    // กรองเฉพาะรายการตัดสต็อก (DEDUCT)
+                    // กรองเฉพาะการใช้งานจริง (DEDUCT)
                     if (transType === "DEDUCT" || userTo === "DEDUCT") {
                         const dateStr = log["Date and Time"];
                         if (dateStr) {
@@ -508,7 +518,7 @@
                                     filteredLogs.push({
                                         "Material": mat,
                                         "Product Name": log["Product Name"] || info.prodName,
-                                        "All Value": qty * info.price, // คำนวณมูลค่าเบิกออกจริงตามจำนวนชิ้น
+                                        "All Value": qty * info.price, // คำนวณเป็นมูลค่าคงที่เต็มจำนวนของรายการที่ใช้งาน
                                         "Type": info.type,
                                         "Aging (Years)": info.aging
                                     });
@@ -531,7 +541,6 @@
             applyFilters();
         }
 
-        // Calculate Totals & Render Cards
         function calculateAndRender(data) {
             let grandTotal = 0, totalExPM = 0, totalPM = 0, aLess1 = 0, a1to3 = 0, a3plus = 0;
 
@@ -574,12 +583,11 @@
             document.getElementById('pct-1y').innerText = getPct(a1to3);
             document.getElementById('pct-3y').innerText = getPct(a3plus);
 
-            document.getElementById('filtered-count-label').innerText = `Showing ${data.length} items`;
+            document.getElementById('filtered-count-label').innerText = `Showing ${data.length} records`;
 
             renderCharts(grandTotal, totalExPM, totalPM, aLess1, a1to3, a3plus);
         }
 
-        // Render Bar Chart
         function renderCharts(grandTotal, totalExPM, totalPM, aLess1, a1to3, a3plus) {
             if (barChart) barChart.destroy();
             
@@ -596,7 +604,7 @@
                 type: 'bar',
                 data: {
                     labels: [
-                        'Total Inventory', 
+                        'Total Value', 
                         'Excluding PM Part', 
                         'PM Part Value',
                         'Aging <= 1 Year', 
