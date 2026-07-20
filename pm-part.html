@@ -408,10 +408,20 @@
                 return {
                     material: matCode,
                     productName: productName,
-                    instrument: instrument,
+                    instrument: String(instrument).trim(),
                     minQty: minQty,
                     qty: qtyVal
                 };
+            });
+
+            // เรียงลำดับตามชื่อ Instrument (A-Z)
+            pmDataList.sort((a, b) => {
+                const instA = a.instrument.toLowerCase();
+                const instB = b.instrument.toLowerCase();
+                if (instA < instB) return -1;
+                if (instA > instB) return 1;
+                // ถ้า Instrument ชื่อเดียวกัน ให้เรียงตาม Material Code ต่อ
+                return String(a.material).localeCompare(String(b.material));
             });
 
             renderPmList(pmDataList);
@@ -478,9 +488,9 @@
             }
 
             const exportData = pmDataList.map(item => ({
+                "Instrument": item.instrument,
                 "Material": item.material,
                 "Product Name": item.productName,
-                "Instrument": item.instrument,
                 "Min Qty": item.minQty,
                 "In Stock Qty": item.qty
             }));
