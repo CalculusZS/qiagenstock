@@ -133,7 +133,8 @@
         .val-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .val-card { background: white; padding: 18px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); position: relative; }
         .val-card small { color: #64748b; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .val-card h3 { font-size: 20px; margin-top: 8px; margin-bottom: 0; font-family: 'Segoe UI', monospace; }
+        .val-card h3 { font-size: 18px; margin-top: 8px; margin-bottom: 4px; font-family: 'Segoe UI', monospace; }
+        .val-card .pct-badge { font-size: 12px; font-weight: 700; color: #64748b; }
         
         .chart-section { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); }
     </style>
@@ -180,28 +181,33 @@
                 <div class="val-card" style="border-left: 5px solid var(--qiagen-blue);">
                     <small>TOTAL INVENTORY VALUE</small>
                     <h3 id="total-val">฿ 0.00</h3>
+                    <div class="pct-badge">100.00% of Total</div>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--purple);">
-                    <small>PM PART VALUE (COL D)</small>
-                    <h3 id="pm-part-val" style="color:var(--purple);">฿ 0.00</h3>
+                    <small>รวมทั้งหมดไม่รวม PM PART</small>
+                    <h3 id="non-pm-val" style="color:var(--purple);">฿ 0.00</h3>
+                    <div class="pct-badge" id="non-pm-pct">0.00% Share</div>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--success);">
                     <small>AGING &lt;= 1 YEAR</small>
                     <h3 id="aging-126-val" style="color:var(--success);">฿ 0.00</h3>
+                    <div class="pct-badge" id="aging-126-pct">0.00% Share</div>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--warning);">
                     <small>AGING &gt;= 1 YEAR</small>
                     <h3 id="aging-1y-val" style="color:var(--warning);">฿ 0.00</h3>
+                    <div class="pct-badge" id="aging-1y-pct">0.00% Share</div>
                 </div>
                 <div class="val-card" style="border-left: 5px solid var(--danger);">
                     <small>AGING &gt;= 3 YEARS</small>
                     <h3 id="aging-3y-val" style="color:var(--danger);">฿ 0.00</h3>
+                    <div class="pct-badge" id="aging-3y-pct">0.00% Share</div>
                 </div>
             </div>
 
             <!-- Value Breakdown Bar Chart -->
             <div class="chart-section">
-                <h4 style="margin-top:0; color:var(--qiagen-blue);">Financial Valuation Breakdown (THB)</h4>
+                <h4 style="margin-top:0; color:var(--qiagen-blue);">Financial Valuation Breakdown (THB & %)</h4>
                 <div style="height: 380px;">
                     <canvas id="valBarChart"></canvas>
                 </div>
@@ -357,49 +363,63 @@
                 if (!res.success) throw new Error("API Execution Error");
                 
                 lastFetchedData = res.data;
-                let allStock = 0, pmPartVal = 0, a126 = 0, a1 = 0, a3 = 0;
+                let totalStockVal = 0, pmPartVal = 0, a126 = 0, a1 = 0, a3 = 0;
 
                 res.data.forEach(row => {
                     const val = parseFloat(row["All Value"]) || 0;
                     const age = parseFloat(row["Aging (Years)"]) || 0;
                     
-                    // Column D PM Part verification
+                    // อ่านราคาจาก Column X (รองรับชื่อหัวข้อ Price, Unit Price หรือ Price/Unit)
                     const pmPartQty = parseFloat(row["PM Part"]) || 0; 
-                    const unitPrice = parseFloat(row["Price"]) || parseFloat(row["Unit Price"]) || 0;
+                    const unitPriceFromColX = parseFloat(row["Price"]) || parseFloat(row["Unit Price"]) || parseFloat(row["Price/Unit"]) || 0;
                     
-                    allStock += val;
-                    pmPartVal += (pmPartQty * unitPrice); // Separate Column D PM Part Calculation
+                    totalStockVal += val;
+                    pmPartVal += (pmPartQty * unitPriceFromColX); // คิดราคามูลค่า PM Part จาก Column X
 
                     if (age <= 1) a126 += val;
                     if (age >= 1) a1 += val;
                     if (age >= 3) a3 += val;
                 });
 
-                const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'THB' });
-                document.getElementById('total-val').innerText = fmt.format(allStock);
-                document.getElementById('pm-part-val').innerText = fmt.format(pmPartVal);
-                document.getElementById('aging-126-val').innerText = fmt.format(a126);
-                document.getElementById('aging-1y-val').innerText = fmt.format(a1);
-                document.getElementById('aging-3y-val').innerText = fmt.format(a3);
+                // คำนวณมูลค่ารวมทั้งหมดไม่รวม PM Part
+                const nonPmVal = Math.max(0, totalStockVal - pmPartVal);
 
-                renderCharts(allStock, pmPartVal, a126, a1, a3);
+                // คำนวณเปอร์เซ็นต์
+                const calcPct = (num) => totalStockVal > 0 ? ((num / totalStockVal) * 100).toFixed(2) + "% Share" : "0.00% Share";
+
+                const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'THB' });
+                document.getElementById('total-val').innerText = fmt.format(totalStockVal);
+                
+                document.getElementById('non-pm-val').innerText = fmt.format(nonPmVal);
+                document.getElementById('non-pm-pct').innerText = calcPct(nonPmVal);
+
+                document.getElementById('aging-126-val').innerText = fmt.format(a126);
+                document.getElementById('aging-126-pct').innerText = calcPct(a126);
+
+                document.getElementById('aging-1y-val').innerText = fmt.format(a1);
+                document.getElementById('aging-1y-pct').innerText = calcPct(a1);
+
+                document.getElementById('aging-3y-val').innerText = fmt.format(a3);
+                document.getElementById('aging-3y-pct').innerText = calcPct(a3);
+
+                renderCharts(totalStockVal, nonPmVal, a126, a1, a3);
                 showStatus("✅ Valuation & Audit Check Complete", "#dcfce7", "#166534");
             } catch (e) { 
-                alert("Calculation Error: Please verify table headers ('All Value', 'PM Part', 'Aging (Years)')"); 
+                alert("Calculation Error: Please verify table headers in your Google Sheet."); 
             }
         }
 
-        function renderCharts(total, pmVal, a126, a1, a3) {
+        function renderCharts(total, nonPmVal, a126, a1, a3) {
             if (barChart) barChart.destroy();
             
             const ctx = document.getElementById('valBarChart').getContext('2d');
             barChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['Total Inventory Value', 'PM Part Value (Col D)', 'Aging <= 1 Year', 'Aging >= 1 Year', 'Aging >= 3 Years'],
+                    labels: ['Total Inventory Value', 'รวมทั้งหมดไม่รวม PM part', 'Aging <= 1 Year', 'Aging >= 1 Year', 'Aging >= 3 Years'],
                     datasets: [{ 
                         label: 'Valuation (THB)',
-                        data: [total, pmVal, a126, a1, a3], 
+                        data: [total, nonPmVal, a126, a1, a3], 
                         backgroundColor: ['#003366', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'], 
                         borderRadius: 8 
                     }]
@@ -408,7 +428,16 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { 
-                        legend: { display: false } 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let val = context.raw || 0;
+                                    let pct = total > 0 ? ((val / total) * 100).toFixed(2) : 0;
+                                    return ` Value: ฿${val.toLocaleString()} (${pct}%)`;
+                                }
+                            }
+                        }
                     },
                     scales: {
                         y: {
@@ -425,16 +454,25 @@
             if(!lastFetchedData || lastFetchedData.length === 0) return alert("No audit valuation data available to export.");
             const period = document.getElementById('timePeriodSelect').value.toUpperCase();
             
-            const reportData = lastFetchedData.map(row => ({
-                "Material": row["Material"] || "-",
-                "Product Description": row["Product Name"] || "-",
-                "PM Part Qty (Col D)": parseFloat(row["PM Part"]) || 0,
-                "Total Stock Qty": parseFloat(row["ALL Stock Qty"]) || 0,
-                "Unit Price": parseFloat(row["Price"]) || 0,
-                "Total Valuation": parseFloat(row["All Value"]) || 0,
-                "Aging (Years)": parseFloat(row["Aging (Years)"]) || 0,
-                "Audit Status": "PASSED"
-            }));
+            const reportData = lastFetchedData.map(row => {
+                const pmQty = parseFloat(row["PM Part"]) || 0;
+                const priceColX = parseFloat(row["Price"]) || parseFloat(row["Unit Price"]) || parseFloat(row["Price/Unit"]) || 0;
+                const pmVal = pmQty * priceColX;
+                const totalVal = parseFloat(row["All Value"]) || 0;
+
+                return {
+                    "Material": row["Material"] || "-",
+                    "Product Description": row["Product Name"] || "-",
+                    "PM Part Qty (Col D)": pmQty,
+                    "Unit Price (Col X)": priceColX,
+                    "PM Part Total Value": pmVal,
+                    "Total Stock Qty": parseFloat(row["ALL Stock Qty"]) || 0,
+                    "Total Stock Value": totalVal,
+                    "Non-PM Part Value": Math.max(0, totalVal - pmVal),
+                    "Aging (Years)": parseFloat(row["Aging (Years)"]) || 0,
+                    "Audit Status": "PASSED"
+                };
+            });
 
             saveExcel(reportData, `Audit_Valuation_Report_${period}`);
         }
