@@ -442,7 +442,7 @@
             }
         }
 
-        // Apply Filters (อ้างอิงข้อมูลตัดสต็อก DEDUCT จากแท็บ TRANSACTION_LOG)
+        // Apply Filters (ปรับปรุงตรรกะคำนวณมูลค่าการตัดเบิกจริงในไตรมาสนั้นๆ)
         function applyFilters() {
             if (!rawApiData || rawApiData.length === 0) return;
 
@@ -453,16 +453,35 @@
             const startDate = startDateVal ? new Date(startDateVal) : null;
             const endDate = endDateVal ? new Date(endDateVal) : null;
 
+            // 1. กรณี All Periods (ดูภาพรวมสต็อกคงเหลือปัจจุบันทั้งหมด)
             if (qVal === "ALL" && !startDate && !endDate) {
                 filteredValuationData = [...rawApiData];
-            } else {
-                const matchedMaterials = new Set();
+            } 
+            // 2. กรณีเลือกไตรมาส หรือ ช่วงเวลา (คำนวณมูลค่าจริงเฉพาะรายการที่มีการ DEDUCT ในช่วงนั้น)
+            else {
+                // สร้างแผนที่ราคาต่อหน่วยและประเภทอุปกรณ์ของแต่ละ Material
+                const priceMap = new Map();
+                rawApiData.forEach(row => {
+                    const mat = String(row["Material"] || "").trim();
+                    const totalQty = parseFloat(row["ALL Stock Qty"]) || 0;
+                    const totalVal = parseFloat(row["All Value"]) || 0;
+                    const price = totalQty > 0 ? (totalVal / totalQty) : (parseFloat(row["Price"]) || 0);
+                    
+                    priceMap.set(mat, {
+                        price: price,
+                        type: String(row["Type"] || "").trim(),
+                        aging: parseFloat(row["Aging (Years)"]) || 0,
+                        prodName: row["Product Name"] || ""
+                    });
+                });
+
+                let filteredLogs = [];
 
                 rawApiLogs.forEach(log => {
                     const transType = String(log["Transaction Type"] || "").trim().toUpperCase();
                     const userTo = String(log["User/To"] || "").trim().toUpperCase();
                     
-                    // เช็คว่ารายการนั้นมีการ DEDUCT หรือไม่
+                    // กรองเฉพาะรายการตัดสต็อก (DEDUCT)
                     if (transType === "DEDUCT" || userTo === "DEDUCT") {
                         const dateStr = log["Date and Time"];
                         if (dateStr) {
@@ -470,11 +489,9 @@
                             if (!isNaN(logDate.getTime())) {
                                 let isMatch = true;
 
-                                // Filter Date Range
                                 if (startDate && logDate < startDate) isMatch = false;
                                 if (endDate && logDate > endDate) isMatch = false;
 
-                                // Filter Quarter
                                 if (qVal !== "ALL") {
                                     const month = logDate.getMonth() + 1;
                                     if (qVal === "Q1" && !(month >= 1 && month <= 3)) isMatch = false;
@@ -483,18 +500,25 @@
                                     if (qVal === "Q4" && !(month >= 10 && month <= 12)) isMatch = false;
                                 }
 
-                                if (isMatch && log["Material"]) {
-                                    matchedMaterials.add(String(log["Material"]).trim());
+                                if (isMatch) {
+                                    const mat = String(log["Material"] || "").trim();
+                                    const qty = parseFloat(log["Qty"]) || 0;
+                                    const info = priceMap.get(mat) || { price: 0, type: "", aging: 0, prodName: "" };
+                                    
+                                    filteredLogs.push({
+                                        "Material": mat,
+                                        "Product Name": log["Product Name"] || info.prodName,
+                                        "All Value": qty * info.price, // คำนวณมูลค่าเบิกออกจริงตามจำนวนชิ้น
+                                        "Type": info.type,
+                                        "Aging (Years)": info.aging
+                                    });
                                 }
                             }
                         }
                     }
                 });
 
-                // กรองเอาเฉพาะ Material ที่มีการ DEDUCT ตรงตามไตรมาสที่เลือก
-                filteredValuationData = rawApiData.filter(row => 
-                    matchedMaterials.has(String(row["Material"]).trim())
-                );
+                filteredValuationData = filteredLogs;
             }
 
             calculateAndRender(filteredValuationData);
