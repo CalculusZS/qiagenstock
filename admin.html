@@ -359,7 +359,7 @@
         function getPropValue(obj, keys) {
             for (let key of keys) {
                 if (obj.hasOwnProperty(key) && obj[key] !== null && obj[key] !== "") {
-                    let parsed = parseFloat(obj[key]);
+                    let parsed = parseFloat(String(obj[key]).replace(/,/g, ''));
                     if (!isNaN(parsed)) return parsed;
                 }
             }
@@ -377,34 +377,37 @@
                 let totalStockVal = 0, pmPartVal = 0, aLess1 = 0, a1to3 = 0, a3plus = 0;
 
                 res.data.forEach(row => {
-                    const totalVal = getPropValue(row, ["All Value", "ALL VALUE", "AllValue", "Total Value"]);
+                    // 1. ดึงราคารวม/มูลค่าจาก คอลัมน์ X โดยตรง
+                    const rowValColX = getPropValue(row, ["Price", "Unit Price", "Price/Unit", "UNIT PRICE", "All Value", "ALL VALUE", "Col X", "Column X"]);
+                    
+                    // 2. ดึง Aging (Years)
                     const age = getPropValue(row, ["Aging (Years)", "Aging(Years)", "Aging", "Aging Years"]);
                     
-                    const pmPartQty = getPropValue(row, ["PM Part", "PM PART", "PM_Part", "PM"]); 
-                    const unitPriceColX = getPropValue(row, ["Price", "Unit Price", "Price/Unit", "UNIT PRICE"]);
+                    // 3. ดึงจำนวน PM Part จาก คอลัมน์ D
+                    const pmPartQtyColD = getPropValue(row, ["PM Part", "PM PART", "PM_Part", "PM"]);
+
+                    totalStockVal += rowValColX;
                     
-                    const rowPmVal = pmPartQty * unitPriceColX;
-                    const rowNonPmVal = Math.max(0, totalVal - rowPmVal);
+                    // มูลค่า PM Part = Qty(Col D) * Price(Col X)
+                    pmPartVal += (pmPartQtyColD * rowValColX);
 
-                    totalStockVal += totalVal;
-                    pmPartVal += rowPmVal;
-
-                    // Aging logic ignores PM Part (Calculates non-PM inventory value only)
+                    // 4. คำนวณ Aging จากราคาทั้งหมดในคอลัมน์ X
                     if (age <= 1) {
-                        aLess1 += rowNonPmVal;
+                        aLess1 += rowValColX;
                     } else if (age > 1 && age < 3) {
-                        a1to3 += rowNonPmVal;
+                        a1to3 += rowValColX;
                     } else if (age >= 3) {
-                        a3plus += rowNonPmVal;
+                        a3plus += rowValColX;
                     }
                 });
 
                 const nonPmVal = Math.max(0, totalStockVal - pmPartVal);
 
-                // Helper to calculate percentages
+                // Helper คำนวณ % Share
                 const calcPct = (num) => totalStockVal > 0 ? ((num / totalStockVal) * 100).toFixed(2) + "% Share" : "0.00% Share";
 
                 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'THB' });
+                
                 document.getElementById('total-val').innerText = fmt.format(totalStockVal);
                 
                 document.getElementById('non-pm-val').innerText = fmt.format(nonPmVal);
@@ -420,9 +423,9 @@
                 document.getElementById('aging-3y-pct').innerText = calcPct(a3plus);
 
                 renderCharts(totalStockVal, nonPmVal, aLess1, a1to3, a3plus);
-                showStatus("✅ Valuation & Audit Check Complete", "#dcfce7", "#166534");
+                showStatus("✅ Valuation & Aging Check Complete", "#dcfce7", "#166534");
             } catch (e) { 
-                alert("Calculation Error: Please verify table headers in your Google Sheet."); 
+                alert("Calculation Error: Please verify Column X mapping in your dataset."); 
             }
         }
 
@@ -475,7 +478,6 @@
                 const pmQty = getPropValue(row, ["PM Part", "PM PART", "PM_Part", "PM"]);
                 const priceColX = getPropValue(row, ["Price", "Unit Price", "Price/Unit", "UNIT PRICE"]);
                 const pmVal = pmQty * priceColX;
-                const totalVal = getPropValue(row, ["All Value", "ALL VALUE", "AllValue", "Total Value"]);
 
                 return {
                     "Material": row["Material"] || "-",
@@ -484,8 +486,7 @@
                     "Unit Price (Col X)": priceColX,
                     "PM Part Total Value": pmVal,
                     "Total Stock Qty": getPropValue(row, ["ALL Stock Qty", "Stock Qty"]),
-                    "Total Stock Value": totalVal,
-                    "Non-PM Part Value": Math.max(0, totalVal - pmVal),
+                    "Column X Total Value": priceColX,
                     "Aging (Years)": getPropValue(row, ["Aging (Years)", "Aging"]),
                     "Audit Status": "PASSED"
                 };
