@@ -169,6 +169,13 @@
             flex-direction: column;
             gap: 12px;
             transition: all 0.2s ease;
+            border-left: 5px solid transparent;
+        }
+
+        /* Highlight entire card border if stock is strictly lower than minQty */
+        .item-card.below-min {
+            border-left: 5px solid #ef4444;
+            background: #fff8f8;
         }
 
         @media (min-width: 640px) {
@@ -183,6 +190,11 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 18px rgba(0,0,0,0.06);
             border-color: #cbd5e1;
+        }
+
+        .item-card.below-min:hover {
+            border-color: #fca5a5;
+            border-left-color: #ef4444;
         }
 
         .item-details {
@@ -247,19 +259,19 @@
             min-width: 90px;
         }
 
-        .badge-min {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-        }
-
         .badge-qty {
             background: #f1f5f9;
             border: 1px solid #cbd5e1;
         }
 
-        /* Warning Highlight if Stock <= Min */
+        .badge-min {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Red Badge Highlight for Stock < Min */
         .badge-qty.low-stock {
-            background: #fef2f2;
+            background: #fee2e2;
             border-color: #fca5a5;
         }
         .badge-qty.low-stock .qty-num {
@@ -384,7 +396,11 @@
                 const matCode = row["Material"] || row["Material Number"] || "-";
                 const productName = row["Product Name"] || row["D"] || "N/A";
                 const instrument = row["Instrument"] || row["Model"] || "-";
-                const minQty = parseFloat(row["Min Qty"] || row["Minimum Qty"] || row["Min"] || 0);
+                
+                // Fetch MinimumQty strictly from Column E (fallback to "Min Qty" / "E")
+                const minQty = parseFloat(row["E"] || row["Min Qty"] || row["Minimum Qty"] || row["Min"] || 0);
+                
+                // Fetch Quantity strictly from Column F / 0243
                 const qtyVal = parseFloat(row["0243"] || row["F"] || row["ALL Stock Qty"] || 0);
 
                 return {
@@ -411,9 +427,11 @@
             }
 
             let html = list.map(item => {
-                const isLow = item.qty <= item.minQty && item.minQty > 0;
+                // Check if In Stock is strictly LESS THAN Min Qty
+                const isBelowMin = item.qty < item.minQty;
+                
                 return `
-                    <div class="item-card">
+                    <div class="item-card ${isBelowMin ? 'below-min' : ''}">
                         <div class="item-details">
                             <div class="tag-group">
                                 <span class="mat-code">${item.material}</span>
@@ -423,13 +441,15 @@
                             <div class="item-name">${item.productName}</div>
                         </div>
                         <div class="stock-info-group">
+                            <!-- Show In Stock FIRST (Left) -->
+                            <div class="badge-box badge-qty ${isBelowMin ? 'low-stock' : ''}">
+                                <span class="badge-label">In Stock</span>
+                                <span class="qty-num">${item.qty}</span>
+                            </div>
+                            <!-- Show Min Qty SECOND (Right) -->
                             <div class="badge-box badge-min">
                                 <span class="badge-label">Min Qty</span>
                                 <span class="qty-num">${item.minQty}</span>
-                            </div>
-                            <div class="badge-box badge-qty ${isLow ? 'low-stock' : ''}">
-                                <span class="badge-label">In Stock</span>
-                                <span class="qty-num">${item.qty}</span>
                             </div>
                         </div>
                     </div>
@@ -457,10 +477,10 @@
 
             const exportData = pmDataList.map(item => ({
                 "Material": item.material,
-                "Product Name": item.productName,
+                "Product Name (Col D)": item.productName,
                 "Instrument": item.instrument,
-                "Min Qty": item.minQty,
-                "In Stock Qty": item.qty
+                "In Stock Qty (Col F)": item.qty,
+                "Min Qty (Col E)": item.minQty
             }));
 
             const ws = XLSX.utils.json_to_sheet(exportData);
