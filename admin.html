@@ -143,6 +143,14 @@
         }
         .select-group select:focus, .select-group input[type="date"]:focus { border-color: var(--qiagen-light); background: white; }
 
+        .btn-action-group { display: flex; gap: 10px; }
+
+        .btn-save-snapshot {
+            background: linear-gradient(135deg, #003366 0%, #001f3f 100%); color: white; border: none; padding: 11px 22px; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(0,51,102,0.2);
+        }
+        .btn-save-snapshot:hover { transform: translateY(-2px); filter: brightness(1.2); }
+
         .btn-export-excel {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 11px 22px; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s;
             box-shadow: 0 4px 12px rgba(16,185,129,0.2);
@@ -235,9 +243,14 @@
                     <button style="background: #e2e8f0; border: none; padding: 9px 15px; border-radius: 10px; font-weight: 600; cursor: pointer;" onclick="resetFilters()">Reset Filter</button>
                 </div>
 
-                <button class="btn-export-excel" onclick="exportValuationReport()">
-                    📊 Export Audit Report (.XLSX)
-                </button>
+                <div class="btn-action-group">
+                    <button class="btn-save-snapshot" onclick="saveQuarterlySnapshot()">
+                        💾 Save Snapshot to "stock Part"
+                    </button>
+                    <button class="btn-export-excel" onclick="exportValuationReport()">
+                        📊 Export Audit Report (.XLSX)
+                    </button>
+                </div>
             </div>
             
             <!-- 6 Cards Summary Grid -->
@@ -333,14 +346,24 @@
     </div>
 
     <script>
-        const API = "https://script.google.com/macros/s/AKfycbycSJJCTRbf7IwHrkGP5tdPE23YzDV60XlYR9OKBD35ZNxhtcTamxX2TPAiVKPiCYTg/exec"; 
+        // อัปเดต Web App URL ใหม่
+        const API = "https://script.google.com/macros/s/AKfycbyJSJb4OFBaXcGb9g6BN-IaPhC3GWHSm8zez-XNe823aIgsEQ7xCJ_7AuhWOLxSp0Rs/exec"; 
         const PASS = "Service";
         let barChart;
-        let rawApiData = [];    // ข้อมูลจาก STOCK
-        let rawApiLogs = [];    // ข้อมูลจาก TRANSACTION_LOG
+        let rawApiData = [];    
+        let rawApiLogs = [];    
         let filteredValuationData = [];
 
-        // Helper Function ลบจุลภาคและแปลงเป็นตัวเลข
+        // ตัวแปรเก็บค่ายอดรวมปัจจุบันเพื่อส่ง Snapshot
+        let currentCalculatedSummary = {
+            totalVal: 0,
+            exPmVal: 0,
+            pmVal: 0,
+            aging1y: 0,
+            aging3y: 0,
+            materialCount: 0
+        };
+
         function parseNum(val) {
             if (val === null || val === undefined) return 0;
             return parseFloat(String(val).replace(/,/g, '').trim()) || 0;
@@ -462,12 +485,10 @@
                 mainTitle.innerText = "Current Stock Valuation Breakdown (THB)";
             }
 
-            // คํานวณค่าน้ำหนักโดยถอดจุลภาคออกทั้งหมด
             filteredValuationData = rawApiData.map(row => {
                 const qty = parseNum(row["ALL Stock Qty"]);
                 let val = parseNum(row["All Value"]);
 
-                // หากชีตเก็บเฉพาะ Unit Price แต่ไม่ได้คิดราคารวม ให้คูณ Qty โดยอัตโนมัติ
                 if (val === 0 && parseNum(row["Unit Price"]) > 0) {
                     val = parseNum(row["Unit Price"]) * qty;
                 }
@@ -513,6 +534,16 @@
                 }
             });
 
+            // อัปเดตค่านำส่งลง Snapshot
+            currentCalculatedSummary = {
+                totalVal: grandTotal,
+                exPmVal: totalExPM,
+                pmVal: totalPM,
+                aging1y: aLess1,
+                aging3y: a3plus,
+                materialCount: data.length
+            };
+
             const getPct = (part) => grandTotal === 0 ? "0.00%" : ((part / grandTotal) * 100).toFixed(2) + "%";
             const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'THB' });
 
@@ -533,6 +564,39 @@
             document.getElementById('filtered-count-label').innerText = `Snapshot Material Count: ${data.length} items`;
 
             renderCharts(grandTotal, totalExPM, totalPM, aLess1, a1to3, a3plus);
+        }
+
+        // ฟังก์ชันส่ง Snapshot สรุปรอบไปยังชีต "stock Part"
+        async function saveQuarterlySnapshot() {
+            const selectedQ = document.getElementById('quarter-select').value;
+            const currentYear = new Date().getFullYear();
+
+            if (!confirm(`ยืนยันการบันทึก Snapshot สรุปยอดบัญชี (${selectedQ} / ${currentYear}) ลงในชีต 'stock Part'?`)) return;
+
+            showStatus("⌛ Saving Snapshot to 'stock Part'...", "#eff6ff", "#1e40af");
+
+            const payload = {
+                year: currentYear,
+                quarter: selectedQ,
+                ...currentCalculatedSummary
+            };
+
+            try {
+                const res = await fetch(`${API}?action=save_snapshot&pass=${PASS}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                }).then(r => r.json());
+
+                if (res.success) {
+                    alert("✅ บันทึกข้อมูล Snapshot สรุปรอบบัญชีลง Sheet 'stock Part' สำเร็จ!");
+                    showStatus("✅ Snapshot Saved Successfully", "#dcfce7", "#166534");
+                } else {
+                    alert("❌ เกิดข้อผิดพลาด: " + (res.msg || "ไม่สามารถบันทึกได้"));
+                }
+            } catch (e) {
+                alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย");
+            }
         }
 
         function renderCharts(grandTotal, totalExPM, totalPM, aLess1, a1to3, a3plus) {
