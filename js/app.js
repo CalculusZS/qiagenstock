@@ -1,16 +1,31 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (TABLE LAYOUT WITH RESPONSIVE SUPPORT)
+   QIAGEN INVENTORY - FRONTEND (CLEAN TABLE & DUPLICATE HEADER FIX)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
 
-// รายชื่อรหัสอะไหล่ที่ไม่ต้องส่งอีเมล (Silent Items)
 const SILENT_MATERIALS = ["9026466", "9026466_PM"];
 
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 let isGlobalSyncing = false;
+
+/* --- 0. AUTO CLEAN OLD DUPLICATE HEADERS ON LOAD --- */
+(function cleanDuplicateHeaders() {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            const theads = document.querySelectorAll('thead');
+            if (theads.length > 1) {
+                for (let i = 1; i < theads.length; i++) {
+                    theads[i].remove();
+                }
+            }
+            // ลบแถวหัวตารางที่ซ้ำใน HTML ดั้งเดิมถ้ามี
+            document.querySelectorAll('.details-header, .table-header').forEach(el => el.remove());
+        }, 100);
+    });
+})();
 
 /* --- 1. AUTH & PASSWORD --- */
 window.handleLogin = async function() {
@@ -269,7 +284,7 @@ window.doDeduct = async function(mat, idx, btnElement) {
     }
 };
 
-/* --- 5. TABLE RENDERING ENGINE (STANDARD TABLE LAYOUT) --- */
+/* --- 5. TABLE RENDERING ENGINE (SINGLE HEADER FIX) --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
