@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (FULL CODE - FIXED HEADER & PERFECT ALIGN)
+   QIAGEN INVENTORY - FRONTEND (FULL CODE - SAFE & FIXED ALIGNMENT)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -9,15 +9,10 @@ window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 let isGlobalSyncing = false;
 
-/* Inject CSS พิเศษเพื่อลบ Header เก่าใน HTML และจัด Alignment ให้ตรงเป๊ะ */
-(function injectFixStyle() {
+/* Style สำหรับจัดระเบียบ Grid 3 คอลัมน์แบบปลอดภัย ไม่สั่ง Hide ซ่อนกล่องมั่ว */
+(function injectSafeStyle() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* ลบ Header เดิมที่เขียนค้างใน HTML ที่ทำให้เกิดซ้ำ */
-        .container > div:not(#data):not(.search-container):not(.user-card) {
-            display: none !important;
-        }
-        /* ล็อคโครงสร้างการ์ดสินค้าให้เป็น Grid 3 คอลัมน์ตรงกันเป๊ะ */
         .custom-card-row {
             background: white !important;
             border-radius: 16px !important;
@@ -301,7 +296,7 @@ window.doDeduct = async function(mat, idx, btnElement) {
     }
 };
 
-/* --- 5. RENDER ENGINE (FIXED GRID HEADER & CARDS) --- */
+/* --- 5. RENDER ENGINE --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
@@ -350,7 +345,6 @@ window.renderTable = function(data) {
 
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
 
-    // Header 1 ชั้น แบบล็อคตำแหน่งตรงกับการ์ด 100%
     let headerHTML = `
         <div class="custom-header-row">
             <div>DETAILS</div>
@@ -387,19 +381,16 @@ window.renderTable = function(data) {
 
         return `
         <div class="custom-card-row">
-            <!-- DETAILS -->
             <div>
                 <div style="font-size:1.15rem; font-weight:800; color:#003366; letter-spacing:0.3px;">${item.Material}</div>
                 <div style="font-size:0.9rem; color:#475569; font-weight:600; margin-top:2px; line-height:1.3;">${item['Product Name']||'-'}</div>
             </div>
             
-            <!-- STOCK (QTY Box) -->
             <div style="justify-self: center; background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 0; border-radius:12px; text-align:center; width:70px;">
                 <span style="font-size:0.65rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">QTY</span>
                 <span style="font-size:1.25rem; font-weight:800; color:#0f172a; line-height:1.1;">${displayQty}</span>
             </div>
             
-            <!-- ACTION -->
             <div style="justify-self: end;">
                 ${actionUI}
             </div>
