@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (FULL APP.JS - SAFE FIX)
+   QIAGEN INVENTORY - FRONTEND CORE (FULL FUNCTIONALITY + SAFE)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -9,7 +9,7 @@ window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 let isGlobalSyncing = false;
 
-/* --- 1. AUTHENTICATION --- */
+/* --- 1. AUTHENTICATION & USER MANAGEMENT --- */
 window.checkAuth = function() {
     const user = sessionStorage.getItem('selectedUser');
     if (!user && !window.location.pathname.includes('index.html')) {
@@ -41,7 +41,13 @@ window.handleLogin = async function() {
     }
 };
 
-/* --- 2. CART SYSTEM --- */
+window.logout = function() {
+    sessionStorage.clear();
+    localStorage.removeItem('qiagen_cart');
+    window.location.replace('index.html');
+};
+
+/* --- 2. CART SYSTEM (WITHDRAW / RETURN CART) --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
     const qtyInput = document.getElementById(qID);
@@ -64,7 +70,7 @@ window.addToCart = function(type, mat, idx, from, target) {
         totalInCart = parseInt(window.cart[existingIndex].qty) + addQty;
     }
 
-    if (totalInCart > availableStock) {
+    if (availableStock > 0 && totalInCart > availableStock) {
         alert(`❌ Stock Insufficient!\nMaterial: ${mat}\nAvailable: ${availableStock}`);
         return;
     }
@@ -146,10 +152,6 @@ window.removeFromCart = function(idx) {
 window.confirmSendAndSync = async function() {
     if (isGlobalSyncing) return;
     const btn = document.getElementById('sync-btn');
-    const user = sessionStorage.getItem('selectedUser');
-    const now = new Date();
-    const today = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
-
     isGlobalSyncing = true;
     if (btn) { btn.innerText = "⏳ Processing..."; btn.disabled = true; }
 
@@ -191,7 +193,7 @@ window.doDeduct = async function(mat, idx) {
     }
 };
 
-/* --- 4. TABLE RENDERER (COMPATIBLE WITH HTML TABLES) --- */
+/* --- 4. DATA RENDERER (COMPATIBLE WITH HTML TABLES) --- */
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); 
     if (!tbody || window.location.pathname.includes('main.html')) return;
@@ -210,21 +212,21 @@ window.renderTable = function(data) {
         if (path.includes('deduct')) {
             actionUI = `
                 <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
-                    <input type="text" id="wo_${index}" placeholder="WO#" class="wo-input" style="width:75px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" class="qty-input-sm" style="width:40px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
-                    <button id="btn_deduct_${index}" onclick="window.doDeduct('${item.Material}', ${index})" class="btn-deduct" style="background:#ef4444; color:white; border:none; padding:7px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">Deduct</button>
+                    <input type="text" id="wo_${index}" placeholder="WO#" style="width:75px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:45px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+                    <button onclick="window.doDeduct('${item.Material}', ${index})" style="background:#ef4444; color:white; border:none; padding:7px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">Deduct</button>
                 </div>`;
         } else if (path.includes('return')) {
             actionUI = `
                 <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" class="qty-input-sm" style="width:40px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
-                    <button onclick="window.addToCart('return','${item.Material}',${index},'${user}','0243')" class="btn-return" style="background:#16a34a; color:white; border:none; padding:7px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">Return</button>
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:45px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+                    <button onclick="window.addToCart('return','${item.Material}',${index},'${user}','0243')" style="background:#16a34a; color:white; border:none; padding:7px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">Return</button>
                 </div>`;
         } else {
             actionUI = `
                 <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" class="qty-input-sm" style="width:40px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
-                    <button onclick="window.addToCart('withdraw','${item.Material}',${index},'0243','${user}')" class="btn-withdraw" style="background:#003366; color:white; border:none; padding:7px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">Withdraw</button>
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:45px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+                    <button onclick="window.addToCart('withdraw','${item.Material}',${index},'0243','${user}')" style="background:#003366; color:white; border:none; padding:7px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">Withdraw</button>
                 </div>`;
         }
 
@@ -248,14 +250,14 @@ window.renderTable = function(data) {
 
 /* --- 5. DATA LOADING & SEARCH --- */
 window.loadStockData = async function(type) {
-    if (window.location.pathname.includes('main.html')) return; // ข้ามการทำงานถ้าอยู่หน้า Dashboard
+    if (window.location.pathname.includes('main.html')) return;
 
     const tbody = document.getElementById('data');
     if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center" style="padding:30px; color:#64748b;">⏳ Loading Stock Data...</td></tr>';
 
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success) { 
+        if (res && res.success) { 
             window.allRows = res.data; 
             window.renderTable(res.data); 
         }
@@ -269,33 +271,28 @@ window.searchStock = function(val, type) {
 };
 
 window.searchData = function(val) {
-    const query = val.toLowerCase().trim();
+    const query = (val || '').toLowerCase().trim();
     const filtered = window.allRows.filter(r => 
-        String(r.Material).toLowerCase().includes(query) || 
+        String(r.Material || '').toLowerCase().includes(query) || 
         String(r['Product Name']||'').toLowerCase().includes(query)
     );
     window.renderTable(filtered);
 };
 
-window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
-
 /* --- 6. INITIALIZATION --- */
 document.addEventListener('DOMContentLoaded', () => {
     const name = sessionStorage.getItem('selectedUser');
     
-    // อัปเดตชื่อผู้ใช้ตาม ID ต่างๆ ใน HTML
     ['user-display', 'user_display', 'display-user', 'current-user'].forEach(id => {
         const el = document.getElementById(id); 
         if (el && name) el.innerText = name;
     });
 
-    // ถ้าไม่ใช่หน้า login และไม่มี session ให้กลับไปหน้า login
     if (!window.location.pathname.includes('index.html')) {
         if (!name) {
             window.location.replace('index.html');
             return;
         }
-        // โหลดข้อมูลเฉพาะหน้าที่จำเป็น
         if (!window.location.pathname.includes('main.html') && !window.location.pathname.includes('history.html')) {
             window.loadStockData();
         }
