@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (CLEAN ENGINE)
+   QIAGEN INVENTORY - FRONTEND (FULL PROTECTED & STABLE TABLE)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -58,7 +58,7 @@ window.processReset = async function(u) {
     } catch (e) { alert("❌ Error resetting password"); }
 };
 
-/* --- 2. CART SYSTEM --- */
+/* --- 2. CART SYSTEM & QUANTITY PROTECTION --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
     const qtyInput = document.getElementById(qID);
@@ -81,6 +81,7 @@ window.addToCart = function(type, mat, idx, from, target) {
         totalInCart = parseInt(window.cart[existingIndex].qty) + addQty;
     }
 
+    // ระบบป้องกันเบิกเกินจำนวนสต็อกที่มีจริง
     if (totalInCart > availableStock) {
         alert(`❌ Stock Insufficient!\nMaterial: ${mat}\nAvailable: ${availableStock}\nAlready in cart: ${existingIndex > -1 ? window.cart[existingIndex].qty : 0}\nAttempted: ${totalInCart}`);
         return;
@@ -268,7 +269,7 @@ window.doDeduct = async function(mat, idx, btnElement) {
     }
 };
 
-/* --- 5. TABLE RENDERING ENGINE --- */
+/* --- 5. TABLE RENDERING ENGINE (SAFE & COMPLETE) --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
@@ -306,7 +307,8 @@ window.renderTeamTable = function(data) {
         });
     });
 
-    container.innerHTML = rowsHtml ? `
+    // สร้างตารางให้สมบูรณ์พร้อมหัวตาราง ไม่ให้ข้อมูลไหลหรือแตก
+    container.innerHTML = `
         <table>
             <thead>
                 <tr>
@@ -315,8 +317,8 @@ window.renderTeamTable = function(data) {
                     <th style="text-align:right;">ACTION</th>
                 </tr>
             </thead>
-            <tbody>${rowsHtml}</tbody>
-        </table>` : '<div style="text-align:center; padding:50px; color:#94a3b8;">No Team Stock Available</div>';
+            <tbody>${rowsHtml || '<tr><td colspan="3" style="text-align:center; padding:50px; color:#94a3b8;">No Team Stock Available</td></tr>'}</tbody>
+        </table>`;
 };
 
 window.renderTable = function(data) {
@@ -364,7 +366,7 @@ window.renderTable = function(data) {
         </tr>`;
     }).join('');
 
-    container.innerHTML = rowsHtml ? `
+    container.innerHTML = `
         <table>
             <thead>
                 <tr>
@@ -373,8 +375,8 @@ window.renderTable = function(data) {
                     <th style="text-align:right;">ACTION</th>
                 </tr>
             </thead>
-            <tbody>${rowsHtml}</tbody>
-        </table>` : '<div style="text-align:center; padding:50px; color:#94a3b8;">📦 No Material Found</div>';
+            <tbody>${rowsHtml || '<tr><td colspan="3" style="text-align:center; padding:50px; color:#94a3b8;">📦 No Material Found</td></tr>'}</tbody>
+        </table>`;
 };
 
 /* --- 6. DATA LOADING & SEARCH --- */
