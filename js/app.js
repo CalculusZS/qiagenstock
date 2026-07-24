@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (FIXED HEADER OVERLAP)
+   QIAGEN INVENTORY - FRONTEND (AUTO CLEAN HEADER DUPLICATION)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -268,10 +268,20 @@ window.doDeduct = async function(mat, idx, btnElement) {
     }
 };
 
-/* --- 5. TABLE RENDERING ENGINE (CLEAN & SAFE) --- */
+/* --- 5. TABLE RENDERING ENGINE (SAFE & CLEAN DUPLICATION CHECK) --- */
+function ensureSingleHeader(tableElement) {
+    if (!tableElement) return;
+    const theads = tableElement.getElementsByTagName('thead');
+    while (theads.length > 1) {
+        theads[theads.length - 1].remove();
+    }
+}
+
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
+
+    ensureSingleHeader(container.closest('table'));
 
     const currentUser = sessionStorage.getItem('selectedUser');
     const members = Object.values(USER_MAP);
@@ -306,13 +316,14 @@ window.renderTeamTable = function(data) {
         });
     });
 
-    // ใส่เฉพาะแถวข้อมูลลงใน container โดยไม่สร้างหัวตารางซ้ำซ้อน
     container.innerHTML = rowsHtml || '<tr><td colspan="3" style="text-align:center; padding:50px; color:#94a3b8;">No Team Stock Available</td></tr>';
 };
 
 window.renderTable = function(data) {
     const container = document.getElementById('data'); 
     if (!container || window.location.pathname.includes('team-stock')) return;
+
+    ensureSingleHeader(container.closest('table'));
 
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
     
@@ -355,7 +366,6 @@ window.renderTable = function(data) {
         </tr>`;
     }).join('');
 
-    // ใส่เฉพาะแถวข้อมูลลงใน container เช่นกัน
     container.innerHTML = rowsHtml || '<tr><td colspan="3" style="text-align:center; padding:50px; color:#94a3b8;">📦 No Material Found</td></tr>';
 };
 
