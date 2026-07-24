@@ -1,6 +1,5 @@
-
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (FIXED MODERN CARD LAYOUT)
+   QIAGEN INVENTORY - FRONTEND (FULL RESPONSIVE: MOBILE & DESKTOP)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -11,7 +10,52 @@ const SILENT_MATERIALS = ["9026466", "9026466_PM"];
 
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
-let isGlobalSyncing = false; // Global Lock Flag
+let isGlobalSyncing = false;
+
+/* --- 0. RESPONSIVE CSS INJECTION FOR MOBILE & PC --- */
+(function injectResponsiveStyles() {
+    const style = document.createElement('style');
+    style.innerHTML = `
+        /* บังคับซ่อนส่วนหัวตารางเดิม */
+        .details-header, thead, th, .table-header, tr.header-row { 
+            display: none !important; 
+        }
+        /* บังคับขยาย คอนเทนเนอร์ ให้เต็มพื้นที่ */
+        #data, #team-data-container, main, .content, .container, table, tbody, tr, td { 
+            width: 100% !important; 
+            max-width: 100% !important; 
+            display: block !important; 
+            box-sizing: border-box !important;
+        }
+
+        /* 📱 MOBILE RESPONSIVE STYLES (สำหรับหน้าจอมือถือ) */
+        @media (max-width: 600px) {
+            .item-card {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+                padding: 16px !important;
+            }
+            .item-info {
+                padding-right: 0 !important;
+            }
+            .item-action-group {
+                width: 100% !important;
+                justify-content: space-between !important;
+                border-top: 1px dashed #e2e8f0 !important;
+                padding-top: 12px !important;
+            }
+            .action-controls {
+                flex: 1 !important;
+                justify-content: flex-end !important;
+            }
+            .action-controls input[type="text"] {
+                width: 80px !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+})();
 
 /* --- 1. AUTH & PASSWORD --- */
 window.handleLogin = async function() {
@@ -121,34 +165,34 @@ window.updateCartUI = function() {
     if (!btn) {
         btn = document.createElement('div'); 
         btn.id = 'cart-floating-btn';
-        btn.style = "position:fixed; bottom:25px; right:25px; z-index:9999;";
+        btn.style = "position:fixed; bottom:25px; right:20px; z-index:9999;";
         document.body.appendChild(btn);
     }
     btn.innerHTML = window.cart.length > 0 ? 
-        `<button onclick="window.showReviewModal()" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:white; padding:14px 24px; border-radius:50px; border:none; font-weight:bold; font-size:15px; box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); cursor:pointer; display:flex; align-items:center; gap:8px; transition:transform 0.2s;">
-            🛒 Review Cart (${window.cart.length})
+        `<button onclick="window.showReviewModal()" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:white; padding:12px 20px; border-radius:50px; border:none; font-weight:bold; font-size:14px; box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); cursor:pointer; display:flex; align-items:center; gap:8px;">
+            🛒 Cart (${window.cart.length})
          </button>` : '';
 };
 
 window.showReviewModal = function() {
     let html = window.cart.map((i, idx) => `
-        <div style="padding:14px; background:#f8fafc; border-radius:12px; margin-bottom:10px; border:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+        <div style="padding:12px; background:#f8fafc; border-radius:12px; margin-bottom:10px; border:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
             <div style="flex:1;">
-                <div style="font-size:16px; font-weight:800; color:#003366;">${i.mat}</div>
-                <div style="font-size:13px; color:#475569; margin:2px 0;">${i.name}</div>
-                <div style="font-size:12px; font-weight:700; color:#0ea5e9;">Qty: ${i.qty} | ${i.from} → ${i.target}</div>
+                <div style="font-size:15px; font-weight:800; color:#003366;">${i.mat}</div>
+                <div style="font-size:12px; color:#475569; margin:2px 0;">${i.name}</div>
+                <div style="font-size:11px; font-weight:700; color:#0ea5e9;">Qty: ${i.qty} | ${i.from} → ${i.target}</div>
             </div>
-            <button onclick="window.removeFromCart(${idx})" style="background:#fee2e2; color:#ef4444; border:none; padding:8px 12px; border-radius:10px; font-weight:bold; cursor:pointer;">✕</button>
+            <button onclick="window.removeFromCart(${idx})" style="background:#fee2e2; color:#ef4444; border:none; padding:6px 10px; border-radius:8px; font-weight:bold; cursor:pointer;">✕</button>
         </div>`).join('');
 
     const div = document.createElement('div'); 
     div.id = "review-modal";
     div.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.75); backdrop-filter:blur(4px); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
-    div.innerHTML = `<div style="background:white; width:100%; max-width:440px; border-radius:24px; padding:24px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
-            <h3 style="margin-top:0; border-bottom:2px solid #f1f5f9; padding-bottom:12px; color:#0f172a; font-size:1.2rem;">🛒 Confirm Cart Items</h3>
-            <div style="max-height:360px; overflow-y:auto; padding-right:4px;">${html || '<div style="text-align:center; padding:30px; color:#94a3b8;">Cart is empty</div>'}</div>
-            ${window.cart.length > 0 ? `<button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:16px; background:linear-gradient(135deg, #0ea5e9, #0284c7); color:white; border:none; border-radius:14px; margin-top:16px; font-weight:bold; font-size:1rem; cursor:pointer; box-shadow:0 4px 12px rgba(14,165,233,0.3);">Confirm & Submit Order</button>` : ''}
-            <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; padding:12px; border:none; background:none; color:#64748b; font-weight:600; cursor:pointer;">Cancel</button>
+    div.innerHTML = `<div style="background:white; width:100%; max-width:400px; border-radius:20px; padding:20px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); box-sizing:border-box;">
+            <h3 style="margin-top:0; border-bottom:2px solid #f1f5f9; padding-bottom:12px; color:#0f172a; font-size:1.1rem;">🛒 Confirm Cart Items</h3>
+            <div style="max-height:300px; overflow-y:auto; padding-right:4px;">${html || '<div style="text-align:center; padding:30px; color:#94a3b8;">Cart is empty</div>'}</div>
+            ${window.cart.length > 0 ? `<button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:14px; background:linear-gradient(135deg, #0ea5e9, #0284c7); color:white; border:none; border-radius:12px; margin-top:14px; font-weight:bold; font-size:0.95rem; cursor:pointer; box-shadow:0 4px 12px rgba(14,165,233,0.3);">Confirm & Submit Order</button>` : ''}
+            <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:8px; padding:10px; border:none; background:none; color:#64748b; font-weight:600; cursor:pointer;">Cancel</button>
         </div>`;
     document.body.appendChild(div);
 };
@@ -270,19 +314,10 @@ window.doDeduct = async function(mat, idx, btnElement) {
     }
 };
 
-/* --- 5. CLEAN & MODERN UI RENDERING ENGINE --- */
+/* --- 5. RESPONSIVE RENDERING ENGINE --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
-
-    // ล้างโครงสร้างตารางเดิมออกเพื่อให้แสดงผลแบบ Flex Card ได้สมบูรณ์
-    const parent = container.closest('table') || container.parentElement;
-    if (parent && parent.tagName === 'TABLE') {
-        const wrapper = document.createElement('div');
-        wrapper.id = 'data';
-        parent.parentNode.replaceChild(wrapper, parent);
-        return window.renderTeamTable(data);
-    }
 
     const currentUser = sessionStorage.getItem('selectedUser');
     const members = Object.values(USER_MAP);
@@ -294,24 +329,24 @@ window.renderTeamTable = function(data) {
             if (q > 0) {
                 const isMe = (m === currentUser);
                 html += `
-                <div style="background:white; border-radius:16px; padding:20px; margin-bottom:14px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.03); display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box;">
-                    <div style="flex:1; padding-right:15px;">
-                        <span style="background:${isMe ? '#f1f5f9':'#f0fdf4'}; color:${isMe ? '#64748b':'#166534'}; font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; border:1px solid ${isMe ? '#cbd5e1':'#bbf7d0'}; display:inline-block; margin-bottom:8px;">
+                <div class="item-card" style="background:white; border-radius:16px; padding:18px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box;">
+                    <div class="item-info" style="flex:1; padding-right:12px;">
+                        <span style="background:${isMe ? '#f1f5f9':'#f0fdf4'}; color:${isMe ? '#64748b':'#166534'}; font-size:0.75rem; font-weight:800; padding:3px 8px; border-radius:6px; border:1px solid ${isMe ? '#cbd5e1':'#bbf7d0'}; display:inline-block; margin-bottom:6px;">
                             Owner: ${isMe ? m + ' (Me)' : m}
                         </span>
-                        <div style="font-size:1.15rem; font-weight:800; color:#003366;">${item.Material}</div>
-                        <div style="font-size:0.95rem; color:#475569; margin-top:4px; font-weight:500;">${item['Product Name']||'-'}</div>
+                        <div style="font-size:1.1rem; font-weight:800; color:#003366;">${item.Material}</div>
+                        <div style="font-size:0.9rem; color:#475569; margin-top:2px; font-weight:500;">${item['Product Name']||'-'}</div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:12px;">
-                        <div style="text-align:right; background:#f8fafc; padding:8px 14px; border-radius:12px; border:1px solid #e2e8f0; min-width:70px;">
-                            <span style="font-size:0.68rem; color:#64748b; font-weight:800; display:block; text-transform:uppercase;">Stock</span>
-                            <span style="font-size:1.25rem; font-weight:800; color:#0f172a;">${q}</span>
+                    <div class="item-action-group" style="display:flex; align-items:center; gap:10px;">
+                        <div style="text-align:center; background:#f8fafc; padding:6px 12px; border-radius:10px; border:1px solid #e2e8f0; min-width:60px;">
+                            <span style="font-size:0.65rem; color:#64748b; font-weight:800; display:block; text-transform:uppercase;">Stock</span>
+                            <span style="font-size:1.2rem; font-weight:800; color:#0f172a;">${q}</span>
                         </div>
                         ${isMe ? 
-                            `<button disabled style="background:#f1f5f9; color:#94a3b8; border:1px solid #e2e8f0; padding:10px 16px; border-radius:12px; font-weight:700; cursor:not-allowed;">Transfer</button>` :
-                            `<div style="display:flex; align-items:center; gap:6px;">
-                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" style="width:50px; padding:9px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:bold; outline:none;">
-                                <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:linear-gradient(135deg, #f97316, #ea580c); color:white; border:none; padding:10px 16px; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(249,115,22,0.25);">Transfer</button>
+                            `<button disabled style="background:#f1f5f9; color:#94a3b8; border:1px solid #e2e8f0; padding:8px 14px; border-radius:10px; font-weight:700; cursor:not-allowed; font-size:0.85rem;">Transfer</button>` :
+                            `<div class="action-controls" style="display:flex; align-items:center; gap:6px;">
+                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" style="width:45px; padding:8px; text-align:center; border:1.5px solid #cbd5e1; border-radius:8px; font-weight:bold; outline:none; font-size:0.9rem;">
+                                <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:linear-gradient(135deg, #f97316, #ea580c); color:white; border:none; padding:8px 14px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:0.85rem; box-shadow:0 3px 10px rgba(249,115,22,0.25);">Transfer</button>
                              </div>`
                         }
                     </div>
@@ -323,20 +358,8 @@ window.renderTeamTable = function(data) {
 };
 
 window.renderTable = function(data) {
-    let container = document.getElementById('data'); 
+    const container = document.getElementById('data'); 
     if (!container || window.location.pathname.includes('team-stock')) return;
-
-    // เคลียร์ส่วนหัวตารางและโครงสร้างเก่าของ HTML เดิมให้ออกไป เพื่อให้การ์ดแสดงผลได้เต็มความกว้าง
-    const oldHeader = container.parentElement.querySelector('.table-header, thead, .details-header');
-    if (oldHeader) oldHeader.style.display = 'none';
-
-    // ถ้า container อยู่ใน table/tr/td ให้สลับออกมาเป็น div อิสระ
-    if (['TABLE', 'TBODY', 'TR', 'TD'].includes(container.tagName)) {
-        const newDiv = document.createElement('div');
-        newDiv.id = 'data';
-        container.parentNode.replaceChild(newDiv, container);
-        container = newDiv;
-    }
 
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
     
@@ -348,35 +371,35 @@ window.renderTable = function(data) {
         let actionUI = "";
         if (path.includes('showall')) {
             actionUI = displayQty > 0 ? 
-                `<span style="background:#dcfce7; color:#15803d; padding:6px 14px; border-radius:20px; font-weight:800; font-size:0.85rem; border:1px solid #bbf7d0;">In Stock</span>` :
-                `<span style="background:#fee2e2; color:#b91c1c; padding:6px 14px; border-radius:20px; font-weight:800; font-size:0.85rem; border:1px solid #fca5a5;">Out of Stock</span>`;
+                `<span style="background:#dcfce7; color:#15803d; padding:5px 12px; border-radius:20px; font-weight:800; font-size:0.8rem; border:1px solid #bbf7d0;">In Stock</span>` :
+                `<span style="background:#fee2e2; color:#b91c1c; padding:5px 12px; border-radius:20px; font-weight:800; font-size:0.8rem; border:1px solid #fca5a5;">Out of Stock</span>`;
         } else if (path.includes('deduct')) {
             actionUI = `
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <input type="text" id="wo_${index}" placeholder="WO#" style="width:110px; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:600; font-size:0.9rem; outline:none;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:50px; padding:9px 6px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
-                    <button onclick="window.doDeduct('${item.Material}', ${index}, this)" style="background:linear-gradient(135deg, #ef4444, #dc2626); color:white; border:none; padding:9px 16px; border-radius:10px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(239,68,68,0.25); white-space:nowrap;">Deduct</button>
+                <div class="action-controls" style="display:flex; gap:6px; align-items:center;">
+                    <input type="text" id="wo_${index}" placeholder="WO#" style="width:90px; padding:8px 10px; border:1.5px solid #cbd5e1; border-radius:8px; font-weight:600; font-size:0.85rem; outline:none;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:45px; padding:8px 4px; text-align:center; border:1.5px solid #cbd5e1; border-radius:8px; font-weight:700; font-size:0.85rem; outline:none;">
+                    <button onclick="window.doDeduct('${item.Material}', ${index}, this)" style="background:linear-gradient(135deg, #ef4444, #dc2626); color:white; border:none; padding:8px 14px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:0.85rem; box-shadow:0 3px 10px rgba(239,68,68,0.2); white-space:nowrap;">Deduct</button>
                 </div>`;
         } else {
             const isW = path.includes('withdraw');
             const bgGradient = isW ? 'linear-gradient(135deg, #003366, #001f3f)' : 'linear-gradient(135deg, #10b981, #059669)';
             actionUI = `
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:50px; padding:9px 6px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
-                    <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${bgGradient}; color:white; border:none; padding:9px 18px; border-radius:10px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15); white-space:nowrap;">${isW?'Withdraw':'Return'}</button>
+                <div class="action-controls" style="display:flex; gap:6px; align-items:center;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:45px; padding:8px 4px; text-align:center; border:1.5px solid #cbd5e1; border-radius:8px; font-weight:700; font-size:0.85rem; outline:none;">
+                    <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${bgGradient}; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:0.85rem; box-shadow:0 3px 10px rgba(0,0,0,0.12); white-space:nowrap;">${isW?'Withdraw':'Return'}</button>
                 </div>`;
         }
 
         return `
-        <div style="background:white; border-radius:16px; padding:20px; margin-bottom:14px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box;">
-            <div style="flex:1; padding-right:15px;">
-                <div style="font-size:1.2rem; font-weight:800; color:#003366; letter-spacing:0.3px;">${item.Material}</div>
-                <div style="font-size:0.95rem; color:#475569; font-weight:500; margin-top:4px; line-height:1.4;">${item['Product Name']||'-'}</div>
+        <div class="item-card" style="background:white; border-radius:16px; padding:18px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box;">
+            <div class="item-info" style="flex:1; padding-right:12px;">
+                <div style="font-size:1.15rem; font-weight:800; color:#003366; letter-spacing:0.2px;">${item.Material}</div>
+                <div style="font-size:0.9rem; color:#475569; font-weight:500; margin-top:3px; line-height:1.3;">${item['Product Name']||'-'}</div>
             </div>
-            <div style="display:flex; align-items:center; gap:16px;">
-                <div style="background:#f8fafc; border:1.5px solid #e2e8f0; padding:8px 16px; border-radius:12px; text-align:center; min-width:70px;">
-                    <span style="font-size:0.68rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">Qty</span>
-                    <span style="font-size:1.3rem; font-weight:800; color:#0f172a; line-height:1.1;">${displayQty}</span>
+            <div class="item-action-group" style="display:flex; align-items:center; gap:12px;">
+                <div style="background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 12px; border-radius:10px; text-align:center; min-width:55px;">
+                    <span style="font-size:0.65rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">Qty</span>
+                    <span style="font-size:1.2rem; font-weight:800; color:#0f172a; line-height:1.1;">${displayQty}</span>
                 </div>
                 <div>
                     ${actionUI}
