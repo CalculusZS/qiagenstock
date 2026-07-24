@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (AGGRESSIVE HEADER PURGE)
+   QIAGEN INVENTORY - FRONTEND (CLEAN ENGINE)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -10,24 +10,6 @@ const SILENT_MATERIALS = ["9026466", "9026466_PM"];
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 let isGlobalSyncing = false;
-
-/* --- 0. AGGRESSIVE STATIC HEADER PURGE --- */
-function sanitizeStaticHeaders() {
-    // 1. กวาดล้าง thead ทั้งหมดทิ้งทุกกรณี เพื่อให้ JavaScript ควบคุมการสร้างหัวตารางเดี่ยวๆ อันเดียวเท่านั้น
-    document.querySelectorAll('table').forEach(tbl => {
-        const theads = tbl.querySelectorAll('thead');
-        theads.forEach(th => th.remove());
-        
-        // 2. กวาดล้างแถวใน tbody ที่บังเอิญแปะหัวตารางปลอมมาขวาง
-        const rows = tbl.querySelectorAll('tbody tr');
-        rows.forEach(r => {
-            const text = r.innerText.toUpperCase();
-            if (text.includes('DETAILS') && (text.includes('STOCK') || text.includes('ACTION'))) {
-                r.remove();
-            }
-        });
-    });
-}
 
 /* --- 1. AUTH & PASSWORD --- */
 window.handleLogin = async function() {
@@ -288,7 +270,6 @@ window.doDeduct = async function(mat, idx, btnElement) {
 
 /* --- 5. TABLE RENDERING ENGINE --- */
 window.renderTeamTable = function(data) {
-    sanitizeStaticHeaders();
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
 
@@ -325,7 +306,6 @@ window.renderTeamTable = function(data) {
         });
     });
 
-    // ประกอบร่างตารางพร้อม Header ใหม่ที่ถูกต้องอันเดียว
     container.innerHTML = rowsHtml ? `
         <table>
             <thead>
@@ -337,12 +317,9 @@ window.renderTeamTable = function(data) {
             </thead>
             <tbody>${rowsHtml}</tbody>
         </table>` : '<div style="text-align:center; padding:50px; color:#94a3b8;">No Team Stock Available</div>';
-    
-    sanitizeStaticHeaders();
 };
 
 window.renderTable = function(data) {
-    sanitizeStaticHeaders();
     const container = document.getElementById('data'); 
     if (!container || window.location.pathname.includes('team-stock')) return;
 
@@ -387,7 +364,6 @@ window.renderTable = function(data) {
         </tr>`;
     }).join('');
 
-    // ประกอบร่างตารางพร้อม Header ใหม่ที่ถูกต้องอันเดียว
     container.innerHTML = rowsHtml ? `
         <table>
             <thead>
@@ -399,8 +375,6 @@ window.renderTable = function(data) {
             </thead>
             <tbody>${rowsHtml}</tbody>
         </table>` : '<div style="text-align:center; padding:50px; color:#94a3b8;">📦 No Material Found</div>';
-
-    sanitizeStaticHeaders();
 };
 
 /* --- 6. DATA LOADING & SEARCH --- */
@@ -441,7 +415,6 @@ window.searchData = function(val) {
 window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
 
 document.addEventListener('DOMContentLoaded', () => {
-    sanitizeStaticHeaders();
     const name = sessionStorage.getItem('selectedUser');
     ['user-display', 'user_display', 'display-user', 'current-user'].forEach(id => {
         const el = document.getElementById(id); if (el && name) el.innerText = name;
@@ -452,5 +425,4 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!name) window.location.replace('index.html'); else window.loadStockData();
     }
     window.updateCartUI();
-    setTimeout(sanitizeStaticHeaders, 100);
 });
