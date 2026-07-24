@@ -4,6 +4,7 @@
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
+const ALL_USERS = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
@@ -63,7 +64,7 @@ window.addToCart = function(type, mat, idx, from, target) {
     if (btn && btn.tagName === 'BUTTON' && btn.disabled) return;
 
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
-    const qtyInput = document.getElementById(qID);
+    const qtyInput = document.getElementById(qID) || document.getElementById(`qty_${idx}`);
     const addQty = parseInt(qtyInput ? qtyInput.value : 1) || 0;
     
     if (addQty <= 0) { alert("Please enter valid quantity"); return; }
@@ -259,6 +260,21 @@ window.renderTable = function(data) {
                 <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
                     <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:48px; padding:8px 4px; text-align:center; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; font-weight:700;">
                     <button onclick="window.addToCart('return','${item.Material}',${index},'${user}','0243')" style="background:#16a34a; color:white; border:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:0.2s; box-shadow:0 4px 10px rgba(22, 163, 74, 0.2);">Return</button>
+                </div>`;
+        } else if (path.includes('transfer')) {
+            // สร้าง Dropdown รายชื่อผู้รับ (ตัดชื่อผู้โอนออก)
+            const targetOptions = ALL_USERS.filter(u => u !== user).map(u => `<option value="${u}">${u}</option>`).join('');
+
+            actionUI = `
+                <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
+                    <select id="target_user_${index}" style="padding:8px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px; font-weight:700; outline:none; background:white;">
+                        ${targetOptions}
+                    </select>
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:48px; padding:8px 4px; text-align:center; border:1px solid #cbd5e1; border-radius:8px; font-size:13px; font-weight:700;">
+                    <button onclick="
+                        const targetUser = document.getElementById('target_user_${index}').value;
+                        window.addToCart('transfer', '${item.Material}', ${index}, '${user}', targetUser);
+                    " style="background:#eab308; color:white; border:none; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:0.2s; box-shadow:0 4px 10px rgba(234, 179, 8, 0.2);">Transfer</button>
                 </div>`;
         } else {
             actionUI = `
