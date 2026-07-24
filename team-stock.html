@@ -9,20 +9,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body { 
             background: #f8fafc; 
             font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; 
             margin: 0; 
-            padding-bottom: 100px; 
+            padding-bottom: 120px; 
             color: #0f172a;
         }
 
-        /* Header Modernization */
+        /* Header UI */
         .header { 
             background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%); 
             color: white; 
@@ -36,21 +33,8 @@
             box-shadow: 0 4px 20px rgba(234, 88, 12, 0.25); 
         }
 
-        .header-title {
-            font-weight: 800;
-            font-size: 18px;
-            letter-spacing: -0.3px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .header-title i {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 10px;
-            font-size: 16px;
-        }
+        .header-title { font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .header-title i { background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 10px; font-size: 16px; }
 
         .btn-back { 
             background: rgba(255, 255, 255, 0.15); 
@@ -62,18 +46,9 @@
             font-size: 13px; 
             font-weight: 700;
             backdrop-filter: blur(8px);
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            display: flex; align-items: center; gap: 6px;
         }
 
-        .btn-back:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: translateY(-1px);
-        }
-
-        /* User Banner */
         #user-display { 
             background: #fff7ed; 
             padding: 12px 20px; 
@@ -81,19 +56,10 @@
             color: #9a3412; 
             font-weight: 600;
             border-bottom: 1px solid #ffedd5;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            display: flex; align-items: center; gap: 8px;
         }
 
-        #user-display::before {
-            content: '\f007';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
-            color: #ea580c;
-        }
-
-        /* Search Area */
+        /* Search Bar */
         .search-area { 
             padding: 16px 20px; 
             background: white; 
@@ -104,20 +70,8 @@
             border-bottom: 1px solid #f1f5f9;
         }
 
-        .search-wrapper {
-            position: relative;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .search-wrapper i {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #94a3b8;
-            font-size: 15px;
-        }
+        .search-wrapper { position: relative; max-width: 800px; margin: 0 auto; }
+        .search-wrapper i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 15px; }
 
         .search-area input { 
             width: 100%; 
@@ -127,41 +81,73 @@
             outline: none; 
             font-size: 14px; 
             font-family: inherit;
-            color: #0f172a;
             background: #f8fafc;
+        }
+
+        .search-area input:focus { background: white; border-color: #ea580c; }
+
+        /* Container Layout */
+        #team-data-container { max-width: 800px; margin: 20px auto; padding: 0 16px; }
+
+        /* Member Group Card */
+        .member-card {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+            overflow: hidden;
+        }
+
+        .member-header {
+            background: #f8fafc;
+            padding: 14px 18px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .member-name { font-size: 15px; font-weight: 800; color: #003366; display: flex; align-items: center; gap: 8px; }
+        .member-badge { background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 12px; font-weight: 800; font-size: 12px; }
+
+        /* Item Row */
+        .card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid #f1f5f9;
+            gap: 10px;
+        }
+
+        .card:last-child { border-bottom: none; }
+        .mat-title { font-size: 15px; font-weight: 800; color: #003366; }
+        .mat-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+        /* Actions & Transfer Button UI */
+        .action-box { display: flex; align-items: center; gap: 6px; }
+        .stock-qty { background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 800; }
+        .input-qty { width: 48px; padding: 6px 2px; text-align: center; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-weight: 700; outline: none; }
+        .select-user { padding: 6px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-weight: 700; background: white; outline: none; }
+
+        .btn-transfer-act { 
+            background: #eab308; 
+            color: white; 
+            border: none; 
+            padding: 7px 14px; 
+            border-radius: 8px; 
+            font-size: 12px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            box-shadow: 0 4px 10px rgba(234, 179, 8, 0.2);
             transition: all 0.2s ease;
         }
 
-        .search-area input:focus {
-            background: white;
-            border-color: #ea580c;
-            box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1);
-        }
+        .btn-transfer-act:active { transform: scale(0.95); }
 
-        /* Main Container */
-        #team-data-container {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 0 16px;
-        }
-
-        /* Skeleton Loading Design */
-        .loading-box {
-            text-align: center;
-            padding: 60px 20px;
-            color: #64748b;
-            font-weight: 600;
-            background: white;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-        }
-
-        .loading-box i {
-            color: #ea580c;
-            font-size: 28px;
-            margin-bottom: 12px;
-        }
+        .loading-box { text-align: center; padding: 50px 20px; color: #64748b; font-weight: 600; background: white; border-radius: 16px; border: 1px solid #e2e8f0; }
+        .loading-box i { color: #ea580c; font-size: 28px; margin-bottom: 12px; }
     </style>
 </head>
 <body>
@@ -177,7 +163,7 @@
     </div>
 
     <div id="user-display">
-        Loading User...
+        <i class="fas fa-user-circle" style="color: #ea580c;"></i> Loading User...
     </div>
 
     <div class="search-area">
@@ -194,16 +180,101 @@
         </div>
     </div>
 
+    <!-- ดึง Core Script หลักที่มีระบบ Cart ลอย และ Logic ทำงานหลัก -->
     <script src="js/app.js"></script>
     <script>
-        // ระบบค้นหาในหน้า Team (คงเดิมไว้)
+        const TEAM_MEMBERS = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+
+        // โหลดข้อมูล Team Stock
+        async function loadTeamStock() {
+            const container = document.getElementById('team-data-container');
+            try {
+                const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}&t=${Date.now()}`);
+                const res = await response.json();
+
+                if (res && res.success && res.data) {
+                    window.allRows = res.data;
+                    renderTeamStockUI(res.data);
+                } else {
+                    container.innerHTML = '<div class="loading-box" style="color:#ef4444;">❌ Failed to load data</div>';
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="loading-box" style="color:#ef4444;">❌ Error: ${e.message}</div>`;
+            }
+        }
+
+        // แสดงรายการของแต่ละคน พร้อมปุ่ม Transfer เดิม
+        function renderTeamStockUI(data) {
+            const container = document.getElementById('team-data-container');
+            const currentUser = sessionStorage.getItem('selectedUser');
+            let html = '';
+
+            TEAM_MEMBERS.forEach(member => {
+                const memberItems = data.filter(item => Number(item[member] || 0) > 0);
+
+                if (memberItems.length > 0) {
+                    const itemsHTML = memberItems.map((item, idx) => {
+                        const qty = Number(item[member] || 0);
+                        const isSelf = (member === currentUser);
+
+                        // ตัวเลือกชื่อผู้รับ (ถ้าเป็นเราโอน ให้เลือกเพื่อน / ถ้าเป็นเพื่อน ให้ Transfer เข้าตัวเรา)
+                        const targetOptions = TEAM_MEMBERS.filter(u => u !== currentUser)
+                            .map(u => `<option value="${u}">${u}</option>`).join('');
+
+                        const targetSelectHTML = isSelf 
+                            ? `<select id="target_user_${idx}_${member}" class="select-user">${targetOptions}</select>` 
+                            : '';
+
+                        return `
+                            <div class="card">
+                                <div>
+                                    <div class="mat-title">${item.Material || '-'}</div>
+                                    <div class="mat-sub">${item['Product Name'] || '-'}</div>
+                                </div>
+                                <div class="action-box">
+                                    <span class="stock-qty">Qty: ${qty}</span>
+                                    ${targetSelectHTML}
+                                    <input type="number" id="t_qty_${idx}_${member}" value="1" min="1" max="${qty}" class="input-qty">
+                                    <button class="btn-transfer-act" onclick="
+                                        const targetUser = ${isSelf} ? document.getElementById('target_user_${idx}_${member}').value : '${currentUser}';
+                                        window.addToCart('transfer', '${item.Material}', '${idx}_${member}', '${member}', targetUser);
+                                    ">
+                                        Transfer
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    html += `
+                        <div class="member-card">
+                            <div class="member-header">
+                                <div class="member-name">
+                                    <i class="fas fa-user-circle"></i> ${member} ${isSelf ? '(You)' : ''}
+                                </div>
+                                <div class="member-badge">${memberItems.length} Items</div>
+                            </div>
+                            <div>${itemsHTML}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            container.innerHTML = html || '<div class="loading-box">No stock found</div>';
+        }
+
+        // ฟังก์ชันค้นหา
         function filterTeamStock() {
-            const val = document.getElementById('search').value.toUpperCase();
-            const cards = document.querySelectorAll('.card');
-            cards.forEach(c => {
-                c.style.display = c.innerText.toUpperCase().includes(val) ? 'flex' : 'none';
+            const val = document.getElementById('search').value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.member-card');
+            cards.forEach(card => {
+                card.style.display = card.innerText.toLowerCase().includes(val) ? 'block' : 'none';
             });
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTeamStock();
+        });
     </script>
 </body>
 </html>
