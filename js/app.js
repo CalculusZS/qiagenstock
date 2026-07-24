@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (PERFECT HEADER CLEANUP)
+   QIAGEN INVENTORY - FRONTEND (PERFECT HEADER CLEANUP & REPLACEMENT)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -11,17 +11,16 @@ window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 let isGlobalSyncing = false;
 
-/* --- 0. FORCE CLEAN STATIC HEADERS IN HTML --- */
+/* --- 0. FORCE PURGE STATIC HEADERS IN HTML --- */
 function sanitizeStaticHeaders() {
-    // กวาดล้างหัวตารางที่อาจติดมากับไฟล์ HTML เดิมออกให้หมด
     document.querySelectorAll('table').forEach(tbl => {
+        // ลบ thead ทั้งหมดในตารางทิ้งก่อน เพื่อไม่ให้มีของเดิมติดมาเลย
         const theads = tbl.querySelectorAll('thead');
-        if (theads.length > 1) {
-            for (let i = 1; i < theads.length; i++) theads[i].remove();
-        }
-        // ลบแถวแรกใน tbody ถ้ามันดันเป็นหัวตารางปลอม
+        theads.forEach(th => th.remove());
+        
+        // ลบแถวแรกใน tbody ถ้าดันมีข้อความ DETAILS ติดมา
         const firstRow = tbl.querySelector('tbody tr');
-        if (firstRow && (firstRow.innerText.includes('DETAILS') || firstRow.innerText.includes('ACTION'))) {
+        if (firstRow && (firstRow.innerText.includes('DETAILS') || firstRow.innerText.includes('STOCK') || firstRow.innerText.includes('ACTION'))) {
             firstRow.remove();
         }
     });
@@ -286,6 +285,7 @@ window.doDeduct = async function(mat, idx, btnElement) {
 
 /* --- 5. TABLE RENDERING ENGINE --- */
 window.renderTeamTable = function(data) {
+    sanitizeStaticHeaders(); // ทำความสะอาดก่อนวาด
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
 
@@ -338,6 +338,7 @@ window.renderTeamTable = function(data) {
 };
 
 window.renderTable = function(data) {
+    sanitizeStaticHeaders(); // ทำความสะอาดก่อนวาด
     const container = document.getElementById('data'); 
     if (!container || window.location.pathname.includes('team-stock')) return;
 
@@ -435,6 +436,7 @@ window.searchData = function(val) {
 window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
 
 document.addEventListener('DOMContentLoaded', () => {
+    sanitizeStaticHeaders();
     const name = sessionStorage.getItem('selectedUser');
     ['user-display', 'user_display', 'display-user', 'current-user'].forEach(id => {
         const el = document.getElementById(id); if (el && name) el.innerText = name;
@@ -445,5 +447,4 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!name) window.location.replace('index.html'); else window.loadStockData();
     }
     window.updateCartUI();
-    sanitizeStaticHeaders();
 });
