@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (CLEAN TABLE & DUPLICATE HEADER FIX)
+   QIAGEN INVENTORY - FRONTEND (PERFECT HEADER CLEANUP)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -11,21 +11,21 @@ window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 let isGlobalSyncing = false;
 
-/* --- 0. AUTO CLEAN OLD DUPLICATE HEADERS ON LOAD --- */
-(function cleanDuplicateHeaders() {
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            const theads = document.querySelectorAll('thead');
-            if (theads.length > 1) {
-                for (let i = 1; i < theads.length; i++) {
-                    theads[i].remove();
-                }
-            }
-            // ลบแถวหัวตารางที่ซ้ำใน HTML ดั้งเดิมถ้ามี
-            document.querySelectorAll('.details-header, .table-header').forEach(el => el.remove());
-        }, 100);
+/* --- 0. FORCE CLEAN STATIC HEADERS IN HTML --- */
+function sanitizeStaticHeaders() {
+    // กวาดล้างหัวตารางที่อาจติดมากับไฟล์ HTML เดิมออกให้หมด
+    document.querySelectorAll('table').forEach(tbl => {
+        const theads = tbl.querySelectorAll('thead');
+        if (theads.length > 1) {
+            for (let i = 1; i < theads.length; i++) theads[i].remove();
+        }
+        // ลบแถวแรกใน tbody ถ้ามันดันเป็นหัวตารางปลอม
+        const firstRow = tbl.querySelector('tbody tr');
+        if (firstRow && (firstRow.innerText.includes('DETAILS') || firstRow.innerText.includes('ACTION'))) {
+            firstRow.remove();
+        }
     });
-})();
+}
 
 /* --- 1. AUTH & PASSWORD --- */
 window.handleLogin = async function() {
@@ -284,7 +284,7 @@ window.doDeduct = async function(mat, idx, btnElement) {
     }
 };
 
-/* --- 5. TABLE RENDERING ENGINE (SINGLE HEADER FIX) --- */
+/* --- 5. TABLE RENDERING ENGINE --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
@@ -333,6 +333,8 @@ window.renderTeamTable = function(data) {
             </thead>
             <tbody>${rowsHtml}</tbody>
         </table>` : '<div style="text-align:center; padding:50px; color:#94a3b8;">No Team Stock Available</div>';
+    
+    sanitizeStaticHeaders();
 };
 
 window.renderTable = function(data) {
@@ -391,6 +393,8 @@ window.renderTable = function(data) {
             </thead>
             <tbody>${rowsHtml}</tbody>
         </table>` : '<div style="text-align:center; padding:50px; color:#94a3b8;">📦 No Material Found</div>';
+
+    sanitizeStaticHeaders();
 };
 
 /* --- 6. DATA LOADING & SEARCH --- */
@@ -441,4 +445,5 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!name) window.location.replace('index.html'); else window.loadStockData();
     }
     window.updateCartUI();
+    sanitizeStaticHeaders();
 });
