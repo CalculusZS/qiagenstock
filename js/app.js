@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (PERFECT HEADER CLEANUP & REPLACEMENT)
+   QIAGEN INVENTORY - FRONTEND (AGGRESSIVE HEADER PURGE)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -11,18 +11,21 @@ window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 let isGlobalSyncing = false;
 
-/* --- 0. FORCE PURGE STATIC HEADERS IN HTML --- */
+/* --- 0. AGGRESSIVE STATIC HEADER PURGE --- */
 function sanitizeStaticHeaders() {
+    // 1. กวาดล้าง thead ทั้งหมดทิ้งทุกกรณี เพื่อให้ JavaScript ควบคุมการสร้างหัวตารางเดี่ยวๆ อันเดียวเท่านั้น
     document.querySelectorAll('table').forEach(tbl => {
-        // ลบ thead ทั้งหมดในตารางทิ้งก่อน เพื่อไม่ให้มีของเดิมติดมาเลย
         const theads = tbl.querySelectorAll('thead');
         theads.forEach(th => th.remove());
         
-        // ลบแถวแรกใน tbody ถ้าดันมีข้อความ DETAILS ติดมา
-        const firstRow = tbl.querySelector('tbody tr');
-        if (firstRow && (firstRow.innerText.includes('DETAILS') || firstRow.innerText.includes('STOCK') || firstRow.innerText.includes('ACTION'))) {
-            firstRow.remove();
-        }
+        // 2. กวาดล้างแถวใน tbody ที่บังเอิญแปะหัวตารางปลอมมาขวาง
+        const rows = tbl.querySelectorAll('tbody tr');
+        rows.forEach(r => {
+            const text = r.innerText.toUpperCase();
+            if (text.includes('DETAILS') && (text.includes('STOCK') || text.includes('ACTION'))) {
+                r.remove();
+            }
+        });
     });
 }
 
@@ -285,7 +288,7 @@ window.doDeduct = async function(mat, idx, btnElement) {
 
 /* --- 5. TABLE RENDERING ENGINE --- */
 window.renderTeamTable = function(data) {
-    sanitizeStaticHeaders(); // ทำความสะอาดก่อนวาด
+    sanitizeStaticHeaders();
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
 
@@ -322,6 +325,7 @@ window.renderTeamTable = function(data) {
         });
     });
 
+    // ประกอบร่างตารางพร้อม Header ใหม่ที่ถูกต้องอันเดียว
     container.innerHTML = rowsHtml ? `
         <table>
             <thead>
@@ -338,7 +342,7 @@ window.renderTeamTable = function(data) {
 };
 
 window.renderTable = function(data) {
-    sanitizeStaticHeaders(); // ทำความสะอาดก่อนวาด
+    sanitizeStaticHeaders();
     const container = document.getElementById('data'); 
     if (!container || window.location.pathname.includes('team-stock')) return;
 
@@ -383,6 +387,7 @@ window.renderTable = function(data) {
         </tr>`;
     }).join('');
 
+    // ประกอบร่างตารางพร้อม Header ใหม่ที่ถูกต้องอันเดียว
     container.innerHTML = rowsHtml ? `
         <table>
             <thead>
@@ -447,4 +452,5 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!name) window.location.replace('index.html'); else window.loadStockData();
     }
     window.updateCartUI();
+    setTimeout(sanitizeStaticHeaders, 100);
 });
