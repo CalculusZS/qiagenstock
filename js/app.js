@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (COMPLETE FULL CODE - GRID ALIGNED)
+   QIAGEN INVENTORY - FRONTEND (COMPLETE FULL CODE - NO DUPLICATE HEADER)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -265,7 +265,7 @@ window.doDeduct = async function(mat, idx, btnElement) {
     }
 };
 
-/* --- 5. MODERN UI RENDERING ENGINE (CSS GRID ALIGNED) --- */
+/* --- 5. MODERN UI RENDERING ENGINE --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
@@ -313,14 +313,6 @@ window.renderTable = function(data) {
     if (!container || window.location.pathname.includes('team-stock')) return;
 
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
-    
-    // Header - Grid System Align
-    let headerHTML = `
-        <div style="display: grid; grid-template-columns: 1fr 100px 180px; gap: 16px; padding: 10px 20px; margin-bottom: 8px; font-size: 0.8rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">
-            <div>DETAILS</div>
-            <div style="text-align: center;">STOCK</div>
-            <div style="text-align: right;">ACTION</div>
-        </div>`;
 
     let cardsHTML = data.map((item, index) => {
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
@@ -350,27 +342,27 @@ window.renderTable = function(data) {
         }
 
         return `
-        <div style="background:white; border-radius:16px; padding:16px 20px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display: grid; grid-template-columns: 1fr 100px 180px; gap: 16px; align-items:center;">
-            <!-- Column 1: DETAILS -->
-            <div style="flex:1;">
+        <div style="background:white; border-radius:16px; padding:16px 20px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+            <!-- DETAILS -->
+            <div style="flex: 1;">
                 <div style="font-size:1.15rem; font-weight:800; color:#003366; letter-spacing:0.3px;">${item.Material}</div>
                 <div style="font-size:0.9rem; color:#475569; font-weight:600; margin-top:2px; line-height:1.3;">${item['Product Name']||'-'}</div>
             </div>
             
-            <!-- Column 2: STOCK (QTY Box) -->
-            <div style="justify-self: center; background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 0; border-radius:12px; text-align:center; width:70px;">
+            <!-- STOCK (QTY Box) -->
+            <div style="background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 0; border-radius:12px; text-align:center; width:70px; flex-shrink: 0;">
                 <span style="font-size:0.65rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">QTY</span>
                 <span style="font-size:1.25rem; font-weight:800; color:#0f172a; line-height:1.1;">${displayQty}</span>
             </div>
             
-            <!-- Column 3: ACTION Buttons -->
-            <div style="justify-self: end; width: 100%;">
+            <!-- ACTION -->
+            <div style="display:flex; justify-content:flex-end; align-items:center; flex-shrink: 0;">
                 ${actionUI}
             </div>
         </div>`;
     }).join('');
 
-    container.innerHTML = cardsHTML ? headerHTML + cardsHTML : '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">📦 No Material Found</div>';
+    container.innerHTML = cardsHTML || '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">📦 No Material Found</div>';
 };
 
 /* --- 6. DATA LOADING & SEARCH --- */
