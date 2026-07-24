@@ -1,7 +1,5 @@
-
-
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (MODERN UI & DOUBLE-SUBMIT PROTECTED)
+   QIAGEN INVENTORY - FRONTEND (COMPLETE FULL CODE WITH ORIGINAL DESIGN)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -123,7 +121,7 @@ window.updateCartUI = function() {
         document.body.appendChild(btn);
     }
     btn.innerHTML = window.cart.length > 0 ? 
-        `<button onclick="window.showReviewModal()" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:white; padding:14px 24px; border-radius:50px; border:none; font-weight:bold; font-size:15px; box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); cursor:pointer; display:flex; align-items:center; gap:8px; transition:transform 0.2s;" onhover="this.style.transform='scale(1.05)'">
+        `<button onclick="window.showReviewModal()" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:white; padding:14px 24px; border-radius:50px; border:none; font-weight:bold; font-size:15px; box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); cursor:pointer; display:flex; align-items:center; gap:8px; transition:transform 0.2s;">
             🛒 Review Cart (${window.cart.length})
          </button>` : '';
 };
@@ -162,7 +160,7 @@ window.removeFromCart = function(idx) {
 
 /* --- 3. SYNC WITH LOCK PROTECTION --- */
 window.confirmSendAndSync = async function() {
-    if (isGlobalSyncing) return; // 🛑 ป้องกันการกดซ้ำซ้อน
+    if (isGlobalSyncing) return;
     
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
@@ -224,7 +222,7 @@ window.confirmSendAndSync = async function() {
 
 /* --- 4. DEDUCT WITH DOUBLE-CLICK PROTECTION --- */
 window.doDeduct = async function(mat, idx, btnElement) {
-    if (isGlobalSyncing) return; // 🛑 ป้องกันการกดซ้ำซ้อน
+    if (isGlobalSyncing) return;
     
     const qtyInput = document.getElementById('qty_' + idx);
     const woInput = document.getElementById('wo_' + idx);
@@ -235,7 +233,6 @@ window.doDeduct = async function(mat, idx, btnElement) {
 
     const user = sessionStorage.getItem('selectedUser');
 
-    // ล็อกปุ่มและเปลี่ยน UI แสดงสถานะ
     isGlobalSyncing = true;
     let origText = "";
     if (btnElement) {
@@ -268,7 +265,7 @@ window.doDeduct = async function(mat, idx, btnElement) {
     }
 };
 
-/* --- 5. MODERN UI RENDERING ENGINE --- */
+/* --- 5. MODERN UI RENDERING ENGINE (ALIGNED & CLEAN CARD DESIGN) --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
@@ -317,7 +314,15 @@ window.renderTable = function(data) {
 
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
     
-    let html = data.map((item, index) => {
+    // Header จัดเรียงให้ตรงกับองค์ประกอบใน Card อย่างลงตัว
+    let headerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 20px; margin-bottom:8px; font-size:0.8rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.05em;">
+            <div style="flex:1;">DETAILS</div>
+            <div style="width:100px; text-align:center;">MY STOCK</div>
+            <div style="width:140px; text-align:right;">ACTION</div>
+        </div>`;
+
+    let cardsHTML = data.map((item, index) => {
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
         if (!path.includes('showall') && displayQty <= 0) return '';
@@ -330,7 +335,7 @@ window.renderTable = function(data) {
         } else if (path.includes('deduct')) {
             actionUI = `
                 <div style="display:flex; gap:8px; align-items:center;">
-                    <input type="text" id="wo_${index}" placeholder="WO#" style="width:110px; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:600; font-size:0.9rem; outline:none;">
+                    <input type="text" id="wo_${index}" placeholder="WO#" style="width:100px; padding:9px 10px; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:600; font-size:0.85rem; outline:none;">
                     <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:48px; padding:9px 6px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
                     <button onclick="window.doDeduct('${item.Material}', ${index}, this)" style="background:linear-gradient(135deg, #ef4444, #dc2626); color:white; border:none; padding:9px 16px; border-radius:10px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(239,68,68,0.25); white-space:nowrap;">Deduct</button>
                 </div>`;
@@ -345,24 +350,24 @@ window.renderTable = function(data) {
         }
 
         return `
-        <div style="background:white; border-radius:16px; padding:18px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display:flex; flex-direction:column; gap:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div style="flex:1;">
-                    <div style="font-size:1.15rem; font-weight:800; color:#003366; letter-spacing:0.3px;">${item.Material}</div>
-                    <div style="font-size:0.95rem; color:#334155; font-weight:600; margin-top:3px; line-height:1.4;">${item['Product Name']||'-'}</div>
-                </div>
-                <div style="background:#f8fafc; border:1.5px solid #e2e8f0; padding:8px 16px; border-radius:12px; text-align:center; min-width:80px;">
-                    <span style="font-size:0.7rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">Qty</span>
-                    <span style="font-size:1.3rem; font-weight:800; color:#0f172a; line-height:1;">${displayQty}</span>
-                </div>
+        <div style="background:white; border-radius:16px; padding:18px 20px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; gap:16px;">
+            <div style="flex:1;">
+                <div style="font-size:1.15rem; font-weight:800; color:#003366; letter-spacing:0.3px;">${item.Material}</div>
+                <div style="font-size:0.9rem; color:#475569; font-weight:600; margin-top:2px; line-height:1.3;">${item['Product Name']||'-'}</div>
             </div>
-            <div style="display:flex; justify-content:flex-end; border-top:1px solid #f1f5f9; padding-top:12px;">
+            
+            <div style="background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 14px; border-radius:12px; text-align:center; width:80px;">
+                <span style="font-size:0.65rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">Qty</span>
+                <span style="font-size:1.25rem; font-weight:800; color:#0f172a; line-height:1.1;">${displayQty}</span>
+            </div>
+            
+            <div style="display:flex; justify-content:flex-end; align-items:center;">
                 ${actionUI}
             </div>
         </div>`;
     }).join('');
 
-    container.innerHTML = html || '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">📦 No Material Found</div>';
+    container.innerHTML = cardsHTML ? headerHTML + cardsHTML : '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">📦 No Material Found</div>';
 };
 
 /* --- 6. DATA LOADING & SEARCH --- */
