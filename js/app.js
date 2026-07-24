@@ -1,7 +1,7 @@
 /* ========================================================================== 
    QIAGEN INVENTORY - FRONTEND (MODERN UI & DOUBLE-SUBMIT PROTECTED)
    ========================================================================== */
-const API = "https://script.google.com/macros/s/AKfycbycSJJCTRbf7IwHrkGP5tdPE23YzDV60XlYR9OKBD35ZNxhtcTamxX2TPAiVKPiCYTg/exec";
+const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
 const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap','PST':'Penporn','PA':'Phuriwat'};
 
