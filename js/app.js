@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND CORE (FULL FUNCTIONALITY + SAFE)
+   QIAGEN INVENTORY - FRONTEND CORE (WITH DOUBLE-SUBMIT PROTECTION)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -8,6 +8,7 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 let isGlobalSyncing = false;
+let isProcessingDeduct = false; // Guard ป้องกันการ Deduct ซ้ำ
 
 /* --- 1. AUTHENTICATION & USER MANAGEMENT --- */
 window.checkAuth = function() {
@@ -26,17 +27,26 @@ window.handleLogin = async function() {
     const u = uEl.value.trim().toUpperCase();
     const p = pEl.value.trim();
     if (!u) { alert("Please enter User ID"); return; }
+    
+    const loginBtn = document.activeElement;
+    if (loginBtn && loginBtn.tagName === 'BUTTON') loginBtn.disabled = true;
+
     try {
         const res = await fetch(`${API}?action=checkauth&user=${encodeURIComponent(u)}&pass=${encodeURIComponent(p)}`).then(r => r.json());
         if (res && res.success) {
             sessionStorage.setItem('selectedUser', USER_MAP[u] || res.fullName);
             sessionStorage.setItem('tempID', u);
             window.location.replace('main.html');
-        } else { alert("❌ Incorrect Password"); }
+        } else { 
+            alert("❌ Incorrect Password"); 
+            if (loginBtn) loginBtn.disabled = false;
+        }
     } catch (e) {
         if (p === MASTER_PASS || p === "1234") { 
             sessionStorage.setItem('selectedUser', USER_MAP[u] || u); 
             window.location.replace('main.html'); 
+        } else {
+            if (loginBtn) loginBtn.disabled = false;
         }
     }
 };
@@ -47,8 +57,11 @@ window.logout = function() {
     window.location.replace('index.html');
 };
 
-/* --- 2. CART SYSTEM (WITHDRAW / RETURN CART) --- */
+/* --- 2. CART SYSTEM (WITH PREVENT DOUBLE-ADD) --- */
 window.addToCart = function(type, mat, idx, from, target) {
+    const btn = document.activeElement;
+    if (btn && btn.tagName === 'BUTTON' && btn.disabled) return; // ป้องกันการกดซ้ำขณะรอ
+
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
     const qtyInput = document.getElementById(qID);
     const addQty = parseInt(qtyInput ? qtyInput.value : 1) || 0;
@@ -75,6 +88,20 @@ window.addToCart = function(type, mat, idx, from, target) {
         return;
     }
 
+    // ล็อคปุ่มชั่วคราวเพื่อกัน Double Click
+    if (btn && btn.tagName === 'BUTTON') {
+        btn.disabled = true;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "✓ Added";
+        btn.style.background = "#10b981";
+
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = "";
+            btn.disabled = false;
+        }, 600);
+    }
+
     if (existingIndex > -1) {
         window.cart[existingIndex].qty = totalInCart;
     } else {
@@ -90,17 +117,6 @@ window.addToCart = function(type, mat, idx, from, target) {
     
     localStorage.setItem('qiagen_cart', JSON.stringify(window.cart));
     window.updateCartUI();
-    
-    const btn = document.activeElement;
-    if(btn && btn.tagName === 'BUTTON') {
-        const originalText = btn.innerHTML;
-        btn.innerHTML = "✓ Added";
-        btn.style.background = "#10b981";
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.style.background = "";
-        }, 800);
-    }
 };
 
 window.updateCartUI = function() {
@@ -150,7 +166,7 @@ window.removeFromCart = function(idx) {
 };
 
 window.confirmSendAndSync = async function() {
-    if (isGlobalSyncing) return;
+    if (isGlobalSyncing) return; // ป้องกันการยิงคำสั่งซ้ำ
     const btn = document.getElementById('sync-btn');
     isGlobalSyncing = true;
     if (btn) { btn.innerText = "⏳ Processing..."; btn.disabled = true; }
@@ -170,8 +186,11 @@ window.confirmSendAndSync = async function() {
     }
 };
 
-/* --- 3. DEDUCT ACTION --- */
+/* --- 3. DEDUCT ACTION (WITH STRICT PREVENT DOUBLE-SUBMIT) --- */
 window.doDeduct = async function(mat, idx) {
+    if (isProcessingDeduct) return; // ล็อคการทำงานระดับ Global
+
+    const btn = document.getElementById('btn_deduct_' + idx);
     const qtyInput = document.getElementById('qty_' + idx);
     const woInput = document.getElementById('wo_' + idx);
     const qty = qtyInput ? qtyInput.value : 1;
@@ -179,6 +198,14 @@ window.doDeduct = async function(mat, idx) {
     
     if (!wo) { alert("❌ Please enter Work Order (WO#)"); return; }
     const user = sessionStorage.getItem('selectedUser');
+
+    // ล็อคปุ่มกดทันที
+    isProcessingDeduct = true;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⏳ Saving...";
+        btn.style.opacity = "0.6";
+    }
 
     try {
         const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
@@ -190,10 +217,17 @@ window.doDeduct = async function(mat, idx) {
         }
     } catch(e) { 
         alert("❌ Connection Error"); 
+    } finally {
+        isProcessingDeduct = false;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "Deduct";
+            btn.style.opacity = "1";
+        }
     }
 };
 
-/* --- 4. DATA RENDERER (COMPATIBLE WITH HTML TABLES) --- */
+/* --- 4. DATA RENDERER --- */
 window.renderTable = function(data) {
     const tbody = document.getElementById('data'); 
     if (!tbody || window.location.pathname.includes('main.html')) return;
@@ -214,7 +248,7 @@ window.renderTable = function(data) {
                 <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
                     <input type="text" id="wo_${index}" placeholder="WO#" style="width:75px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
                     <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:45px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
-                    <button onclick="window.doDeduct('${item.Material}', ${index})" style="background:#ef4444; color:white; border:none; padding:7px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">Deduct</button>
+                    <button id="btn_deduct_${index}" onclick="window.doDeduct('${item.Material}', ${index})" style="background:#ef4444; color:white; border:none; padding:7px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">Deduct</button>
                 </div>`;
         } else if (path.includes('return')) {
             actionUI = `
