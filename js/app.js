@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (FULL CODE - SAFE & FIXED ALIGNMENT)
+   QIAGEN INVENTORY - FRONTEND (FULL APP.JS - SAFE FIX)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -9,38 +9,16 @@ window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 let isGlobalSyncing = false;
 
-/* Style สำหรับจัดระเบียบ Grid 3 คอลัมน์แบบปลอดภัย ไม่สั่ง Hide ซ่อนกล่องมั่ว */
-(function injectSafeStyle() {
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .custom-card-row {
-            background: white !important;
-            border-radius: 16px !important;
-            padding: 16px 20px !important;
-            margin-bottom: 12px !important;
-            border: 1px solid #e2e8f0 !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
-            display: grid !important;
-            grid-template-columns: 1fr 100px 180px !important;
-            gap: 16px !important;
-            align-items: center !important;
-        }
-        .custom-header-row {
-            display: grid !important;
-            grid-template-columns: 1fr 100px 180px !important;
-            gap: 16px !important;
-            padding: 0 20px 10px 20px !important;
-            font-size: 0.8rem !important;
-            font-weight: 800 !important;
-            color: #64748b !important;
-            text-transform: uppercase !important;
-            letter-spacing: 0.05em !important;
-        }
-    `;
-    document.head.appendChild(style);
-})();
+/* --- 1. AUTHENTICATION --- */
+window.checkAuth = function() {
+    const user = sessionStorage.getItem('selectedUser');
+    if (!user && !window.location.pathname.includes('index.html')) {
+        window.location.replace('index.html');
+        return false;
+    }
+    return true;
+};
 
-/* --- 1. AUTH & PASSWORD --- */
 window.handleLogin = async function() {
     const uEl = document.getElementById('username-input') || document.getElementById('user-select');
     const pEl = document.getElementById('password-input');
@@ -53,8 +31,7 @@ window.handleLogin = async function() {
         if (res && res.success) {
             sessionStorage.setItem('selectedUser', USER_MAP[u] || res.fullName);
             sessionStorage.setItem('tempID', u);
-            if (res.status === 'NEW') { window.showForcePasswordChange(u); } 
-            else { window.location.replace('main.html'); }
+            window.location.replace('main.html');
         } else { alert("❌ Incorrect Password"); }
     } catch (e) {
         if (p === MASTER_PASS || p === "1234") { 
@@ -62,29 +39,6 @@ window.handleLogin = async function() {
             window.location.replace('main.html'); 
         }
     }
-};
-
-window.showForcePasswordChange = function(u) {
-    const div = document.createElement('div');
-    div.id = "force-pw-modal";
-    div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.98);display:flex;justify-content:center;align-items:center;z-index:99999;padding:20px;";
-    div.innerHTML = `<div style="background:white;padding:30px;border-radius:24px;text-align:center;width:100%;max-width:340px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.3);">
-            <h3 style="margin-top:0;color:#003366;">Set New Password</h3>
-            <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:14px;margin-bottom:10px;border:1.5px solid #cbd5e1;border-radius:12px;outline:none;">
-            <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:14px;margin-bottom:20px;border:1.5px solid #cbd5e1;border-radius:12px;outline:none;">
-            <button onclick="window.processReset('${u}')" style="width:100%;padding:16px;background:linear-gradient(135deg,#f97316,#ea580c);color:white;border:none;border-radius:12px;font-weight:bold;cursor:pointer;">Update & Activate</button>
-        </div>`;
-    document.body.appendChild(div);
-};
-
-window.processReset = async function(u) {
-    const p1 = document.getElementById('p1').value;
-    const p2 = document.getElementById('p2').value;
-    if (!p1 || p1 !== p2) { alert("❌ Password Does Not Match!"); return; }
-    try {
-        const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(u)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success) { alert("✅ Activated Successfully!"); window.location.replace('main.html'); }
-    } catch (e) { alert("❌ Error resetting password"); }
 };
 
 /* --- 2. CART SYSTEM --- */
@@ -111,7 +65,7 @@ window.addToCart = function(type, mat, idx, from, target) {
     }
 
     if (totalInCart > availableStock) {
-        alert(`❌ Stock Insufficient!\nMaterial: ${mat}\nAvailable: ${availableStock}\nAlready in cart: ${existingIndex > -1 ? window.cart[existingIndex].qty : 0}\nAttempted: ${totalInCart}`);
+        alert(`❌ Stock Insufficient!\nMaterial: ${mat}\nAvailable: ${availableStock}`);
         return;
     }
 
@@ -152,30 +106,30 @@ window.updateCartUI = function() {
         document.body.appendChild(btn);
     }
     btn.innerHTML = window.cart.length > 0 ? 
-        `<button onclick="window.showReviewModal()" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:white; padding:14px 24px; border-radius:50px; border:none; font-weight:bold; font-size:15px; box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); cursor:pointer; display:flex; align-items:center; gap:8px; transition:transform 0.2s;">
+        `<button onclick="window.showReviewModal()" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:white; padding:14px 24px; border-radius:50px; border:none; font-weight:bold; font-size:15px; box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); cursor:pointer; display:flex; align-items:center; gap:8px;">
             🛒 Review Cart (${window.cart.length})
          </button>` : '';
 };
 
 window.showReviewModal = function() {
     let html = window.cart.map((i, idx) => `
-        <div style="padding:14px; background:#f8fafc; border-radius:12px; margin-bottom:10px; border:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+        <div style="padding:12px; background:#f8fafc; border-radius:10px; margin-bottom:8px; border:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
             <div style="flex:1;">
-                <div style="font-size:16px; font-weight:800; color:#003366;">${i.mat}</div>
-                <div style="font-size:13px; color:#475569; margin:2px 0;">${i.name}</div>
-                <div style="font-size:12px; font-weight:700; color:#0ea5e9;">Qty: ${i.qty} | ${i.from} → ${i.target}</div>
+                <div style="font-size:15px; font-weight:800; color:#003366;">${i.mat}</div>
+                <div style="font-size:12px; color:#475569;">${i.name}</div>
+                <div style="font-size:12px; font-weight:700; color:#0ea5e9;">Qty: ${i.qty} (${i.from} → ${i.target})</div>
             </div>
-            <button onclick="window.removeFromCart(${idx})" style="background:#fee2e2; color:#ef4444; border:none; padding:8px 12px; border-radius:10px; font-weight:bold; cursor:pointer;">✕</button>
+            <button onclick="window.removeFromCart(${idx})" style="background:#fee2e2; color:#ef4444; border:none; padding:6px 10px; border-radius:8px; font-weight:bold; cursor:pointer;">✕</button>
         </div>`).join('');
 
     const div = document.createElement('div'); 
     div.id = "review-modal";
     div.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.75); backdrop-filter:blur(4px); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
-    div.innerHTML = `<div style="background:white; width:100%; max-width:440px; border-radius:24px; padding:24px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
-            <h3 style="margin-top:0; border-bottom:2px solid #f1f5f9; padding-bottom:12px; color:#0f172a; font-size:1.2rem;">🛒 Confirm Cart Items</h3>
-            <div style="max-height:360px; overflow-y:auto; padding-right:4px;">${html || '<div style="text-align:center; padding:30px; color:#94a3b8;">Cart is empty</div>'}</div>
-            ${window.cart.length > 0 ? `<button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:16px; background:linear-gradient(135deg, #0ea5e9, #0284c7); color:white; border:none; border-radius:14px; margin-top:16px; font-weight:bold; font-size:1rem; cursor:pointer; box-shadow:0 4px 12px rgba(14,165,233,0.3);">Confirm & Submit Order</button>` : ''}
-            <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; padding:12px; border:none; background:none; color:#64748b; font-weight:600; cursor:pointer;">Cancel</button>
+    div.innerHTML = `<div style="background:white; width:100%; max-width:400px; border-radius:20px; padding:20px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+            <h3 style="margin-top:0; border-bottom:2px solid #f1f5f9; padding-bottom:10px; color:#0f172a;">🛒 Confirm Cart Items</h3>
+            <div style="max-height:300px; overflow-y:auto;">${html || '<div style="text-align:center; padding:20px; color:#94a3b8;">Cart is empty</div>'}</div>
+            ${window.cart.length > 0 ? `<button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:14px; background:#0284c7; color:white; border:none; border-radius:12px; margin-top:14px; font-weight:bold; cursor:pointer;">Confirm & Submit</button>` : ''}
+            <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:8px; padding:10px; border:none; background:none; color:#64748b; font-weight:600; cursor:pointer;">Cancel</button>
         </div>`;
     document.body.appendChild(div);
 };
@@ -189,237 +143,129 @@ window.removeFromCart = function(idx) {
     window.updateCartUI();
 };
 
-/* --- 3. SYNC WITH LOCK PROTECTION --- */
 window.confirmSendAndSync = async function() {
     if (isGlobalSyncing) return;
-    
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
     const now = new Date();
     const today = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
-    const onlySilentItems = window.cart.every(item => String(item.mat) === "9026466");
 
     isGlobalSyncing = true;
-    if (btn) {
-        btn.innerText = "⏳ Processing Sync..."; 
-        btn.disabled = true;
-        btn.style.opacity = "0.7";
-    }
-
-    let subjectText = `Spare parts transfer ${user} ${today}`;
-    let bodyText = `Hi BO,\n\nPlease transfer the following spare parts.\n\n`;
-    let hasEmailContent = false;
+    if (btn) { btn.innerText = "⏳ Processing..."; btn.disabled = true; }
 
     try {
         for (const item of window.cart) {
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
-            
-            if (String(item.mat) !== "9026466") {
-                bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
-                hasEmailContent = true;
-            }
         }
-
         window.cart = []; 
         localStorage.removeItem('qiagen_cart');
-
-        if (onlySilentItems || !hasEmailContent) {
-            alert("✅ Sync Completed Successfully!");
-            window.location.reload();
-        } else {
-            const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
-            const ccTo = "gthfss@qiagen.com";
-            const outlookUrl = `ms-outlook://compose?to=${encodeURIComponent(mailTo)}&cc=${encodeURIComponent(ccTo)}&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
-            const fallbackUrl = `mailto:${mailTo}?cc=${ccTo}&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
-
-            if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-                window.location.href = outlookUrl;
-                setTimeout(() => { if (document.hasFocus()) window.location.href = fallbackUrl; }, 1500);
-            } else {
-                window.location.href = fallbackUrl;
-            }
-            setTimeout(() => window.location.reload(), 2500);
-        }
+        alert("✅ Sync Completed Successfully!");
+        window.location.reload();
     } catch (e) { 
-        alert("❌ Sync Error. Please check connection."); 
+        alert("❌ Sync Error"); 
         isGlobalSyncing = false;
-        if (btn) {
-            btn.disabled = false; 
-            btn.innerText = "Confirm & Submit Order";
-            btn.style.opacity = "1";
-        }
+        if (btn) { btn.disabled = false; btn.innerText = "Confirm & Submit"; }
     }
 };
 
-/* --- 4. DEDUCT WITH DOUBLE-CLICK PROTECTION --- */
-window.doDeduct = async function(mat, idx, btnElement) {
-    if (isGlobalSyncing) return;
-    
+/* --- 3. DEDUCT ACTION --- */
+window.doDeduct = async function(mat, idx) {
     const qtyInput = document.getElementById('qty_' + idx);
     const woInput = document.getElementById('wo_' + idx);
     const qty = qtyInput ? qtyInput.value : 1;
     const wo = woInput ? woInput.value.trim() : "";
     
     if (!wo) { alert("❌ Please enter Work Order (WO#)"); return; }
-
     const user = sessionStorage.getItem('selectedUser');
-
-    isGlobalSyncing = true;
-    let origText = "";
-    if (btnElement) {
-        origText = btnElement.innerHTML;
-        btnElement.disabled = true;
-        btnElement.innerHTML = "⏳ Deducting...";
-        btnElement.style.opacity = "0.7";
-        btnElement.style.cursor = "not-allowed";
-    }
 
     try {
         const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-        
         if (res && res.success) { 
             alert("✅ Deducted Successfully!"); 
             window.loadStockData(); 
         } else {
-            alert("❌ Deduct Failed: " + (res.msg || "Unknown Error"));
+            alert("❌ Deduct Failed: " + (res.msg || "Error"));
         }
     } catch(e) { 
-        alert("❌ Connection/Server Error"); 
-    } finally {
-        isGlobalSyncing = false;
-        if (btnElement) {
-            btnElement.disabled = false;
-            btnElement.innerHTML = origText;
-            btnElement.style.opacity = "1";
-            btnElement.style.cursor = "pointer";
-        }
+        alert("❌ Connection Error"); 
     }
 };
 
-/* --- 5. RENDER ENGINE --- */
-window.renderTeamTable = function(data) {
-    const container = document.getElementById('team-data-container') || document.getElementById('data');
-    if (!container || !window.location.pathname.includes('team-stock')) return;
-
-    const currentUser = sessionStorage.getItem('selectedUser');
-    const members = Object.values(USER_MAP);
-    let html = '';
-    
-    data.forEach((item, idx) => {
-        members.forEach(m => {
-            const q = Number(item[m] || 0);
-            if (q > 0) {
-                const isMe = (m === currentUser);
-                html += `
-                <div class="custom-card-row">
-                    <div>
-                        <span style="background:${isMe ? '#f1f5f9':'#f0fdf4'}; color:${isMe ? '#64748b':'#166534'}; font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; border:1px solid ${isMe ? '#cbd5e1':'#bbf7d0'}; display:inline-block; margin-bottom:6px;">
-                            Owner: ${isMe ? m + ' (Me)' : m}
-                        </span>
-                        <div style="font-size:1.1rem; font-weight:800; color:#003366;">${item.Material}</div>
-                        <div style="font-size:0.9rem; color:#475569; margin-top:2px;">${item['Product Name']||'-'}</div>
-                    </div>
-                    <div style="justify-self: center; background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 0; border-radius:12px; text-align:center; width:70px;">
-                        <span style="font-size:0.65rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">QTY</span>
-                        <span style="font-size:1.25rem; font-weight:800; color:#0f172a; line-height:1.1;">${q}</span>
-                    </div>
-                    <div style="justify-self: end;">
-                        ${isMe ? 
-                            `<button disabled style="background:#f1f5f9; color:#94a3b8; border:1px solid #e2e8f0; padding:10px 16px; border-radius:12px; font-weight:700; cursor:not-allowed;">Transfer</button>` :
-                            `<div style="display:flex; align-items:center; gap:6px;">
-                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" style="width:48px; padding:8px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:bold; outline:none;">
-                                <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:linear-gradient(135deg, #f97316, #ea580c); color:white; border:none; padding:10px 16px; border-radius:12px; font-weight:bold; cursor:pointer;">Transfer</button>
-                             </div>`
-                        }
-                    </div>
-                </div>`;
-            }
-        });
-    });
-    container.innerHTML = html || '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">No Team Stock Available</div>';
-};
-
+/* --- 4. TABLE RENDERER (COMPATIBLE WITH HTML TABLES) --- */
 window.renderTable = function(data) {
-    const container = document.getElementById('data'); 
-    if (!container || window.location.pathname.includes('team-stock')) return;
+    const tbody = document.getElementById('data'); 
+    if (!tbody || window.location.pathname.includes('main.html')) return;
 
-    const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
+    const user = sessionStorage.getItem('selectedUser');
+    const path = window.location.pathname.toLowerCase();
 
-    let headerHTML = `
-        <div class="custom-header-row">
-            <div>DETAILS</div>
-            <div style="text-align: center;">STOCK</div>
-            <div style="text-align: right;">ACTION</div>
-        </div>`;
-
-    let cardsHTML = data.map((item, index) => {
-        let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
+    let rowsHTML = data.map((item, index) => {
+        let q0 = Number(item['0243'] || 0);
+        let qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
+        
         if (!path.includes('showall') && displayQty <= 0) return '';
         
         let actionUI = "";
-        if (path.includes('showall')) {
-            actionUI = displayQty > 0 ? 
-                `<span style="background:#dcfce7; color:#15803d; padding:6px 14px; border-radius:20px; font-weight:800; font-size:0.85rem; border:1px solid #bbf7d0;">In Stock</span>` :
-                `<span style="background:#fee2e2; color:#b91c1c; padding:6px 14px; border-radius:20px; font-weight:800; font-size:0.85rem; border:1px solid #fca5a5;">Out of Stock</span>`;
-        } else if (path.includes('deduct')) {
+        if (path.includes('deduct')) {
             actionUI = `
-                <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
-                    <input type="text" id="wo_${index}" placeholder="WO#" style="width:85px; padding:8px; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:600; font-size:0.85rem; outline:none;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:45px; padding:8px 4px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
-                    <button onclick="window.doDeduct('${item.Material}', ${index}, this)" style="background:linear-gradient(135deg, #ef4444, #dc2626); color:white; border:none; padding:9px 14px; border-radius:10px; font-weight:bold; cursor:pointer; white-space:nowrap;">Deduct</button>
+                <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
+                    <input type="text" id="wo_${index}" placeholder="WO#" class="wo-input" style="width:75px; padding:6px; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" class="qty-input-sm" style="width:40px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+                    <button id="btn_deduct_${index}" onclick="window.doDeduct('${item.Material}', ${index})" class="btn-deduct" style="background:#ef4444; color:white; border:none; padding:7px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">Deduct</button>
+                </div>`;
+        } else if (path.includes('return')) {
+            actionUI = `
+                <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" class="qty-input-sm" style="width:40px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+                    <button onclick="window.addToCart('return','${item.Material}',${index},'${user}','0243')" class="btn-return" style="background:#16a34a; color:white; border:none; padding:7px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">Return</button>
                 </div>`;
         } else {
-            const isW = path.includes('withdraw');
-            const bgGradient = isW ? 'linear-gradient(135deg, #003366, #001f3f)' : 'linear-gradient(135deg, #10b981, #059669)';
             actionUI = `
-                <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:48px; padding:8px 4px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
-                    <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${bgGradient}; color:white; border:none; padding:9px 16px; border-radius:10px; font-weight:bold; cursor:pointer; white-space:nowrap;">${isW?'Withdraw':'Return'}</button>
+                <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" class="qty-input-sm" style="width:40px; padding:6px; text-align:center; border:1px solid #cbd5e1; border-radius:6px; font-size:13px;">
+                    <button onclick="window.addToCart('withdraw','${item.Material}',${index},'0243','${user}')" class="btn-withdraw" style="background:#003366; color:white; border:none; padding:7px 14px; border-radius:6px; font-weight:bold; cursor:pointer;">Withdraw</button>
                 </div>`;
         }
 
         return `
-        <div class="custom-card-row">
-            <div>
-                <div style="font-size:1.15rem; font-weight:800; color:#003366; letter-spacing:0.3px;">${item.Material}</div>
-                <div style="font-size:0.9rem; color:#475569; font-weight:600; margin-top:2px; line-height:1.3;">${item['Product Name']||'-'}</div>
-            </div>
-            
-            <div style="justify-self: center; background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 0; border-radius:12px; text-align:center; width:70px;">
-                <span style="font-size:0.65rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">QTY</span>
-                <span style="font-size:1.25rem; font-weight:800; color:#0f172a; line-height:1.1;">${displayQty}</span>
-            </div>
-            
-            <div style="justify-self: end;">
+        <tr>
+            <td style="padding:12px 10px; vertical-align:middle;">
+                <div style="font-weight:bold; color:#003366; font-size:15px;">${item.Material}</div>
+                <div style="font-size:13px; color:#64748b; margin-top:2px;">${item['Product Name']||'-'}</div>
+            </td>
+            <td align="center" style="padding:12px 10px; vertical-align:middle; font-weight:bold; font-size:16px; color:#0f172a;">
+                ${displayQty}
+            </td>
+            <td align="right" style="padding:12px 10px; vertical-align:middle;">
                 ${actionUI}
-            </div>
-        </div>`;
+            </td>
+        </tr>`;
     }).join('');
 
-    container.innerHTML = cardsHTML ? headerHTML + cardsHTML : '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">📦 No Material Found</div>';
+    tbody.innerHTML = rowsHTML || '<tr><td colspan="3" align="center" style="padding:30px; color:#94a3b8;">📦 No Material Found</td></tr>';
 };
 
-/* --- 6. DATA LOADING & SEARCH --- */
-window.loadStockData = async function() {
-    const cacheKey = 'qiagen_cache';
-    const now = new Date().getTime();
+/* --- 5. DATA LOADING & SEARCH --- */
+window.loadStockData = async function(type) {
+    if (window.location.pathname.includes('main.html')) return; // ข้ามการทำงานถ้าอยู่หน้า Dashboard
+
+    const tbody = document.getElementById('data');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="3" align="center" style="padding:30px; color:#64748b;">⏳ Loading Stock Data...</td></tr>';
+
     try {
         const res = await fetch(`${API}?action=read&pass=${MASTER_PASS}`).then(r => r.json());
         if (res.success) { 
             window.allRows = res.data; 
-            localStorage.setItem(cacheKey, JSON.stringify(res.data));
-            localStorage.setItem('qiagen_cache_time', now.toString());
             window.renderTable(res.data); 
-            window.renderTeamTable(res.data); 
         }
     } catch(e) {
-        if (localStorage.getItem(cacheKey)) {
-            window.allRows = JSON.parse(localStorage.getItem(cacheKey));
-            window.renderTable(window.allRows);
-            window.renderTeamTable(window.allRows);
-        }
+        if(tbody) tbody.innerHTML = '<tr><td colspan="3" align="center" style="padding:30px; color:#ef4444;">❌ Failed to load data.</td></tr>';
     }
+};
+
+window.searchStock = function(val, type) {
+    window.searchData(val);
 };
 
 window.searchData = function(val) {
@@ -428,24 +274,31 @@ window.searchData = function(val) {
         String(r.Material).toLowerCase().includes(query) || 
         String(r['Product Name']||'').toLowerCase().includes(query)
     );
-    if (window.location.pathname.includes('team-stock')) {
-        window.renderTeamTable(filtered);
-    } else {
-        window.renderTable(filtered);
-    }
+    window.renderTable(filtered);
 };
 
 window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
 
+/* --- 6. INITIALIZATION --- */
 document.addEventListener('DOMContentLoaded', () => {
     const name = sessionStorage.getItem('selectedUser');
+    
+    // อัปเดตชื่อผู้ใช้ตาม ID ต่างๆ ใน HTML
     ['user-display', 'user_display', 'display-user', 'current-user'].forEach(id => {
-        const el = document.getElementById(id); if (el && name) el.innerText = name;
+        const el = document.getElementById(id); 
+        if (el && name) el.innerText = name;
     });
-    const sInput = document.getElementById('search-input') || document.querySelector('input[type="text"]');
-    if (sInput) sInput.oninput = (e) => window.searchData(e.target.value);
+
+    // ถ้าไม่ใช่หน้า login และไม่มี session ให้กลับไปหน้า login
     if (!window.location.pathname.includes('index.html')) {
-        if (!name) window.location.replace('index.html'); else window.loadStockData();
+        if (!name) {
+            window.location.replace('index.html');
+            return;
+        }
+        // โหลดข้อมูลเฉพาะหน้าที่จำเป็น
+        if (!window.location.pathname.includes('main.html') && !window.location.pathname.includes('history.html')) {
+            window.loadStockData();
+        }
     }
     window.updateCartUI();
 });
