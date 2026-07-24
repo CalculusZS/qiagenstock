@@ -1,6 +1,5 @@
-
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (MODERN UI WITH OUTLOOK INTEGRATION)
+   QIAGEN INVENTORY - FRONTEND (FIXED MODERN CARD LAYOUT)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -125,7 +124,7 @@ window.updateCartUI = function() {
         document.body.appendChild(btn);
     }
     btn.innerHTML = window.cart.length > 0 ? 
-        `<button onclick="window.showReviewModal()" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:white; padding:14px 24px; border-radius:50px; border:none; font-weight:bold; font-size:15px; box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); cursor:pointer; display:flex; align-items:center; gap:8px; transition:transform 0.2s;" onhover="this.style.transform='scale(1.05)'">
+        `<button onclick="window.showReviewModal()" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:white; padding:14px 24px; border-radius:50px; border:none; font-weight:bold; font-size:15px; box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); cursor:pointer; display:flex; align-items:center; gap:8px; transition:transform 0.2s;">
             🛒 Review Cart (${window.cart.length})
          </button>` : '';
 };
@@ -164,14 +163,13 @@ window.removeFromCart = function(idx) {
 
 /* --- 3. SYNC WITH LOCK PROTECTION & OUTLOOK EMAIL FORWARDING --- */
 window.confirmSendAndSync = async function() {
-    if (isGlobalSyncing) return; // 🛑 ป้องกันการกดซ้ำซ้อน
+    if (isGlobalSyncing) return;
     
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
     const now = new Date();
     const today = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
 
-    // เช็คว่าในตะกร้ามีเฉพาะรายการที่ไม่ต้องส่งอีเมลหรือไม่ (9026466 หรือ 9026466_PM)
     const onlySilentItems = window.cart.every(item => SILENT_MATERIALS.includes(String(item.mat)));
 
     isGlobalSyncing = true;
@@ -187,10 +185,8 @@ window.confirmSendAndSync = async function() {
 
     try {
         for (const item of window.cart) {
-            // 1. อัปเดต Google Sheets ทุกรายการ
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
             
-            // 2. สร้างเนื้อหาอีเมล (ข้ามรายการ 9026466 และ 9026466_PM)
             if (!SILENT_MATERIALS.includes(String(item.mat))) {
                 bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
                 hasEmailContent = true;
@@ -200,7 +196,6 @@ window.confirmSendAndSync = async function() {
         window.cart = []; 
         localStorage.removeItem('qiagen_cart');
 
-        // 3. ตัดสินใจว่าจะเปิด Outlook หรือไม่
         if (onlySilentItems || !hasEmailContent) {
             alert("✅ Sync Completed Successfully!");
             window.location.reload();
@@ -231,7 +226,7 @@ window.confirmSendAndSync = async function() {
 
 /* --- 4. DEDUCT WITH DOUBLE-CLICK PROTECTION --- */
 window.doDeduct = async function(mat, idx, btnElement) {
-    if (isGlobalSyncing) return; // 🛑 ป้องกันการกดซ้ำซ้อน
+    if (isGlobalSyncing) return;
     
     const qtyInput = document.getElementById('qty_' + idx);
     const woInput = document.getElementById('wo_' + idx);
@@ -274,10 +269,19 @@ window.doDeduct = async function(mat, idx, btnElement) {
     }
 };
 
-/* --- 5. MODERN UI RENDERING ENGINE --- */
+/* --- 5. CLEAN & MODERN UI RENDERING ENGINE --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
+
+    // ล้างโครงสร้างตารางเดิมออกเพื่อให้แสดงผลแบบ Flex Card ได้สมบูรณ์
+    const parent = container.closest('table') || container.parentElement;
+    if (parent && parent.tagName === 'TABLE') {
+        const wrapper = document.createElement('div');
+        wrapper.id = 'data';
+        parent.parentNode.replaceChild(wrapper, parent);
+        return window.renderTeamTable(data);
+    }
 
     const currentUser = sessionStorage.getItem('selectedUser');
     const members = Object.values(USER_MAP);
@@ -289,23 +293,23 @@ window.renderTeamTable = function(data) {
             if (q > 0) {
                 const isMe = (m === currentUser);
                 html += `
-                <div style="background:white; border-radius:16px; padding:18px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.03); display:flex; justify-content:space-between; align-items:center;">
-                    <div style="flex:1;">
-                        <span style="background:${isMe ? '#f1f5f9':'#f0fdf4'}; color:${isMe ? '#64748b':'#166534'}; font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; border:1px solid ${isMe ? '#cbd5e1':'#bbf7d0'}; display:inline-block; margin-bottom:6px;">
+                <div style="background:white; border-radius:16px; padding:20px; margin-bottom:14px; border:1px solid #e2e8f0; box-shadow:0 4px 12px rgba(0,0,0,0.03); display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box;">
+                    <div style="flex:1; padding-right:15px;">
+                        <span style="background:${isMe ? '#f1f5f9':'#f0fdf4'}; color:${isMe ? '#64748b':'#166534'}; font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; border:1px solid ${isMe ? '#cbd5e1':'#bbf7d0'}; display:inline-block; margin-bottom:8px;">
                             Owner: ${isMe ? m + ' (Me)' : m}
                         </span>
-                        <div style="font-size:1.1rem; font-weight:800; color:#003366;">${item.Material}</div>
-                        <div style="font-size:0.9rem; color:#475569; margin-top:2px;">${item['Product Name']||'-'}</div>
+                        <div style="font-size:1.15rem; font-weight:800; color:#003366;">${item.Material}</div>
+                        <div style="font-size:0.95rem; color:#475569; margin-top:4px; font-weight:500;">${item['Product Name']||'-'}</div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="text-align:right; margin-right:8px;">
-                            <span style="font-size:0.7rem; color:#94a3b8; font-weight:700; display:block; text-transform:uppercase;">In Stock</span>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="text-align:right; background:#f8fafc; padding:8px 14px; border-radius:12px; border:1px solid #e2e8f0; min-width:70px;">
+                            <span style="font-size:0.68rem; color:#64748b; font-weight:800; display:block; text-transform:uppercase;">Stock</span>
                             <span style="font-size:1.25rem; font-weight:800; color:#0f172a;">${q}</span>
                         </div>
                         ${isMe ? 
                             `<button disabled style="background:#f1f5f9; color:#94a3b8; border:1px solid #e2e8f0; padding:10px 16px; border-radius:12px; font-weight:700; cursor:not-allowed;">Transfer</button>` :
                             `<div style="display:flex; align-items:center; gap:6px;">
-                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" style="width:48px; padding:8px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:bold; outline:none;">
+                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" style="width:50px; padding:9px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:bold; outline:none;">
                                 <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:linear-gradient(135deg, #f97316, #ea580c); color:white; border:none; padding:10px 16px; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(249,115,22,0.25);">Transfer</button>
                              </div>`
                         }
@@ -318,8 +322,20 @@ window.renderTeamTable = function(data) {
 };
 
 window.renderTable = function(data) {
-    const container = document.getElementById('data'); 
+    let container = document.getElementById('data'); 
     if (!container || window.location.pathname.includes('team-stock')) return;
+
+    // เคลียร์ส่วนหัวตารางและโครงสร้างเก่าของ HTML เดิมให้ออกไป เพื่อให้การ์ดแสดงผลได้เต็มความกว้าง
+    const oldHeader = container.parentElement.querySelector('.table-header, thead, .details-header');
+    if (oldHeader) oldHeader.style.display = 'none';
+
+    // ถ้า container อยู่ใน table/tr/td ให้สลับออกมาเป็น div อิสระ
+    if (['TABLE', 'TBODY', 'TR', 'TD'].includes(container.tagName)) {
+        const newDiv = document.createElement('div');
+        newDiv.id = 'data';
+        container.parentNode.replaceChild(newDiv, container);
+        container = newDiv;
+    }
 
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
     
@@ -337,7 +353,7 @@ window.renderTable = function(data) {
             actionUI = `
                 <div style="display:flex; gap:8px; align-items:center;">
                     <input type="text" id="wo_${index}" placeholder="WO#" style="width:110px; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:600; font-size:0.9rem; outline:none;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:48px; padding:9px 6px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:50px; padding:9px 6px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
                     <button onclick="window.doDeduct('${item.Material}', ${index}, this)" style="background:linear-gradient(135deg, #ef4444, #dc2626); color:white; border:none; padding:9px 16px; border-radius:10px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(239,68,68,0.25); white-space:nowrap;">Deduct</button>
                 </div>`;
         } else {
@@ -345,25 +361,25 @@ window.renderTable = function(data) {
             const bgGradient = isW ? 'linear-gradient(135deg, #003366, #001f3f)' : 'linear-gradient(135deg, #10b981, #059669)';
             actionUI = `
                 <div style="display:flex; gap:8px; align-items:center;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:48px; padding:9px 6px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
-                    <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${bgGradient}; color:white; border:none; padding:9px 16px; border-radius:10px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15); white-space:nowrap;">${isW?'Withdraw':'Return'}</button>
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:50px; padding:9px 6px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
+                    <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${bgGradient}; color:white; border:none; padding:9px 18px; border-radius:10px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15); white-space:nowrap;">${isW?'Withdraw':'Return'}</button>
                 </div>`;
         }
 
         return `
-        <div style="background:white; border-radius:16px; padding:18px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display:flex; flex-direction:column; gap:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div style="flex:1;">
-                    <div style="font-size:1.15rem; font-weight:800; color:#003366; letter-spacing:0.3px;">${item.Material}</div>
-                    <div style="font-size:0.95rem; color:#334155; font-weight:600; margin-top:3px; line-height:1.4;">${item['Product Name']||'-'}</div>
-                </div>
-                <div style="background:#f8fafc; border:1.5px solid #e2e8f0; padding:8px 16px; border-radius:12px; text-align:center; min-width:80px;">
-                    <span style="font-size:0.7rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">Qty</span>
-                    <span style="font-size:1.3rem; font-weight:800; color:#0f172a; line-height:1;">${displayQty}</span>
-                </div>
+        <div style="background:white; border-radius:16px; padding:20px; margin-bottom:14px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box;">
+            <div style="flex:1; padding-right:15px;">
+                <div style="font-size:1.2rem; font-weight:800; color:#003366; letter-spacing:0.3px;">${item.Material}</div>
+                <div style="font-size:0.95rem; color:#475569; font-weight:500; margin-top:4px; line-height:1.4;">${item['Product Name']||'-'}</div>
             </div>
-            <div style="display:flex; justify-content:flex-end; border-top:1px solid #f1f5f9; padding-top:12px;">
-                ${actionUI}
+            <div style="display:flex; align-items:center; gap:16px;">
+                <div style="background:#f8fafc; border:1.5px solid #e2e8f0; padding:8px 16px; border-radius:12px; text-align:center; min-width:70px;">
+                    <span style="font-size:0.68rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">Qty</span>
+                    <span style="font-size:1.3rem; font-weight:800; color:#0f172a; line-height:1.1;">${displayQty}</span>
+                </div>
+                <div>
+                    ${actionUI}
+                </div>
             </div>
         </div>`;
     }).join('');
