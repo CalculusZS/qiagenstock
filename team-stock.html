@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Team Stock - QIAGEN</title>
+    <title>Team Stock & All-in-One Cart - QIAGEN</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * { box-sizing: border-box; }
@@ -11,11 +11,11 @@
             background: #f8fafc; 
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
             margin: 0; 
-            padding-bottom: 80px; 
+            padding-bottom: 40px; 
             color: #0f172a;
         }
 
-        /* Top Header */
+        /* Header & User Bar */
         .header { 
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); 
             color: white; 
@@ -28,9 +28,8 @@
             z-index: 1000; 
             box-shadow: 0 4px 20px rgba(0,0,0,0.15); 
         }
-        .header-title { font-weight: 800; font-size: 18px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 10px; }
+        .header-title { font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 10px; }
         .header-title i { color: #38bdf8; }
-        
         .btn-back { 
             background: rgba(255,255,255,0.1); 
             border: 1px solid rgba(255,255,255,0.2); 
@@ -40,12 +39,8 @@
             text-decoration: none; 
             font-size: 13px; 
             font-weight: 700;
-            backdrop-filter: blur(4px);
-            transition: all 0.2s;
         }
-        .btn-back:hover { background: rgba(255,255,255,0.2); }
 
-        /* User Banner */
         .user-bar { 
             background: #e0f2fe; 
             padding: 10px 20px; 
@@ -58,28 +53,23 @@
             gap: 8px;
         }
 
+        /* Layout Grid */
+        .main-layout {
+            max-width: 1250px;
+            margin: 20px auto;
+            padding: 0 16px;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+
         /* Search Section */
-        .search-area { 
-            padding: 16px 20px; 
-            background: white; 
-            position: sticky; 
-            top: 61px; 
-            z-index: 900; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .search-box {
-            position: relative;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .search-box i {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #94a3b8;
-        }
+        .search-box { position: relative; margin-bottom: 16px; }
+        .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
         .search-box input { 
             width: 100%; 
             padding: 12px 16px 12px 42px; 
@@ -87,87 +77,120 @@
             border-radius: 12px; 
             outline: none; 
             font-size: 14px; 
-            transition: all 0.2s;
-            background: #f8fafc;
-        }
-        .search-box input:focus {
             background: white;
-            border-color: #0284c7;
-            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
         }
 
-        /* Container & Member Sections */
-        .container {
-            max-width: 900px;
-            margin: 20px auto;
-            padding: 0 16px;
-        }
-
+        /* Member Card Styles */
         .member-section {
             background: white;
             border-radius: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
             overflow: hidden;
         }
-
         .member-header {
             background: #f8fafc;
-            padding: 14px 20px;
+            padding: 12px 16px;
             border-bottom: 1px solid #e2e8f0;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .member-name {
-            font-size: 16px;
-            font-weight: 800;
-            color: #003366;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .member-count {
-            background: #0284c7;
-            color: white;
-            font-size: 11px;
-            font-weight: 800;
-            padding: 4px 10px;
-            border-radius: 20px;
-        }
+        .member-name { font-size: 15px; font-weight: 800; color: #003366; }
+        .member-count { background: #0284c7; color: white; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 12px; }
 
-        /* Stock Items inside Member Card */
-        .item-list {
-            padding: 0;
-        }
         .stock-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 20px;
+            padding: 12px 16px;
             border-bottom: 1px solid #f1f5f9;
+            gap: 10px;
+            flex-wrap: wrap;
         }
-        .stock-item:last-child {
-            border-bottom: none;
+        .stock-item:last-child { border-bottom: none; }
+        .mat-code { font-size: 14px; font-weight: 800; color: #003366; }
+        .prod-name { font-size: 12px; color: #64748b; }
+
+        .action-area { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .qty-badge { background: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 800; }
+        .input-qty { width: 44px; padding: 5px 2px; text-align: center; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; font-weight: 700; }
+        .input-wo { width: 75px; padding: 5px 6px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 11px; font-weight: 600; }
+        .select-target { padding: 5px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 11px; font-weight: 700; background: white; }
+
+        /* Action Buttons */
+        .btn-act { border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; color: white; }
+        .btn-withdraw { background: #003366; }
+        .btn-return { background: #16a34a; }
+        .btn-transfer { background: #eab308; }
+        .btn-deduct { background: #ef4444; }
+
+        /* Cart Panel */
+        .cart-panel {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 16px;
+            position: sticky;
+            top: 80px;
+            height: fit-content;
         }
-        .mat-code { font-size: 14px; font-weight: 800; color: #0f172a; }
-        .prod-name { font-size: 12px; color: #64748b; margin-top: 2px; }
-        .qty-badge {
-            background: #eff6ff;
-            color: #1d4ed8;
-            border: 1px solid #bfdbfe;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 13px;
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 12px;
+        }
+        .cart-title { font-size: 16px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+        .cart-items-container { max-height: 420px; overflow-y: auto; margin-bottom: 16px; }
+        
+        .cart-item-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .action-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
             font-weight: 800;
+            color: white;
+            text-transform: uppercase;
+        }
+        .tag-withdraw { background: #003366; }
+        .tag-return { background: #16a34a; }
+        .tag-transfer { background: #eab308; }
+        .tag-deduct { background: #ef4444; }
+
+        .btn-remove { background: #fee2e2; color: #ef4444; border: none; border-radius: 6px; width: 26px; height: 26px; cursor: pointer; font-weight: bold; }
+        .btn-submit-cart {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="header-title"><i class="fas fa-users"></i> TEAM STOCK</div>
+        <div class="header-title"><i class="fas fa-boxes"></i> TEAM STOCK & ALL-IN-ONE CART</div>
         <a href="main.html" class="btn-back"><i class="fas fa-arrow-left"></i> BACK</a>
     </div>
 
@@ -175,84 +198,203 @@
         <i class="fas fa-user-circle"></i> User: <span id="user-display">Loading User...</span>
     </div>
 
-    <div class="search-area">
-        <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" id="search" placeholder="Search Material, Product Name or Member..." oninput="filterTeamStock()">
+    <div class="main-layout">
+        <!-- ฝั่งซ้าย: รายการของทีม -->
+        <div>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="search" placeholder="Search Material, Product Name or Member..." oninput="filterTeamStock()">
+            </div>
+            
+            <div id="team-data-container">
+                <div style="text-align:center; padding:40px; color:#64748b;">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i><br>Loading team stock...
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="container" id="team-data-container">
-        <div style="text-align:center; padding:60px 20px; color:#64748b; font-weight:600;">
-            <i class="fas fa-spinner fa-spin fa-2x" style="color:#0284c7; margin-bottom:12px;"></i>
-            <div>Loading team stock data...</div>
+        <!-- ฝั่งขวา: ตะกร้ารวมทุก Actions -->
+        <div>
+            <div class="cart-panel">
+                <div class="cart-header">
+                    <div class="cart-title"><i class="fas fa-shopping-cart" style="color:#0284c7;"></i> Inventory Cart</div>
+                    <span id="cart-badge-count" style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:12px; font-weight:800; font-size:12px;">0 Items</span>
+                </div>
+
+                <div id="inline-cart-list" class="cart-items-container">
+                    <!-- รายการที่ถูกแอดลง Cart จะแสดงตรงนี้ -->
+                </div>
+
+                <button id="inline-sync-btn" onclick="window.confirmSendAndSync()" class="btn-submit-cart" style="display:none;">
+                    Confirm & Submit Cart
+                </button>
+            </div>
         </div>
     </div>
 
     <script src="js/app.js"></script>
     <script>
-        const TEAM_MEMBERS = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
+        const TEAM_MEMBERS = ['0243', 'Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
         async function loadTeamStock() {
             const container = document.getElementById('team-data-container');
-            
             try {
-                // ดึงข้อมูลผ่าน API จาก app.js
                 const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}&t=${Date.now()}`);
                 const res = await response.json();
 
                 if (res && res.success && res.data) {
+                    window.allRows = res.data;
                     renderByMembers(res.data);
                 } else {
-                    container.innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">❌ Failed to load team stock.</div>';
+                    container.innerHTML = '<div style="text-align:center; padding:30px; color:#ef4444;">❌ Failed to load data</div>';
                 }
             } catch (e) {
-                container.innerHTML = `<div style="text-align:center; padding:40px; color:#ef4444;">❌ Connection Error: ${e.message}</div>`;
+                container.innerHTML = `<div style="text-align:center; padding:30px; color:#ef4444;">❌ Error: ${e.message}</div>`;
             }
         }
 
         function renderByMembers(data) {
             const container = document.getElementById('team-data-container');
+            const currentUser = sessionStorage.getItem('selectedUser');
             let html = '';
 
             TEAM_MEMBERS.forEach(member => {
-                // กรองหารายการของคนนี้ที่มีสต็อก > 0
                 const memberItems = data.filter(item => Number(item[member] || 0) > 0);
 
                 if (memberItems.length > 0) {
-                    const itemsHTML = memberItems.map(item => `
-                        <div class="stock-item item-row">
-                            <div>
-                                <div class="mat-code">${item.Material || '-'}</div>
-                                <div class="prod-name">${item['Product Name'] || '-'}</div>
+                    const itemsHTML = memberItems.map((item, idx) => {
+                        const qty = Number(item[member] || 0);
+                        const isSelf = (member === currentUser);
+                        const isMainStock = (member === '0243');
+
+                        const targetOptions = TEAM_MEMBERS.filter(u => u !== member && u !== '0243')
+                            .map(u => `<option value="${u}">${u}</option>`).join('');
+
+                        let buttonsHTML = '';
+
+                        // 1. ถ้าเป็นรายการคลังใหญ่ (0243) -> แสดงปุ่ม Withdraw
+                        if (isMainStock) {
+                            buttonsHTML = `
+                                <button class="btn-act btn-withdraw" onclick="
+                                    window.addToCart('withdraw', '${item.Material}', '${idx}_${member}', '0243', '${currentUser}');
+                                    renderInlineCart();
+                                ">Withdraw</button>
+                            `;
+                        } 
+                        // 2. ถ้าเป็นของตัวเอง -> แสดงปุ่ม Return, Deduct, Transfer
+                        else if (isSelf) {
+                            buttonsHTML = `
+                                <input type="text" id="wo_${idx}_${member}" placeholder="WO#" class="input-wo">
+                                <button class="btn-act btn-deduct" onclick="
+                                    const wo = document.getElementById('wo_${idx}_${member}').value.trim();
+                                    if(!wo) { alert('Please enter WO#'); return; }
+                                    window.addToCart('deduct', '${item.Material}', '${idx}_${member}', '${currentUser}', wo);
+                                    renderInlineCart();
+                                ">Deduct</button>
+                                
+                                <button class="btn-act btn-return" onclick="
+                                    window.addToCart('return', '${item.Material}', '${idx}_${member}', '${currentUser}', '0243');
+                                    renderInlineCart();
+                                ">Return</button>
+
+                                <select id="target_user_${idx}_${member}" class="select-target">${targetOptions}</select>
+                                <button class="btn-act btn-transfer" onclick="
+                                    const target = document.getElementById('target_user_${idx}_${member}').value;
+                                    window.addToCart('transfer', '${item.Material}', '${idx}_${member}', '${member}', target);
+                                    renderInlineCart();
+                                ">Transfer</button>
+                            `;
+                        } 
+                        // 3. ถ้าเป็นของเพื่อนร่วมทีมคนอื่น -> แสดงปุ่ม Transfer เข้าหาตัวเรา
+                        else {
+                            buttonsHTML = `
+                                <button class="btn-act btn-transfer" onclick="
+                                    window.addToCart('transfer', '${item.Material}', '${idx}_${member}', '${member}', '${currentUser}');
+                                    renderInlineCart();
+                                ">Transfer to Me</button>
+                            `;
+                        }
+
+                        return `
+                            <div class="stock-item">
+                                <div>
+                                    <div class="mat-code">${item.Material || '-'}</div>
+                                    <div class="prod-name">${item['Product Name'] || '-'}</div>
+                                </div>
+                                <div class="action-area">
+                                    <span class="qty-badge">Stock: ${qty}</span>
+                                    <input type="number" id="qty_${idx}_${member}" value="1" min="1" max="${qty}" class="input-qty">
+                                    ${buttonsHTML}
+                                </div>
                             </div>
-                            <div class="qty-badge">Qty: ${item[member]}</div>
-                        </div>
-                    `).join('');
+                        `;
+                    }).join('');
+
+                    const memberDisplayName = member === '0243' ? '📦 Main Stock (0243)' : (isSelf ? `👤 ${member} (You)` : `👤 ${member}`);
 
                     html += `
-                        <div class="member-section card">
+                        <div class="member-section">
                             <div class="member-header">
-                                <div class="member-name">
-                                    <i class="fas fa-user"></i> ${member}
-                                </div>
+                                <div class="member-name">${memberDisplayName}</div>
                                 <div class="member-count">${memberItems.length} Items</div>
                             </div>
-                            <div class="item-list">
-                                ${itemsHTML}
-                            </div>
+                            <div>${itemsHTML}</div>
                         </div>
                     `;
                 }
             });
 
-            container.innerHTML = html || '<div style="text-align:center; padding:50px; color:#94a3b8; font-weight:600;">📦 No team stock holdings found.</div>';
+            container.innerHTML = html || '<div style="text-align:center; padding:40px; color:#94a3b8;">No stock found</div>';
         }
+
+        /* Render ตะกร้าข้างขวา รองรับทุก Action */
+        function renderInlineCart() {
+            const listEl = document.getElementById('inline-cart-list');
+            const badgeEl = document.getElementById('cart-badge-count');
+            const submitBtn = document.getElementById('inline-sync-btn');
+            
+            if (!listEl) return;
+
+            badgeEl.innerText = `${window.cart.length} Items`;
+
+            if (window.cart.length === 0) {
+                listEl.innerHTML = '<div style="text-align:center; padding:30px; color:#94a3b8; font-size:13px;">Cart is empty</div>';
+                submitBtn.style.display = 'none';
+                return;
+            }
+
+            listEl.innerHTML = window.cart.map((item, idx) => {
+                let tagClass = 'tag-transfer';
+                let descText = `${item.from} → ${item.target}`;
+
+                if (item.type === 'withdraw') { tagClass = 'tag-withdraw'; descText = `From 0243 to ${item.target}`; }
+                else if (item.type === 'return') { tagClass = 'tag-return'; descText = `Return to 0243`; }
+                else if (item.type === 'deduct') { tagClass = 'tag-deduct'; descText = `Deduct WO: ${item.target}`; }
+
+                return `
+                    <div class="cart-item-card">
+                        <div>
+                            <span class="action-tag ${tagClass}">${item.type}</span>
+                            <div style="font-weight:800; font-size:13px; color:#0f172a; margin-top:3px;">${item.mat}</div>
+                            <div style="font-size:11px; color:#64748b;">Qty: ${item.qty} &bull; ${descText}</div>
+                        </div>
+                        <button class="btn-remove" onclick="window.removeFromCart(${idx}); renderInlineCart();">✕</button>
+                    </div>
+                `;
+            }).join('');
+
+            submitBtn.style.display = 'block';
+        }
+
+        window.updateCartUI = function() {
+            const floatingBtn = document.getElementById('cart-floating-btn');
+            if (floatingBtn) floatingBtn.style.display = 'none';
+            renderInlineCart();
+        };
 
         function filterTeamStock() {
             const val = document.getElementById('search').value.toLowerCase().trim();
             const cards = document.querySelectorAll('.member-section');
-            
             cards.forEach(card => {
                 const text = card.innerText.toLowerCase();
                 card.style.display = text.includes(val) ? 'block' : 'none';
@@ -261,6 +403,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadTeamStock();
+            renderInlineCart();
         });
     </script>
 </body>
