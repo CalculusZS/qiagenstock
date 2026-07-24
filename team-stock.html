@@ -125,7 +125,7 @@
         .mat-title { font-size: 15px; font-weight: 800; color: #003366; }
         .mat-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
 
-        /* Actions & Transfer Button UI */
+        /* Actions UI */
         .action-box { display: flex; align-items: center; gap: 6px; }
         .stock-qty { background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 800; }
         .input-qty { width: 48px; padding: 6px 2px; text-align: center; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 12px; font-weight: 700; outline: none; }
@@ -180,12 +180,10 @@
         </div>
     </div>
 
-    <!-- ดึง Core Script หลักที่มีระบบ Cart ลอย และ Logic ทำงานหลัก -->
     <script src="js/app.js"></script>
     <script>
         const TEAM_MEMBERS = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
-        // โหลดข้อมูล Team Stock
         async function loadTeamStock() {
             const container = document.getElementById('team-data-container');
             try {
@@ -203,7 +201,6 @@
             }
         }
 
-        // แสดงรายการของแต่ละคน พร้อมปุ่ม Transfer เดิม
         function renderTeamStockUI(data) {
             const container = document.getElementById('team-data-container');
             const currentUser = sessionStorage.getItem('selectedUser');
@@ -217,7 +214,7 @@
                         const qty = Number(item[member] || 0);
                         const isSelf = (member === currentUser);
 
-                        // ตัวเลือกชื่อผู้รับ (ถ้าเป็นเราโอน ให้เลือกเพื่อน / ถ้าเป็นเพื่อน ให้ Transfer เข้าตัวเรา)
+                        // สร้าง Dropdown เลือกผู้รับเฉพาะกรณีที่เป็นของเราเอง
                         const targetOptions = TEAM_MEMBERS.filter(u => u !== currentUser)
                             .map(u => `<option value="${u}">${u}</option>`).join('');
 
@@ -236,7 +233,7 @@
                                     ${targetSelectHTML}
                                     <input type="number" id="t_qty_${idx}_${member}" value="1" min="1" max="${qty}" class="input-qty">
                                     <button class="btn-transfer-act" onclick="
-                                        const targetUser = ${isSelf} ? document.getElementById('target_user_${idx}_${member}').value : '${currentUser}';
+                                        const targetUser = ${isSelf ? `document.getElementById('target_user_${idx}_${member}').value` : `'${currentUser}'`};
                                         window.addToCart('transfer', '${item.Material}', '${idx}_${member}', '${member}', targetUser);
                                     ">
                                         Transfer
@@ -263,7 +260,6 @@
             container.innerHTML = html || '<div class="loading-box">No stock found</div>';
         }
 
-        // ฟังก์ชันค้นหา
         function filterTeamStock() {
             const val = document.getElementById('search').value.toLowerCase().trim();
             const cards = document.querySelectorAll('.member-card');
