@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (MATCHES YOUR CSS TABLE STRUCTURE)
+   QIAGEN INVENTORY - FRONTEND (FULL CODE - FIXED HEADER & PERFECT ALIGN)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -7,7 +7,43 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
-let isGlobalSyncing = false; // Global Lock Flag
+let isGlobalSyncing = false;
+
+/* Inject CSS พิเศษเพื่อลบ Header เก่าใน HTML และจัด Alignment ให้ตรงเป๊ะ */
+(function injectFixStyle() {
+    const style = document.createElement('style');
+    style.innerHTML = `
+        /* ลบ Header เดิมที่เขียนค้างใน HTML ที่ทำให้เกิดซ้ำ */
+        .container > div:not(#data):not(.search-container):not(.user-card) {
+            display: none !important;
+        }
+        /* ล็อคโครงสร้างการ์ดสินค้าให้เป็น Grid 3 คอลัมน์ตรงกันเป๊ะ */
+        .custom-card-row {
+            background: white !important;
+            border-radius: 16px !important;
+            padding: 16px 20px !important;
+            margin-bottom: 12px !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+            display: grid !important;
+            grid-template-columns: 1fr 100px 180px !important;
+            gap: 16px !important;
+            align-items: center !important;
+        }
+        .custom-header-row {
+            display: grid !important;
+            grid-template-columns: 1fr 100px 180px !important;
+            gap: 16px !important;
+            padding: 0 20px 10px 20px !important;
+            font-size: 0.8rem !important;
+            font-weight: 800 !important;
+            color: #64748b !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.05em !important;
+        }
+    `;
+    document.head.appendChild(style);
+})();
 
 /* --- 1. AUTH & PASSWORD --- */
 window.handleLogin = async function() {
@@ -265,65 +301,47 @@ window.doDeduct = async function(mat, idx, btnElement) {
     }
 };
 
-/* --- 5. RENDER ENGINE (MATCHES TABLE CSS) --- */
+/* --- 5. RENDER ENGINE (FIXED GRID HEADER & CARDS) --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
 
     const currentUser = sessionStorage.getItem('selectedUser');
     const members = Object.values(USER_MAP);
-    let rowsHTML = '';
+    let html = '';
     
     data.forEach((item, idx) => {
         members.forEach(m => {
             const q = Number(item[m] || 0);
             if (q > 0) {
                 const isMe = (m === currentUser);
-                rowsHTML += `
-                <tr>
-                    <td>
-                        <div class="p-info" style="display:flex; align-items:center; gap:12px;">
-                            <span style="background:${isMe ? '#f1f5f9':'#f0fdf4'}; color:${isMe ? '#64748b':'#166534'}; font-size:0.75rem; font-weight:800; padding:4px 8px; border-radius:6px; border:1px solid ${isMe ? '#cbd5e1':'#bbf7d0'};">
-                                ${isMe ? m + ' (Me)' : m}
-                            </span>
-                            <div>
-                                <div class="p-mat" style="font-weight:800; color:#003366;">${item.Material}</div>
-                                <div class="p-name" style="font-size:0.85rem; color:#64748b;">${item['Product Name']||'-'}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td style="text-align:center;">
-                        <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:4px 8px; border-radius:8px; display:inline-block;">
-                            <span style="font-size:0.65rem; color:#64748b; font-weight:800; display:block;">QTY</span>
-                            <span style="font-size:1.1rem; font-weight:800; color:#0f172a;">${q}</span>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="action-cell">
+                html += `
+                <div class="custom-card-row">
+                    <div>
+                        <span style="background:${isMe ? '#f1f5f9':'#f0fdf4'}; color:${isMe ? '#64748b':'#166534'}; font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; border:1px solid ${isMe ? '#cbd5e1':'#bbf7d0'}; display:inline-block; margin-bottom:6px;">
+                            Owner: ${isMe ? m + ' (Me)' : m}
+                        </span>
+                        <div style="font-size:1.1rem; font-weight:800; color:#003366;">${item.Material}</div>
+                        <div style="font-size:0.9rem; color:#475569; margin-top:2px;">${item['Product Name']||'-'}</div>
+                    </div>
+                    <div style="justify-self: center; background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 0; border-radius:12px; text-align:center; width:70px;">
+                        <span style="font-size:0.65rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">QTY</span>
+                        <span style="font-size:1.25rem; font-weight:800; color:#0f172a; line-height:1.1;">${q}</span>
+                    </div>
+                    <div style="justify-self: end;">
                         ${isMe ? 
-                            `<button disabled class="btn-sm" style="background:#f1f5f9; color:#94a3b8; cursor:not-allowed;">Transfer</button>` :
-                            `<input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" class="qty-inline">
-                             <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" class="btn-sm" style="background:#f97316; color:white;">Transfer</button>`
+                            `<button disabled style="background:#f1f5f9; color:#94a3b8; border:1px solid #e2e8f0; padding:10px 16px; border-radius:12px; font-weight:700; cursor:not-allowed;">Transfer</button>` :
+                            `<div style="display:flex; align-items:center; gap:6px;">
+                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" style="width:48px; padding:8px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:bold; outline:none;">
+                                <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:linear-gradient(135deg, #f97316, #ea580c); color:white; border:none; padding:10px 16px; border-radius:12px; font-weight:bold; cursor:pointer;">Transfer</button>
+                             </div>`
                         }
-                        </div>
-                    </td>
-                </tr>`;
+                    </div>
+                </div>`;
             }
         });
     });
-
-    container.innerHTML = rowsHTML ? 
-        `<table>
-            <thead>
-                <tr>
-                    <th style="text-align:left;">DETAILS</th>
-                    <th style="text-align:center;">STOCK</th>
-                    <th style="text-align:right;">ACTION</th>
-                </tr>
-            </thead>
-            <tbody>${rowsHTML}</tbody>
-        </table>` : 
-        '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">No Team Stock Available</div>';
+    container.innerHTML = html || '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">No Team Stock Available</div>';
 };
 
 window.renderTable = function(data) {
@@ -332,7 +350,15 @@ window.renderTable = function(data) {
 
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
 
-    let rowsHTML = data.map((item, index) => {
+    // Header 1 ชั้น แบบล็อคตำแหน่งตรงกับการ์ด 100%
+    let headerHTML = `
+        <div class="custom-header-row">
+            <div>DETAILS</div>
+            <div style="text-align: center;">STOCK</div>
+            <div style="text-align: right;">ACTION</div>
+        </div>`;
+
+    let cardsHTML = data.map((item, index) => {
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
         if (!path.includes('showall') && displayQty <= 0) return '';
@@ -344,58 +370,43 @@ window.renderTable = function(data) {
                 `<span style="background:#fee2e2; color:#b91c1c; padding:6px 14px; border-radius:20px; font-weight:800; font-size:0.85rem; border:1px solid #fca5a5;">Out of Stock</span>`;
         } else if (path.includes('deduct')) {
             actionUI = `
-                <div class="action-cell">
-                    <input type="text" id="wo_${index}" placeholder="WO#" style="width:80px; padding:6px; border:2px solid #e2e8f0; border-radius:8px; font-weight:bold; outline:none;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" class="qty-inline">
-                    <button onclick="window.doDeduct('${item.Material}', ${index}, this)" class="btn-sm" style="background:var(--danger); color:white;">Deduct</button>
+                <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
+                    <input type="text" id="wo_${index}" placeholder="WO#" style="width:85px; padding:8px; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:600; font-size:0.85rem; outline:none;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:45px; padding:8px 4px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
+                    <button onclick="window.doDeduct('${item.Material}', ${index}, this)" style="background:linear-gradient(135deg, #ef4444, #dc2626); color:white; border:none; padding:9px 14px; border-radius:10px; font-weight:bold; cursor:pointer; white-space:nowrap;">Deduct</button>
                 </div>`;
         } else {
             const isW = path.includes('withdraw');
-            const btnClass = isW ? 'btn-wd' : 'btn-rt';
+            const bgGradient = isW ? 'linear-gradient(135deg, #003366, #001f3f)' : 'linear-gradient(135deg, #10b981, #059669)';
             actionUI = `
-                <div class="action-cell">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" class="qty-inline">
-                    <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" class="btn-sm ${btnClass}">${isW?'Withdraw':'Return'}</button>
+                <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:48px; padding:8px 4px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
+                    <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${bgGradient}; color:white; border:none; padding:9px 16px; border-radius:10px; font-weight:bold; cursor:pointer; white-space:nowrap;">${isW?'Withdraw':'Return'}</button>
                 </div>`;
         }
 
         return `
-        <tr>
+        <div class="custom-card-row">
             <!-- DETAILS -->
-            <td>
-                <div class="p-info" style="display:flex; flex-direction:column; gap:2px;">
-                    <div class="p-mat" style="font-size:1.1rem; font-weight:800; color:#003366;">${item.Material}</div>
-                    <div class="p-name" style="font-size:0.85rem; color:#475569; font-weight:600;">${item['Product Name']||'-'}</div>
-                </div>
-            </td>
+            <div>
+                <div style="font-size:1.15rem; font-weight:800; color:#003366; letter-spacing:0.3px;">${item.Material}</div>
+                <div style="font-size:0.9rem; color:#475569; font-weight:600; margin-top:2px; line-height:1.3;">${item['Product Name']||'-'}</div>
+            </div>
             
             <!-- STOCK (QTY Box) -->
-            <td style="text-align:center;">
-                <div style="background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 0; border-radius:12px; width:70px; margin:0 auto;">
-                    <span style="font-size:0.65rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">QTY</span>
-                    <span style="font-size:1.25rem; font-weight:800; color:#0f172a; line-height:1.1;">${displayQty}</span>
-                </div>
-            </td>
+            <div style="justify-self: center; background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 0; border-radius:12px; text-align:center; width:70px;">
+                <span style="font-size:0.65rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">QTY</span>
+                <span style="font-size:1.25rem; font-weight:800; color:#0f172a; line-height:1.1;">${displayQty}</span>
+            </div>
             
             <!-- ACTION -->
-            <td style="text-align:right;">
+            <div style="justify-self: end;">
                 ${actionUI}
-            </td>
-        </tr>`;
+            </div>
+        </div>`;
     }).join('');
 
-    container.innerHTML = rowsHTML ? 
-        `<table>
-            <thead>
-                <tr>
-                    <th style="text-align:left;">DETAILS</th>
-                    <th style="text-align:center;">STOCK</th>
-                    <th style="text-align:right;">ACTION</th>
-                </tr>
-            </thead>
-            <tbody>${rowsHTML}</tbody>
-        </table>` : 
-        '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">📦 No Material Found</div>';
+    container.innerHTML = cardsHTML ? headerHTML + cardsHTML : '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">📦 No Material Found</div>';
 };
 
 /* --- 6. DATA LOADING & SEARCH --- */
