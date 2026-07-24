@@ -163,7 +163,7 @@
     </div>
 
     <div id="user-display">
-        <i class="fas fa-user-circle" style="color: #ea580c;"></i> Loading User...
+        <i class="fas fa-user-circle" style="color: #ea580c;"></i> <span id="display-name">Loading User...</span>
     </div>
 
     <div class="search-area">
@@ -186,7 +186,14 @@
 
         async function loadTeamStock() {
             const container = document.getElementById('team-data-container');
+            const currentUser = sessionStorage.getItem('selectedUser');
+            
+            if (document.getElementById('display-name')) {
+                document.getElementById('display-name').innerText = currentUser || 'User';
+            }
+
             try {
+                // เรียก API ดึงข้อมูลโดยตรง
                 const response = await fetch(`${API}?action=read&pass=${MASTER_PASS}&t=${Date.now()}`);
                 const res = await response.json();
 
@@ -197,6 +204,7 @@
                     container.innerHTML = '<div class="loading-box" style="color:#ef4444;">❌ Failed to load data</div>';
                 }
             } catch (e) {
+                console.error(e);
                 container.innerHTML = `<div class="loading-box" style="color:#ef4444;">❌ Error: ${e.message}</div>`;
             }
         }
@@ -207,6 +215,7 @@
             let html = '';
 
             TEAM_MEMBERS.forEach(member => {
+                // กรองเอาเฉพาะที่มี Qty > 0
                 const memberItems = data.filter(item => Number(item[member] || 0) > 0);
 
                 if (memberItems.length > 0) {
@@ -214,13 +223,17 @@
                         const qty = Number(item[member] || 0);
                         const isSelf = (member === currentUser);
 
-                        // สร้าง Dropdown เลือกผู้รับเฉพาะกรณีที่เป็นของเราเอง
+                        // Dropdown เลือกผู้รับ (กรณีเป็นของตัวเอง)
                         const targetOptions = TEAM_MEMBERS.filter(u => u !== currentUser)
                             .map(u => `<option value="${u}">${u}</option>`).join('');
 
                         const targetSelectHTML = isSelf 
                             ? `<select id="target_user_${idx}_${member}" class="select-user">${targetOptions}</select>` 
                             : '';
+
+                        const targetUserScript = isSelf 
+                            ? `document.getElementById('target_user_${idx}_${member}').value` 
+                            : `'${currentUser}'`;
 
                         return `
                             <div class="card">
@@ -233,7 +246,7 @@
                                     ${targetSelectHTML}
                                     <input type="number" id="t_qty_${idx}_${member}" value="1" min="1" max="${qty}" class="input-qty">
                                     <button class="btn-transfer-act" onclick="
-                                        const targetUser = ${isSelf ? `document.getElementById('target_user_${idx}_${member}').value` : `'${currentUser}'`};
+                                        const targetUser = ${targetUserScript};
                                         window.addToCart('transfer', '${item.Material}', '${idx}_${member}', '${member}', targetUser);
                                     ">
                                         Transfer
@@ -247,7 +260,7 @@
                         <div class="member-card">
                             <div class="member-header">
                                 <div class="member-name">
-                                    <i class="fas fa-user-circle"></i> ${member} ${isSelf ? '(You)' : ''}
+                                    <i class="fas fa-user-circle"></i> ${member} ${member === currentUser ? '(You)' : ''}
                                 </div>
                                 <div class="member-badge">${memberItems.length} Items</div>
                             </div>
@@ -257,7 +270,7 @@
                 }
             });
 
-            container.innerHTML = html || '<div class="loading-box">No stock found</div>';
+            container.innerHTML = html || '<div class="loading-box">📦 No stock found in Team</div>';
         }
 
         function filterTeamStock() {
