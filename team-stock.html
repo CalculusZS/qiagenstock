@@ -11,7 +11,7 @@
             background: #f8fafc; 
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
             margin: 0; 
-            padding-bottom: 100px; 
+            padding-bottom: 80px; 
             color: #0f172a;
         }
 
@@ -96,63 +96,70 @@
             box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
         }
 
-        /* Container & Cards */
+        /* Container & Member Sections */
         .container {
-            max-width: 1000px;
+            max-width: 900px;
             margin: 20px auto;
             padding: 0 16px;
         }
 
-        .stock-card {
+        .member-section {
             background: white;
             border-radius: 16px;
-            padding: 16px 20px;
-            margin-bottom: 12px;
-            border: 1px solid #f1f5f9;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            overflow: hidden;
+        }
+
+        .member-header {
+            background: #f8fafc;
+            padding: 14px 20px;
+            border-bottom: 1px solid #e2e8f0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .stock-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.06);
-        }
-
-        .item-info { flex: 1; }
-        .mat-code { font-size: 16px; font-weight: 800; color: #003366; }
-        .prod-name { font-size: 13px; color: #64748b; margin-top: 4px; font-weight: 500; }
-        
-        .stock-badge-group {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
-        .user-badge {
+        .member-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: #003366;
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background: #f1f5f9;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #334155;
-            border: 1px solid #e2e8f0;
+            gap: 10px;
         }
-        .user-badge.has-stock {
-            background: #eff6ff;
-            color: #1d4ed8;
-            border-color: #bfdbfe;
-        }
-        .qty-num {
+        .member-count {
             background: #0284c7;
             color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
             font-size: 11px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        /* Stock Items inside Member Card */
+        .item-list {
+            padding: 0;
+        }
+        .stock-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .stock-item:last-child {
+            border-bottom: none;
+        }
+        .mat-code { font-size: 14px; font-weight: 800; color: #0f172a; }
+        .prod-name { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .qty-badge {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 13px;
             font-weight: 800;
         }
     </style>
@@ -184,7 +191,6 @@
 
     <script src="js/app.js"></script>
     <script>
-        // รายชื่อสมาชิกทีมทั้งหมดที่ต้องการดึงยอด
         const TEAM_MEMBERS = ['Kitti', 'Tatchai', 'Parinyachat', 'Phurilap', 'Penporn', 'Phuriwat'];
 
         async function loadTeamStock() {
@@ -196,8 +202,7 @@
                 const res = await response.json();
 
                 if (res && res.success && res.data) {
-                    window.allRows = res.data;
-                    renderTeamStockCards(res.data);
+                    renderByMembers(res.data);
                 } else {
                     container.innerHTML = '<div style="text-align:center; padding:40px; color:#ef4444;">❌ Failed to load team stock.</div>';
                 }
@@ -206,51 +211,51 @@
             }
         }
 
-        function renderTeamStockCards(data) {
+        function renderByMembers(data) {
             const container = document.getElementById('team-data-container');
-            
-            // กรองเอาเฉพาะรายการที่มีสต็อกถือครองอยู่ในทีมอย่างน้อย 1 คน
-            const filtered = data.filter(item => {
-                return TEAM_MEMBERS.some(m => Number(item[m] || 0) > 0);
-            });
+            let html = '';
 
-            if (filtered.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:50px; color:#94a3b8; font-weight:600;">📦 No team stock holdings found.</div>';
-                return;
-            }
+            TEAM_MEMBERS.forEach(member => {
+                // กรองหารายการของคนนี้ที่มีสต็อก > 0
+                const memberItems = data.filter(item => Number(item[member] || 0) > 0);
 
-            container.innerHTML = filtered.map(item => {
-                // สร้าง Badges รายชื่อคนที่ถือครองสต็อกชิ้นนี้
-                let memberBadges = TEAM_MEMBERS.map(member => {
-                    const qty = Number(item[member] || 0);
-                    if (qty <= 0) return '';
-                    return `
-                        <div class="user-badge has-stock">
-                            <span>${member}</span>
-                            <span class="qty-num">${qty}</span>
+                if (memberItems.length > 0) {
+                    const itemsHTML = memberItems.map(item => `
+                        <div class="stock-item item-row">
+                            <div>
+                                <div class="mat-code">${item.Material || '-'}</div>
+                                <div class="prod-name">${item['Product Name'] || '-'}</div>
+                            </div>
+                            <div class="qty-badge">Qty: ${item[member]}</div>
+                        </div>
+                    `).join('');
+
+                    html += `
+                        <div class="member-section card">
+                            <div class="member-header">
+                                <div class="member-name">
+                                    <i class="fas fa-user"></i> ${member}
+                                </div>
+                                <div class="member-count">${memberItems.length} Items</div>
+                            </div>
+                            <div class="item-list">
+                                ${itemsHTML}
+                            </div>
                         </div>
                     `;
-                }).join('');
+                }
+            });
 
-                return `
-                    <div class="stock-card card">
-                        <div class="item-info">
-                            <div class="mat-code">${item.Material || '-'}</div>
-                            <div class="prod-name">${item['Product Name'] || '-'}</div>
-                        </div>
-                        <div class="stock-badge-group">
-                            ${memberBadges}
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            container.innerHTML = html || '<div style="text-align:center; padding:50px; color:#94a3b8; font-weight:600;">📦 No team stock holdings found.</div>';
         }
 
         function filterTeamStock() {
             const val = document.getElementById('search').value.toLowerCase().trim();
-            const cards = document.querySelectorAll('.card');
-            cards.forEach(c => {
-                c.style.display = c.innerText.toLowerCase().includes(val) ? 'flex' : 'none';
+            const cards = document.querySelectorAll('.member-section');
+            
+            cards.forEach(card => {
+                const text = card.innerText.toLowerCase();
+                card.style.display = text.includes(val) ? 'block' : 'none';
             });
         }
 
