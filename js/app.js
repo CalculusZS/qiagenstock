@@ -1,5 +1,5 @@
 /* ========================================================================== 
-   QIAGEN INVENTORY - FRONTEND (FULL RESPONSIVE: MOBILE & DESKTOP)
+   QIAGEN INVENTORY - FRONTEND (TABLE LAYOUT WITH RESPONSIVE SUPPORT)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbyn-fbvrwSi7Fe1_h1goTInHcSeqK8Ydc6UuMI3wXeqeNxsuAAIZotphtx6NrhlKdSv/exec";
 const MASTER_PASS = "Service";
@@ -11,51 +11,6 @@ const SILENT_MATERIALS = ["9026466", "9026466_PM"];
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
 let isGlobalSyncing = false;
-
-/* --- 0. RESPONSIVE CSS INJECTION FOR MOBILE & PC --- */
-(function injectResponsiveStyles() {
-    const style = document.createElement('style');
-    style.innerHTML = `
-        /* บังคับซ่อนส่วนหัวตารางเดิม */
-        .details-header, thead, th, .table-header, tr.header-row { 
-            display: none !important; 
-        }
-        /* บังคับขยาย คอนเทนเนอร์ ให้เต็มพื้นที่ */
-        #data, #team-data-container, main, .content, .container, table, tbody, tr, td { 
-            width: 100% !important; 
-            max-width: 100% !important; 
-            display: block !important; 
-            box-sizing: border-box !important;
-        }
-
-        /* 📱 MOBILE RESPONSIVE STYLES (สำหรับหน้าจอมือถือ) */
-        @media (max-width: 600px) {
-            .item-card {
-                flex-direction: column !important;
-                align-items: stretch !important;
-                gap: 12px !important;
-                padding: 16px !important;
-            }
-            .item-info {
-                padding-right: 0 !important;
-            }
-            .item-action-group {
-                width: 100% !important;
-                justify-content: space-between !important;
-                border-top: 1px dashed #e2e8f0 !important;
-                padding-top: 12px !important;
-            }
-            .action-controls {
-                flex: 1 !important;
-                justify-content: flex-end !important;
-            }
-            .action-controls input[type="text"] {
-                width: 80px !important;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-})();
 
 /* --- 1. AUTH & PASSWORD --- */
 window.handleLogin = async function() {
@@ -314,47 +269,55 @@ window.doDeduct = async function(mat, idx, btnElement) {
     }
 };
 
-/* --- 5. RESPONSIVE RENDERING ENGINE --- */
+/* --- 5. TABLE RENDERING ENGINE (STANDARD TABLE LAYOUT) --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
 
     const currentUser = sessionStorage.getItem('selectedUser');
     const members = Object.values(USER_MAP);
-    let html = '';
+    let rowsHtml = '';
     
     data.forEach((item, idx) => {
         members.forEach(m => {
             const q = Number(item[m] || 0);
             if (q > 0) {
                 const isMe = (m === currentUser);
-                html += `
-                <div class="item-card" style="background:white; border-radius:16px; padding:18px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box;">
-                    <div class="item-info" style="flex:1; padding-right:12px;">
-                        <span style="background:${isMe ? '#f1f5f9':'#f0fdf4'}; color:${isMe ? '#64748b':'#166534'}; font-size:0.75rem; font-weight:800; padding:3px 8px; border-radius:6px; border:1px solid ${isMe ? '#cbd5e1':'#bbf7d0'}; display:inline-block; margin-bottom:6px;">
-                            Owner: ${isMe ? m + ' (Me)' : m}
-                        </span>
-                        <div style="font-size:1.1rem; font-weight:800; color:#003366;">${item.Material}</div>
-                        <div style="font-size:0.9rem; color:#475569; margin-top:2px; font-weight:500;">${item['Product Name']||'-'}</div>
-                    </div>
-                    <div class="item-action-group" style="display:flex; align-items:center; gap:10px;">
-                        <div style="text-align:center; background:#f8fafc; padding:6px 12px; border-radius:10px; border:1px solid #e2e8f0; min-width:60px;">
-                            <span style="font-size:0.65rem; color:#64748b; font-weight:800; display:block; text-transform:uppercase;">Stock</span>
-                            <span style="font-size:1.2rem; font-weight:800; color:#0f172a;">${q}</span>
+                rowsHtml += `
+                <tr>
+                    <td>
+                        <div class="p-info" style="display:flex; flex-direction:column; gap:2px;">
+                            <span style="font-size:11px; font-weight:800; color:${isMe ? '#64748b':'#166534'};">Owner: ${isMe ? m + ' (Me)' : m}</span>
+                            <strong class="p-mat" style="font-size:16px; color:#0f172a;">${item.Material}</strong>
+                            <span class="p-name" style="color:#64748b; font-size:13px;">${item['Product Name']||'-'}</span>
                         </div>
+                    </td>
+                    <td style="text-align:center; font-weight:bold; font-size:16px; width:80px;">${q}</td>
+                    <td style="text-align:right; width:160px;">
                         ${isMe ? 
-                            `<button disabled style="background:#f1f5f9; color:#94a3b8; border:1px solid #e2e8f0; padding:8px 14px; border-radius:10px; font-weight:700; cursor:not-allowed; font-size:0.85rem;">Transfer</button>` :
-                            `<div class="action-controls" style="display:flex; align-items:center; gap:6px;">
-                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" style="width:45px; padding:8px; text-align:center; border:1.5px solid #cbd5e1; border-radius:8px; font-weight:bold; outline:none; font-size:0.9rem;">
-                                <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:linear-gradient(135deg, #f97316, #ea580c); color:white; border:none; padding:8px 14px; border-radius:10px; font-weight:bold; cursor:pointer; font-size:0.85rem; box-shadow:0 3px 10px rgba(249,115,22,0.25);">Transfer</button>
+                            `<button class="btn-sm" disabled style="background:#e2e8f0; color:#94a3b8; cursor:not-allowed;">Transfer</button>` :
+                            `<div class="action-cell">
+                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" class="qty-inline">
+                                <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" class="btn-sm" style="background:#f97316; color:white;">Transfer</button>
                              </div>`
                         }
-                    </div>
-                </div>`;
+                    </td>
+                </tr>`;
             }
         });
     });
-    container.innerHTML = html || '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">No Team Stock Available</div>';
+
+    container.innerHTML = rowsHtml ? `
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align:left;">DETAILS</th>
+                    <th style="text-align:center;">STOCK</th>
+                    <th style="text-align:right;">ACTION</th>
+                </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+        </table>` : '<div style="text-align:center; padding:50px; color:#94a3b8;">No Team Stock Available</div>';
 };
 
 window.renderTable = function(data) {
@@ -363,7 +326,7 @@ window.renderTable = function(data) {
 
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
     
-    let html = data.map((item, index) => {
+    let rowsHtml = data.map((item, index) => {
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
         if (!path.includes('showall') && displayQty <= 0) return '';
@@ -371,44 +334,48 @@ window.renderTable = function(data) {
         let actionUI = "";
         if (path.includes('showall')) {
             actionUI = displayQty > 0 ? 
-                `<span style="background:#dcfce7; color:#15803d; padding:5px 12px; border-radius:20px; font-weight:800; font-size:0.8rem; border:1px solid #bbf7d0;">In Stock</span>` :
-                `<span style="background:#fee2e2; color:#b91c1c; padding:5px 12px; border-radius:20px; font-weight:800; font-size:0.8rem; border:1px solid #fca5a5;">Out of Stock</span>`;
+                `<span style="background:#dcfce7; color:#15803d; padding:6px 12px; border-radius:20px; font-weight:800; font-size:12px;">In Stock</span>` :
+                `<span style="background:#fee2e2; color:#b91c1c; padding:6px 12px; border-radius:20px; font-weight:800; font-size:12px;">Out of Stock</span>`;
         } else if (path.includes('deduct')) {
             actionUI = `
-                <div class="action-controls" style="display:flex; gap:6px; align-items:center;">
-                    <input type="text" id="wo_${index}" placeholder="WO#" style="width:90px; padding:8px 10px; border:1.5px solid #cbd5e1; border-radius:8px; font-weight:600; font-size:0.85rem; outline:none;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:45px; padding:8px 4px; text-align:center; border:1.5px solid #cbd5e1; border-radius:8px; font-weight:700; font-size:0.85rem; outline:none;">
-                    <button onclick="window.doDeduct('${item.Material}', ${index}, this)" style="background:linear-gradient(135deg, #ef4444, #dc2626); color:white; border:none; padding:8px 14px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:0.85rem; box-shadow:0 3px 10px rgba(239,68,68,0.2); white-space:nowrap;">Deduct</button>
+                <div class="action-cell">
+                    <input type="text" id="wo_${index}" placeholder="WO#" style="width:80px; padding:8px; border:2px solid #e2e8f0; border-radius:8px; font-size:14px; outline:none;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" class="qty-inline">
+                    <button onclick="window.doDeduct('${item.Material}', ${index}, this)" class="btn-sm" style="background:#ef4444; color:white;">Deduct</button>
                 </div>`;
         } else {
             const isW = path.includes('withdraw');
-            const bgGradient = isW ? 'linear-gradient(135deg, #003366, #001f3f)' : 'linear-gradient(135deg, #10b981, #059669)';
             actionUI = `
-                <div class="action-controls" style="display:flex; gap:6px; align-items:center;">
-                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:45px; padding:8px 4px; text-align:center; border:1.5px solid #cbd5e1; border-radius:8px; font-weight:700; font-size:0.85rem; outline:none;">
-                    <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${bgGradient}; color:white; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer; font-size:0.85rem; box-shadow:0 3px 10px rgba(0,0,0,0.12); white-space:nowrap;">${isW?'Withdraw':'Return'}</button>
+                <div class="action-cell">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" class="qty-inline">
+                    <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" class="btn-sm ${isW?'btn-wd':'btn-rt'}">${isW?'Withdraw':'Return'}</button>
                 </div>`;
         }
 
         return `
-        <div class="item-card" style="background:white; border-radius:16px; padding:18px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box;">
-            <div class="item-info" style="flex:1; padding-right:12px;">
-                <div style="font-size:1.15rem; font-weight:800; color:#003366; letter-spacing:0.2px;">${item.Material}</div>
-                <div style="font-size:0.9rem; color:#475569; font-weight:500; margin-top:3px; line-height:1.3;">${item['Product Name']||'-'}</div>
-            </div>
-            <div class="item-action-group" style="display:flex; align-items:center; gap:12px;">
-                <div style="background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 12px; border-radius:10px; text-align:center; min-width:55px;">
-                    <span style="font-size:0.65rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">Qty</span>
-                    <span style="font-size:1.2rem; font-weight:800; color:#0f172a; line-height:1.1;">${displayQty}</span>
+        <tr>
+            <td>
+                <div class="p-info" style="display:flex; flex-direction:column; gap:2px;">
+                    <strong class="p-mat" style="font-size:16px; color:#0f172a;">${item.Material}</strong>
+                    <span class="p-name" style="color:#64748b; font-size:13px;">${item['Product Name']||'-'}</span>
                 </div>
-                <div>
-                    ${actionUI}
-                </div>
-            </div>
-        </div>`;
+            </td>
+            <td style="text-align:center; font-weight:bold; font-size:16px; width:80px;">${displayQty}</td>
+            <td style="text-align:right; width:200px;">${actionUI}</td>
+        </tr>`;
     }).join('');
 
-    container.innerHTML = html || '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">📦 No Material Found</div>';
+    container.innerHTML = rowsHtml ? `
+        <table>
+            <thead>
+                <tr>
+                    <th style="text-align:left;">DETAILS</th>
+                    <th style="text-align:center;">STOCK</th>
+                    <th style="text-align:right;">ACTION</th>
+                </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+        </table>` : '<div style="text-align:center; padding:50px; color:#94a3b8;">📦 No Material Found</div>';
 };
 
 /* --- 6. DATA LOADING & SEARCH --- */
