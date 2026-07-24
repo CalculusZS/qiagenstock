@@ -1,8 +1,5 @@
-
-
-
 /* ========================================================================== 
-   QIAGEN INVENTORY - FULL VERSION (GROUPED ITEMS & OUTLOOK FORCED)
+   QIAGEN INVENTORY - FRONTEND (MODERN UI & DOUBLE-SUBMIT PROTECTED)
    ========================================================================== */
 const API = "https://script.google.com/macros/s/AKfycbycSJJCTRbf7IwHrkGP5tdPE23YzDV60XlYR9OKBD35ZNxhtcTamxX2TPAiVKPiCYTg/exec";
 const MASTER_PASS = "Service";
@@ -10,6 +7,7 @@ const USER_MAP = {'KM':'Kitti','TK':'Tatchai','PSO':'Parinyachat','PK':'Phurilap
 
 window.allRows = [];
 window.cart = JSON.parse(localStorage.getItem('qiagen_cart')) || [];
+let isGlobalSyncing = false; // Global Lock Flag
 
 /* --- 1. AUTH & PASSWORD --- */
 window.handleLogin = async function() {
@@ -39,11 +37,11 @@ window.showForcePasswordChange = function(u) {
     const div = document.createElement('div');
     div.id = "force-pw-modal";
     div.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.98);display:flex;justify-content:center;align-items:center;z-index:99999;padding:20px;";
-    div.innerHTML = `<div style="background:white;padding:30px;border-radius:24px;text-align:center;width:100%;max-width:340px;">
-            <h3>Set New Password</h3>
-            <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:14px;margin-bottom:10px;border:1px solid #ddd;border-radius:12px;">
-            <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:14px;margin-bottom:20px;border:1px solid #ddd;border-radius:12px;">
-            <button onclick="window.processReset('${u}')" style="width:100%;padding:16px;background:#f97316;color:white;border:none;border-radius:12px;font-weight:bold;">Update & Activate</button>
+    div.innerHTML = `<div style="background:white;padding:30px;border-radius:24px;text-align:center;width:100%;max-width:340px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.3);">
+            <h3 style="margin-top:0;color:#003366;">Set New Password</h3>
+            <input type="password" id="p1" placeholder="New Password" style="width:100%;padding:14px;margin-bottom:10px;border:1.5px solid #cbd5e1;border-radius:12px;outline:none;">
+            <input type="password" id="p2" placeholder="Confirm Password" style="width:100%;padding:14px;margin-bottom:20px;border:1.5px solid #cbd5e1;border-radius:12px;outline:none;">
+            <button onclick="window.processReset('${u}')" style="width:100%;padding:16px;background:linear-gradient(135deg,#f97316,#ea580c);color:white;border:none;border-radius:12px;font-weight:bold;cursor:pointer;">Update & Activate</button>
         </div>`;
     document.body.appendChild(div);
 };
@@ -51,19 +49,20 @@ window.showForcePasswordChange = function(u) {
 window.processReset = async function(u) {
     const p1 = document.getElementById('p1').value;
     const p2 = document.getElementById('p2').value;
-    if (!p1 || p1 !== p2) { alert("❌ Not Match!"); return; }
+    if (!p1 || p1 !== p2) { alert("❌ Password Does Not Match!"); return; }
     try {
         const res = await fetch(`${API}?action=setpassword&user=${encodeURIComponent(u)}&newPass=${encodeURIComponent(p1)}&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success) { alert("✅ Activated!"); window.location.replace('main.html'); }
-    } catch (e) { alert("❌ Error"); }
+        if (res.success) { alert("✅ Activated Successfully!"); window.location.replace('main.html'); }
+    } catch (e) { alert("❌ Error resetting password"); }
 };
 
-/* --- 2. CART --- */
+/* --- 2. CART SYSTEM --- */
 window.addToCart = function(type, mat, idx, from, target) {
     const qID = type === 'transfer' ? `t_qty_${idx}_${from}` : `qty_${idx}`;
-    const addQty = parseInt(document.getElementById(qID).value) || 0;
+    const qtyInput = document.getElementById(qID);
+    const addQty = parseInt(qtyInput ? qtyInput.value : 1) || 0;
     
-    if (addQty <= 0) { alert("Please enter quantity"); return; }
+    if (addQty <= 0) { alert("Please enter valid quantity"); return; }
 
     const itm = window.allRows.find(i => String(i.Material) === String(mat));
     const availableStock = Number(itm ? itm[from] : 0);
@@ -81,7 +80,7 @@ window.addToCart = function(type, mat, idx, from, target) {
     }
 
     if (totalInCart > availableStock) {
-        alert(`❌ Stock Insufficient!\nItem: ${mat}\nAvailable: ${availableStock}\nAlready in cart: ${existingIndex > -1 ? window.cart[existingIndex].qty : 0}\nNew total would be: ${totalInCart}`);
+        alert(`❌ Stock Insufficient!\nMaterial: ${mat}\nAvailable: ${availableStock}\nAlready in cart: ${existingIndex > -1 ? window.cart[existingIndex].qty : 0}\nAttempted: ${totalInCart}`);
         return;
     }
 
@@ -91,7 +90,7 @@ window.addToCart = function(type, mat, idx, from, target) {
         window.cart.push({ 
             type, 
             mat, 
-            name: itm ? itm['Product Name'] : 'Unknown', 
+            name: itm ? itm['Product Name'] : 'Unknown Item', 
             qty: addQty, 
             from, 
             target 
@@ -103,39 +102,49 @@ window.addToCart = function(type, mat, idx, from, target) {
     
     const btn = document.activeElement;
     if(btn && btn.tagName === 'BUTTON') {
-        const originalText = btn.innerText;
-        btn.innerText = "Added!";
-        setTimeout(() => btn.innerText = originalText, 800);
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "✓ Added";
+        btn.style.background = "#10b981";
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = "";
+        }, 800);
     }
 };
 
 window.updateCartUI = function() {
     let btn = document.getElementById('cart-floating-btn');
     if (!btn) {
-        btn = document.createElement('div'); btn.id = 'cart-floating-btn';
+        btn = document.createElement('div'); 
+        btn.id = 'cart-floating-btn';
         btn.style = "position:fixed; bottom:25px; right:25px; z-index:9999;";
         document.body.appendChild(btn);
     }
-    btn.innerHTML = window.cart.length > 0 ? `<button onclick="window.showReviewModal()" style="background:#0ea5e9; color:white; padding:15px 25px; border-radius:50px; border:none; font-weight:bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">Cart (${window.cart.length})</button>` : '';
+    btn.innerHTML = window.cart.length > 0 ? 
+        `<button onclick="window.showReviewModal()" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color:white; padding:14px 24px; border-radius:50px; border:none; font-weight:bold; font-size:15px; box-shadow: 0 10px 25px -5px rgba(2,132,199,0.5); cursor:pointer; display:flex; align-items:center; gap:8px; transition:transform 0.2s;" onhover="this.style.transform='scale(1.05)'">
+            🛒 Review Cart (${window.cart.length})
+         </button>` : '';
 };
 
 window.showReviewModal = function() {
     let html = window.cart.map((i, idx) => `
-        <div style="padding:12px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;">
+        <div style="padding:14px; background:#f8fafc; border-radius:12px; margin-bottom:10px; border:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
             <div style="flex:1;">
-                <b style="color:#003366;">${i.mat}</b><br>
-                <small>${i.name}</small><br>
-                <small style="color:black;"><b>Qty: ${i.qty}</b> | ${i.from} → ${i.target}</small>
+                <div style="font-size:16px; font-weight:800; color:#003366;">${i.mat}</div>
+                <div style="font-size:13px; color:#475569; margin:2px 0;">${i.name}</div>
+                <div style="font-size:12px; font-weight:700; color:#0ea5e9;">Qty: ${i.qty} | ${i.from} → ${i.target}</div>
             </div>
-            <button onclick="window.removeFromCart(${idx})" style="background:#fee2e2; color:#dc2626; border:none; padding:5px 10px; border-radius:8px;">✕</button>
+            <button onclick="window.removeFromCart(${idx})" style="background:#fee2e2; color:#ef4444; border:none; padding:8px 12px; border-radius:10px; font-weight:bold; cursor:pointer;">✕</button>
         </div>`).join('');
-    const div = document.createElement('div'); div.id = "review-modal";
-    div.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
-    div.innerHTML = `<div style="background:white; width:100%; max-width:400px; border-radius:20px; padding:20px;">
-            <h3 style="margin-top:0; border-bottom:2px solid #f1f5f9; padding-bottom:10px; color:black;">🛒 Review Order</h3>
-            <div style="max-height:350px; overflow-y:auto;">${html || 'No items'}</div>
-            <button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:16px; background:#0ea5e9; color:white; border:none; border-radius:12px; margin-top:15px; font-weight:bold;">Confirm & Open Outlook</button>
-            <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; border:none; background:none; color:gray;">Cancel</button>
+
+    const div = document.createElement('div'); 
+    div.id = "review-modal";
+    div.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.75); backdrop-filter:blur(4px); z-index:10000; display:flex; justify-content:center; align-items:center; padding:15px;";
+    div.innerHTML = `<div style="background:white; width:100%; max-width:440px; border-radius:24px; padding:24px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+            <h3 style="margin-top:0; border-bottom:2px solid #f1f5f9; padding-bottom:12px; color:#0f172a; font-size:1.2rem;">🛒 Confirm Cart Items</h3>
+            <div style="max-height:360px; overflow-y:auto; padding-right:4px;">${html || '<div style="text-align:center; padding:30px; color:#94a3b8;">Cart is empty</div>'}</div>
+            ${window.cart.length > 0 ? `<button id="sync-btn" onclick="window.confirmSendAndSync()" style="width:100%; padding:16px; background:linear-gradient(135deg, #0ea5e9, #0284c7); color:white; border:none; border-radius:14px; margin-top:16px; font-weight:bold; font-size:1rem; cursor:pointer; box-shadow:0 4px 12px rgba(14,165,233,0.3);">Confirm & Submit Order</button>` : ''}
+            <button onclick="document.getElementById('review-modal').remove()" style="width:100%; margin-top:10px; padding:12px; border:none; background:none; color:#64748b; font-weight:600; cursor:pointer;">Cancel</button>
         </div>`;
     document.body.appendChild(div);
 };
@@ -149,17 +158,22 @@ window.removeFromCart = function(idx) {
     window.updateCartUI();
 };
 
-/* --- 3. SYNC (NEW LOGIC: SILENT SYNC FOR 9026466) --- */
+/* --- 3. SYNC WITH LOCK PROTECTION --- */
 window.confirmSendAndSync = async function() {
+    if (isGlobalSyncing) return; // 🛑 ป้องกันการกดซ้ำซ้อน
+    
     const btn = document.getElementById('sync-btn');
     const user = sessionStorage.getItem('selectedUser');
     const now = new Date();
     const today = now.getDate().toString().padStart(2, '0') + '/' + (now.getMonth() + 1).toString().padStart(2, '0') + '/' + now.getFullYear();
-    
-    // เช็คว่าในตะกร้ามีแต่รหัส 9026466 หรือไม่
     const onlySilentItems = window.cart.every(item => String(item.mat) === "9026466");
 
-    btn.innerText = "Syncing..."; btn.disabled = true;
+    isGlobalSyncing = true;
+    if (btn) {
+        btn.innerText = "⏳ Processing Sync..."; 
+        btn.disabled = true;
+        btn.style.opacity = "0.7";
+    }
 
     let subjectText = `Spare parts transfer ${user} ${today}`;
     let bodyText = `Hi BO,\n\nPlease transfer the following spare parts.\n\n`;
@@ -167,27 +181,21 @@ window.confirmSendAndSync = async function() {
 
     try {
         for (const item of window.cart) {
-            // 1. อัปเดต Google Sheet ทุกรายการ
             await fetch(`${API}?action=${item.type}&from=${encodeURIComponent(item.from)}&user=${encodeURIComponent(item.target)}&material=${encodeURIComponent(item.mat)}&qty=${item.qty}&pass=${MASTER_PASS}`);
             
-            // 2. สร้างเนื้อหาอีเมล (ข้าม 9026466)
             if (String(item.mat) !== "9026466") {
                 bodyText += `• ${item.mat} | ${item.name}\n  Qty: ${item.qty} (${item.from} -> ${item.target})\n\n`;
                 hasEmailContent = true;
             }
         }
 
-        // ล้างตะกร้าทันทีที่ส่ง Data สำเร็จ
         window.cart = []; 
         localStorage.removeItem('qiagen_cart');
 
-        // 3. ตัดสินใจว่าจะเปิด Outlook หรือไม่
         if (onlySilentItems || !hasEmailContent) {
-            // กรณีมีแต่ของไม่ต้องแจ้งทางเมล์ ให้แจ้งเตือนแล้วรีโหลดเลย
-            alert("✅ Sync Successfully (No email required)");
+            alert("✅ Sync Completed Successfully!");
             window.location.reload();
         } else {
-            // กรณีมีของอื่นๆ ให้เปิด Outlook
             const mailTo = "AsiaPacBackOfficeFieldService@qiagen.com";
             const ccTo = "gthfss@qiagen.com";
             const outlookUrl = `ms-outlook://compose?to=${encodeURIComponent(mailTo)}&cc=${encodeURIComponent(ccTo)}&subject=${encodeURIComponent(subjectText)}&body=${encodeURIComponent(bodyText)}`;
@@ -199,16 +207,66 @@ window.confirmSendAndSync = async function() {
             } else {
                 window.location.href = fallbackUrl;
             }
-            setTimeout(() => window.location.reload(), 3000);
+            setTimeout(() => window.location.reload(), 2500);
         }
     } catch (e) { 
-        alert("Sync Error"); 
-        btn.disabled = false; 
-        btn.innerText = "Confirm & Open Outlook";
+        alert("❌ Sync Error. Please check connection."); 
+        isGlobalSyncing = false;
+        if (btn) {
+            btn.disabled = false; 
+            btn.innerText = "Confirm & Submit Order";
+            btn.style.opacity = "1";
+        }
     }
 };
 
-/* --- 4. RENDERING & DATA (FIXED: SHOW OWN STOCK BUT DISABLE TRANSFER) --- */
+/* --- 4. DEDUCT WITH DOUBLE-CLICK PROTECTION --- */
+window.doDeduct = async function(mat, idx, btnElement) {
+    if (isGlobalSyncing) return; // 🛑 ป้องกันการกดซ้ำซ้อน
+    
+    const qtyInput = document.getElementById('qty_' + idx);
+    const woInput = document.getElementById('wo_' + idx);
+    const qty = qtyInput ? qtyInput.value : 1;
+    const wo = woInput ? woInput.value.trim() : "";
+    
+    if (!wo) { alert("❌ Please enter Work Order (WO#)"); return; }
+
+    const user = sessionStorage.getItem('selectedUser');
+
+    // ล็อกปุ่มและเปลี่ยน UI แสดงสถานะ
+    isGlobalSyncing = true;
+    let origText = "";
+    if (btnElement) {
+        origText = btnElement.innerHTML;
+        btnElement.disabled = true;
+        btnElement.innerHTML = "⏳ Deducting...";
+        btnElement.style.opacity = "0.7";
+        btnElement.style.cursor = "not-allowed";
+    }
+
+    try {
+        const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
+        
+        if (res && res.success) { 
+            alert("✅ Deducted Successfully!"); 
+            window.loadStockData(); 
+        } else {
+            alert("❌ Deduct Failed: " + (res.msg || "Unknown Error"));
+        }
+    } catch(e) { 
+        alert("❌ Connection/Server Error"); 
+    } finally {
+        isGlobalSyncing = false;
+        if (btnElement) {
+            btnElement.disabled = false;
+            btnElement.innerHTML = origText;
+            btnElement.style.opacity = "1";
+            btnElement.style.cursor = "pointer";
+        }
+    }
+};
+
+/* --- 5. MODERN UI RENDERING ENGINE --- */
 window.renderTeamTable = function(data) {
     const container = document.getElementById('team-data-container') || document.getElementById('data');
     if (!container || !window.location.pathname.includes('team-stock')) return;
@@ -220,63 +278,92 @@ window.renderTeamTable = function(data) {
     data.forEach((item, idx) => {
         members.forEach(m => {
             const q = Number(item[m] || 0);
-            // แสดงข้อมูลถ้า Stock > 0 (รวมตัวเองด้วย)
             if (q > 0) {
                 const isMe = (m === currentUser);
-                html += `<tr class="card">
-                    <td style="padding:12px;">
-                        <div style="font-size: 15px; font-weight: bold; color: ${isMe ? '#64748b' : 'black'}; margin-bottom: 4px;">
+                html += `
+                <div style="background:white; border-radius:16px; padding:18px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.03); display:flex; justify-content:space-between; align-items:center;">
+                    <div style="flex:1;">
+                        <span style="background:${isMe ? '#f1f5f9':'#f0fdf4'}; color:${isMe ? '#64748b':'#166534'}; font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; border:1px solid ${isMe ? '#cbd5e1':'#bbf7d0'}; display:inline-block; margin-bottom:6px;">
                             Owner: ${isMe ? m + ' (Me)' : m}
+                        </span>
+                        <div style="font-size:1.1rem; font-weight:800; color:#003366;">${item.Material}</div>
+                        <div style="font-size:0.9rem; color:#475569; margin-top:2px;">${item['Product Name']||'-'}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="text-align:right; margin-right:8px;">
+                            <span style="font-size:0.7rem; color:#94a3b8; font-weight:700; display:block; text-transform:uppercase;">In Stock</span>
+                            <span style="font-size:1.25rem; font-weight:800; color:#0f172a;">${q}</span>
                         </div>
-                        <b>${item.Material}</b> - <small>${item['Product Name']||''}</small>
-                    </td>
-                    <td align="right" style="padding-right:10px;">
-                        <div style="display:flex; gap:8px; justify-content:flex-end; align-items:center;">
-                            <b style="font-size: 16px;">Stock: ${q}</b>
-                            ${isMe ? 
-                                `<button disabled style="background:#cbd5e1; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:not-allowed;">Transfer</button>` :
-                                `<input type="number" id="t_qty_${idx}_${m}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
-                                 <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:#f97316; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">Transfer</button>`
-                            }
-                        </div>
-                    </td>
-                </tr>`;
+                        ${isMe ? 
+                            `<button disabled style="background:#f1f5f9; color:#94a3b8; border:1px solid #e2e8f0; padding:10px 16px; border-radius:12px; font-weight:700; cursor:not-allowed;">Transfer</button>` :
+                            `<div style="display:flex; align-items:center; gap:6px;">
+                                <input type="number" id="t_qty_${idx}_${m}" value="1" min="1" max="${q}" style="width:48px; padding:8px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:bold; outline:none;">
+                                <button onclick="window.addToCart('transfer','${item.Material}',${idx},'${m}','${currentUser}')" style="background:linear-gradient(135deg, #f97316, #ea580c); color:white; border:none; padding:10px 16px; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(249,115,22,0.25);">Transfer</button>
+                             </div>`
+                        }
+                    </div>
+                </div>`;
             }
         });
     });
-    container.innerHTML = html || '<tr><td colspan="2" align="center" style="padding:20px;">No Team Stock Available</td></tr>';
+    container.innerHTML = html || '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">No Team Stock Available</div>';
 };
 
 window.renderTable = function(data) {
-    const tbody = document.getElementById('data'); 
-    if (!tbody || window.location.pathname.includes('team-stock')) return;
+    const container = document.getElementById('data'); 
+    if (!container || window.location.pathname.includes('team-stock')) return;
 
     const user = sessionStorage.getItem('selectedUser'), path = window.location.pathname.toLowerCase();
-    let rowsHtml = data.map((item, index) => {
+    
+    let html = data.map((item, index) => {
         let q0 = Number(item['0243'] || 0), qU = Number(item[user] || 0);
         let displayQty = (path.includes('withdraw') || path.includes('showall')) ? q0 : qU;
         if (!path.includes('showall') && displayQty <= 0) return '';
         
         let actionUI = "";
         if (path.includes('showall')) {
-            actionUI = `<b style="color:${displayQty > 0 ? "#16a34a" : "#dc2626"};">${displayQty > 0 ? "In stock" : "Out of stock"}</b>`;
+            actionUI = displayQty > 0 ? 
+                `<span style="background:#dcfce7; color:#15803d; padding:6px 14px; border-radius:20px; font-weight:800; font-size:0.85rem; border:1px solid #bbf7d0;">In Stock</span>` :
+                `<span style="background:#fee2e2; color:#b91c1c; padding:6px 14px; border-radius:20px; font-weight:800; font-size:0.85rem; border:1px solid #fca5a5;">Out of Stock</span>`;
         } else if (path.includes('deduct')) {
-            actionUI = `<div style="display:flex; gap:5px; justify-content:flex-end; align-items:center;">
-                        <input type="text" id="wo_${index}" placeholder="WO#" style="width:65px; padding:6px; border:1px solid #ddd; border-radius:6px;">
-                        <input type="number" id="qty_${index}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
-                        <button onclick="window.doDeduct('${item.Material}', ${index})" style="background:#dc2626; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">Deduct</button></div>`;
+            actionUI = `
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="text" id="wo_${index}" placeholder="WO#" style="width:110px; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:600; font-size:0.9rem; outline:none;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:48px; padding:9px 6px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
+                    <button onclick="window.doDeduct('${item.Material}', ${index}, this)" style="background:linear-gradient(135deg, #ef4444, #dc2626); color:white; border:none; padding:9px 16px; border-radius:10px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(239,68,68,0.25); white-space:nowrap;">Deduct</button>
+                </div>`;
         } else {
             const isW = path.includes('withdraw');
-            actionUI = `<div style="display:flex; gap:5px; justify-content:flex-end; align-items:center;">
-                        <input type="number" id="qty_${index}" value="1" style="width:40px; padding:6px; text-align:center; border:1px solid #ddd; border-radius:6px;">
-                        <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${isW?'#003366':'#16a34a'}; color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:bold;">${isW?'Withdraw':'Return'}</button></div>`;
+            const bgGradient = isW ? 'linear-gradient(135deg, #003366, #001f3f)' : 'linear-gradient(135deg, #10b981, #059669)';
+            actionUI = `
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="number" id="qty_${index}" value="1" min="1" max="${displayQty}" style="width:48px; padding:9px 6px; text-align:center; border:1.5px solid #cbd5e1; border-radius:10px; font-weight:700; font-size:0.9rem; outline:none;">
+                    <button onclick="window.addToCart('${isW?'withdraw':'return'}','${item.Material}',${index},'${isW?'0243':user}','${isW?user:'0243'}')" style="background:${bgGradient}; color:white; border:none; padding:9px 16px; border-radius:10px; font-weight:bold; cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.15); white-space:nowrap;">${isW?'Withdraw':'Return'}</button>
+                </div>`;
         }
-        return `<tr><td style="padding:12px;"><b>${item.Material}</b><br><small>${item['Product Name']||''}</small></td><td align="center"><b>${displayQty}</b></td><td align="right">${actionUI}</td></tr>`;
+
+        return `
+        <div style="background:white; border-radius:16px; padding:18px; margin-bottom:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.02); display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="flex:1;">
+                    <div style="font-size:1.15rem; font-weight:800; color:#003366; letter-spacing:0.3px;">${item.Material}</div>
+                    <div style="font-size:0.95rem; color:#334155; font-weight:600; margin-top:3px; line-height:1.4;">${item['Product Name']||'-'}</div>
+                </div>
+                <div style="background:#f8fafc; border:1.5px solid #e2e8f0; padding:8px 16px; border-radius:12px; text-align:center; min-width:80px;">
+                    <span style="font-size:0.7rem; color:#64748b; font-weight:800; text-transform:uppercase; display:block;">Qty</span>
+                    <span style="font-size:1.3rem; font-weight:800; color:#0f172a; line-height:1;">${displayQty}</span>
+                </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; border-top:1px solid #f1f5f9; padding-top:12px;">
+                ${actionUI}
+            </div>
+        </div>`;
     }).join('');
-    tbody.innerHTML = rowsHtml || '<tr><td colspan="3" align="center" style="padding:40px; color:gray;">❌ No items found.</td></tr>';
+
+    container.innerHTML = html || '<div style="text-align:center; padding:50px; background:white; border-radius:16px; color:#94a3b8;">📦 No Material Found</div>';
 };
 
-/* --- 5. SEARCH & CACHE --- */
+/* --- 6. DATA LOADING & SEARCH --- */
 window.loadStockData = async function() {
     const cacheKey = 'qiagen_cache';
     const now = new Date().getTime();
@@ -299,7 +386,7 @@ window.loadStockData = async function() {
 };
 
 window.searchData = function(val) {
-    const query = val.toLowerCase();
+    const query = val.toLowerCase().trim();
     const filtered = window.allRows.filter(r => 
         String(r.Material).toLowerCase().includes(query) || 
         String(r['Product Name']||'').toLowerCase().includes(query)
@@ -309,17 +396,6 @@ window.searchData = function(val) {
     } else {
         window.renderTable(filtered);
     }
-};
-
-window.doDeduct = async function(mat, idx) {
-    const qty = document.getElementById('qty_' + idx).value;
-    const wo = document.getElementById('wo_' + idx).value.trim();
-    if (!wo) return alert("❌ Enter WO#");
-    const user = sessionStorage.getItem('selectedUser');
-    try {
-        const res = await fetch(`${API}?action=deduct&user=${encodeURIComponent(user)}&material=${encodeURIComponent(mat)}&qty=${qty}&wo=${encodeURIComponent(wo)}&pass=${MASTER_PASS}`).then(r => r.json());
-        if (res.success) { alert("✅ Deducted Successfully"); window.loadStockData(); }
-    } catch(e) { alert("❌ Error"); }
 };
 
 window.logout = () => { sessionStorage.clear(); localStorage.removeItem('qiagen_cart'); window.location.replace('index.html'); };
